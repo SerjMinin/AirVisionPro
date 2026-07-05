@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AirVision Pro — Кабинет</title>
+
+  <style>
+    /* ↓ Базовое оформление кабинета */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+    }
+    /* Верхняя панель (шапка) */
+    header {
+      background: #2563eb;              /* синяя шапка */
+      color: #fff;                     /* белый текст */
+      padding: 16px 24px;
+      display: flex;                   /* элементы в ряд */
+      justify-content: space-between;  /* заголовок слева, кнопка справа */
+      align-items: center;             /* по центру по вертикали */
+    }
+    header h1 { margin: 0; font-size: 20px; }
+    /* Кнопка "Выйти" в шапке */
+    .logout {
+      background: #fff;
+      color: #2563eb;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .logout:hover { background: #e0e7ff; }
+    /* Основная область под шапкой */
+    main { padding: 24px; }
+    .box {
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Шапка: название + кнопка выхода -->
+  <header>
+    <h1>AirVision Pro</h1>
+    <!-- При клике вызовется функция logout() (описана ниже) -->
+    <button class="logout" onclick="logout()">Выйти</button>
+  </header>
+
+  <!-- Основное содержимое кабинета -->
+  <main>
+    <div class="box">
+      <!-- Сюда скрипт подставит email вошедшего пользователя -->
+      <h2 id="greeting">Загрузка...</h2>
+      <p>Это ваш личный кабинет. Скоро здесь появятся данные и графики. 📊</p>
+    </div>
+  </main>
+
+  <!-- Подключаем библиотеку Supabase и наш config.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+
+  <script>
+    // Создаём клиент Supabase (как на странице входа)
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Функция-"охранник": проверяет, вошёл ли пользователь.
+    // Запускается СРАЗУ при открытии страницы.
+    async function checkAuth() {
+      // Спрашиваем Supabase: есть ли действующая сессия (пропуск)?
+      const { data } = await client.auth.getSession();
+
+      // data.session === null означает "пользователь НЕ вошёл"
+      if (!data.session) {
+        // Нет сессии → отправляем обратно на страницу входа:
+        window.location.href = "index.html";
+        return; // дальше код не выполняем
+      }
+
+      // Сессия есть → пользователь вошёл.
+      // Берём его email и показываем приветствие:
+      const email = data.session.user.email;
+      document.getElementById("greeting").textContent = "Здравствуйте, " + email;
+    }
+
+    // Функция выхода:
+    async function logout() {
+      await client.auth.signOut();          // завершаем сессию в Supabase
+      window.location.href = "index.html";  // возвращаемся на страницу входа
+    }
+
+    // Запускаем проверку сразу при загрузке страницы:
+    checkAuth();
+  </script>
+</body>
+</html>
