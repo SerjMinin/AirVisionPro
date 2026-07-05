@@ -1,127 +1,155 @@
 <!DOCTYPE html>
-<!-- ↑ Это документ HTML5 -->
 <html lang="ru">
-<!-- ↑ Корень страницы, основной язык — русский -->
-
 <head>
-  <meta charset="UTF-8">
-  <!-- ↑ Кодировка UTF-8 — русские буквы отображаются корректно -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- ↑ Адаптация под экраны телефонов -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AirVision Pro — Вход</title>
-  <!-- ↑ Заголовок вкладки браузера -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
 
   <style>
-    /* ↓ Простейшее оформление, чтобы форма выглядела аккуратно и по центру */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      font-family: Arial, sans-serif;   /* шрифт без засечек */
-      background: #f0f2f5;               /* светло-серый фон */
-      display: flex;                     /* включаем гибкое выравнивание */
-      justify-content: center;           /* центр по горизонтали */
-      align-items: center;               /* центр по вертикали */
-      height: 100vh;                     /* высота = весь экран */
-      margin: 0;                         /* убираем отступы браузера */
+      font-family: 'Exo 2', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at center, #0a2540 0%, #050a14 55%, #02040a 100%);
+      overflow: hidden;
     }
+
+    .glow {
+      position: absolute;
+      width: 520px; height: 520px;
+      background: radial-gradient(circle, rgba(41,155,255,0.35) 0%, rgba(41,155,255,0) 70%);
+      filter: blur(20px);
+      z-index: 0;
+    }
+
     .card {
-      background: #fff;                  /* белая карточка */
-      padding: 32px;                     /* внутренние отступы */
-      border-radius: 12px;               /* скруглённые углы */
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1); /* мягкая тень */
-      width: 320px;                      /* фиксированная ширина */
+      position: relative;
+      z-index: 1;
+      width: 340px;
+      padding: 44px 36px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(120, 190, 255, 0.25);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 0 40px rgba(41,155,255,0.25), inset 0 0 25px rgba(41,155,255,0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 22px;
     }
-    h1 { text-align: center; margin-top: 0; font-size: 22px; }
-    /* ↑ Заголовок по центру */
-    input {
-      width: 100%;                       /* поле на всю ширину карточки */
-      padding: 10px;                     /* внутренний отступ */
-      margin: 8px 0;                     /* отступы сверху/снизу */
-      border: 1px solid #ccc;            /* серая рамка */
-      border-radius: 6px;                /* скругление */
-      box-sizing: border-box;            /* чтобы padding не расширял поле */
+
+    .title {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: linear-gradient(90deg, #4db2ff, #2e8fff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 18px rgba(41,155,255,0.4);
+      margin-bottom: 6px;
     }
-    button {
-      width: 100%;                       /* кнопка на всю ширину */
-      padding: 10px;
-      background: #2563eb;               /* синий фон */
-      color: #fff;                       /* белый текст */
-      border: none;                      /* без рамки */
-      border-radius: 6px;
-      font-size: 16px;
-      cursor: pointer;                   /* курсор-рука при наведении */
-      margin-top: 8px;
+
+    .field {
+      width: 100%;
+      padding: 14px 20px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(120, 190, 255, 0.35);
+      color: #eaf4ff;
+      font-family: 'Exo 2', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: 0.25s;
     }
-    button:hover { background: #1d4ed8; } /* чуть темнее при наведении */
-    .msg {
-      text-align: center;                /* сообщение по центру */
-      margin-top: 12px;
-      font-size: 14px;
-      color: #e11d48;                    /* красный — для ошибок */
-      min-height: 18px;                  /* резерв места, чтобы не "прыгало" */
+    .field::placeholder { color: rgba(200, 225, 255, 0.5); }
+    .field:focus {
+      border-color: #4db2ff;
+      box-shadow: 0 0 14px rgba(77,178,255,0.5);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .btn {
+      margin-top: 6px;
+      padding: 14px 52px;
+      border-radius: 999px;
+      background: rgba(41, 155, 255, 0.12);
+      border: 1px solid rgba(120, 190, 255, 0.45);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      cursor: pointer;
+      transition: 0.25s;
+      box-shadow: 0 0 18px rgba(41,155,255,0.35), inset 0 0 12px rgba(41,155,255,0.1);
+
+      font-family: 'Exo 2', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background-clip: padding-box;
+    }
+    .btn span {
+      background: linear-gradient(90deg, #4db2ff, #2e8fff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 14px rgba(41,155,255,0.4);
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: #4db2ff;
+      box-shadow: 0 0 28px rgba(41,155,255,0.6), inset 0 0 16px rgba(41,155,255,0.15);
+    }
+    .btn:active { transform: translateY(0); }
+
+    .error {
+      color: #ff8080;
+      font-size: 13px;
+      min-height: 16px;
+      text-align: center;
     }
   </style>
 </head>
-
 <body>
-  <!-- ↓ Карточка с формой входа -->
+  <div class="glow"></div>
+
   <div class="card">
-    <h1>AirVision Pro</h1>
+    <div class="title">AirVision Pro</div>
 
-    <!-- Поле для email. id нужен, чтобы обратиться к полю из скрипта -->
-    <input type="email" id="email" placeholder="Email">
+    <input type="email" id="email" class="field" placeholder="Email" autocomplete="username" />
+    <input type="password" id="password" class="field" placeholder="Пароль" autocomplete="current-password" />
 
-    <!-- Поле для пароля. type="password" скрывает символы точками -->
-    <input type="password" id="password" placeholder="Пароль">
+    <div class="error" id="error"></div>
 
-    <!-- Кнопка входа. При клике вызовет функцию login() (описана ниже) -->
-    <button onclick="login()">Войти</button>
-
-    <!-- Сюда скрипт будет писать сообщения (ошибки/статус) -->
-    <p class="msg" id="message"></p>
+    <button class="btn" onclick="login()"><span>Войти</span></button>
   </div>
 
-  <!-- ↓ Подключаем библиотеку Supabase из интернета (CDN).
-       Она добавляет глобальный объект supabase для работы с сервером. -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- ↓ Подключаем наш файл с ключами (SUPABASE_URL и SUPABASE_ANON_KEY) -->
-  <script src="config.js"></script>
-
-  <!-- ↓ Наш собственный код входа -->
   <script>
-    // Создаём "клиент" — объект для общения с вашим Supabase.
-    // Он использует адрес и ключ из config.js.
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Функция входа. async — потому что запрос к серверу идёт не мгновенно.
     async function login() {
-      // Находим поля на странице по их id и берём введённые значения:
-      const email = document.getElementById("email").value;      // введённый email
-      const password = document.getElementById("password").value; // введённый пароль
-      const msg = document.getElementById("message");             // элемент для сообщений
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const errorBox = document.getElementById("error");
+      errorBox.textContent = "";
 
-      msg.style.color = "#555";        // серый цвет для нейтрального статуса
-      msg.textContent = "Проверяем..."; // показываем, что идёт проверка
-
-      // Отправляем логин и пароль в Supabase Auth и ЖДЁМ ответ (await):
-      const { data, error } = await client.auth.signInWithPassword({
-        email: email,        // передаём email
-        password: password   // передаём пароль
-      });
-
-      // Если Supabase вернул ошибку (неверный логин/пароль и т.п.):
-      if (error) {
-        msg.style.color = "#e11d48";              // красный
-        msg.textContent = "Ошибка: " + error.message; // текст ошибки
-        return;                                    // выходим, дальше не идём
-      }
-
-      // Если ошибки нет — вход успешен:
-      msg.style.color = "#16a34a";      // зелёный
-      msg.textContent = "Успешный вход! 🎉";
-      // Перенаправляем пользователя на главную страницу кабинета:
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if (error) { errorBox.textContent = "Неверный email или пароль"; return; }
       window.location.href = "dashboard.html";
-      // ↑ window.location.href = "..." — команда браузеру открыть другую страницу
     }
+
+    document.addEventListener("keydown", e => { if (e.key === "Enter") login(); });
   </script>
 </body>
 </html>
