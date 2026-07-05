@@ -11,6 +11,7 @@
       font-family: Arial, sans-serif;
       background: #f0f2f5;
       margin: 0;
+      visibility: hidden;   /* прячем страницу, пока не проверим вход */
     }
     /* Верхняя панель (шапка) */
     header {
@@ -72,10 +73,10 @@
     // Функция-"охранник": проверяет, вошёл ли пользователь.
     // Запускается СРАЗУ при открытии страницы.
     async function checkAuth() {
-      // Спрашиваем Supabase: есть ли действующая сессия (пропуск)?
+      // Спрашиваем Supabase: есть ли действующая сессия?
       const { data } = await client.auth.getSession();
 
-      // data.session === null означает "пользователь НЕ вошёл"
+      // Нет сессии → сразу редирект, страницу так и НЕ показываем:
       if (!data.session) {
         // Нет сессии → отправляем обратно на страницу входа:
         window.location.href = "index.html";
@@ -86,6 +87,8 @@
       // Берём его email и показываем приветствие:
       const email = data.session.user.email;
       document.getElementById("greeting").textContent = "Здравствуйте, " + email;
+      // Проверка пройдена — делаем страницу видимой:
+      document.body.style.visibility = "visible";
     }
 
     // Функция выхода:
