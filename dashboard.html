@@ -42,6 +42,24 @@
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
+    /* Ряд карточек со значениями */
+    .cards {
+      display: flex;          /* карточки в ряд */
+      gap: 16px;              /* промежуток между ними */
+      margin-top: 24px;       /* отступ сверху */
+      flex-wrap: wrap;        /* переносить на телефоне */
+    }
+    .card-value {
+      background: #fff;
+      padding: 20px 28px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
+      min-width: 120px;
+    }
+    .card-value .label { color: #666; font-size: 14px; }        /* подпись */
+    .card-value .value { font-size: 34px; font-weight: bold; }  /* число */
+    .card-value .unit  { color: #999; font-size: 13px; }        /* единица */
   </style>
 </head>
 
@@ -53,13 +71,30 @@
     <button class="logout" onclick="logout()">Выйти</button>
   </header>
 
-  <!-- Основное содержимое кабинета -->
+ <!-- Основное содержимое кабинета -->
   <main>
     <div class="box">
       <!-- Сюда скрипт подставит email вошедшего пользователя -->
       <h2 id="greeting">Загрузка...</h2>
       <p>Это ваш личный кабинет. Скоро здесь появятся данные и графики. 📊</p>
+     </div>
+
+     <!-- Контейнер для карточек с текущими значениями -->
+     <div class="cards">
+      <!-- Карточка температуры -->
+      <div class="card-value">
+        <div class="label">Температура</div>
+        <div class="value" id="val-temp">—</div>
+        <div class="unit">°C</div>
+      </div>
+      <!-- Карточка влажности -->
+      <div class="card-value">
+        <div class="label">Влажность</div>
+        <div class="value" id="val-rh">—</div>
+        <div class="unit">%</div>
+      </div>
     </div>
+
   </main>
 
   <!-- Подключаем библиотеку Supabase и наш config.js -->
@@ -89,12 +124,42 @@
       document.getElementById("greeting").textContent = "Здравствуйте, " + email;
       // Проверка пройдена — делаем страницу видимой:
       document.body.style.visibility = "visible";
+      // Загружаем текущие значения датчиков:
+      loadLatest();
     }
 
     // Функция выхода:
     async function logout() {
       await client.auth.signOut();          // завершаем сессию в Supabase
       window.location.href = "index.html";  // возвращаемся на страницу входа
+    }
+
+    // Загружает последнее значение одного параметра (key) и пишет его в элемент elementId.
+    async function loadOne(key, elementId) {
+      // Запрашиваем из таблицы measurements:
+      const { data, error } = await client
+        .from("measurements")             // из таблицы measurements
+        .select("val, ts_device")         // берём значение и время
+        .eq("serial", "OUT-0001")         // только уличное устройство
+        .eq("key", key)                   // только нужный параметр (temp/rh)
+        .order("ts_device", { ascending: false }) // новые сверху
+        .limit(1);                        // берём одну самую свежую строку
+
+      // Если ошибка или пусто — оставляем прочерк:
+      if (error || !data || data.length === 0) {
+        console.log("Нет данных для", key, error);
+        return;
+      }
+
+      // Берём значение из первой (единственной) строки и показываем:
+      const value = data[0].val;
+      document.getElementById(elementId).textContent = value;
+    }
+
+    // Загружает все нужные текущие значения:
+    async function loadLatest() {
+      loadOne("temp", "val-temp");   // температура → в карточку val-temp
+      loadOne("rh", "val-rh");       // влажность → в карточку val-rh
     }
 
     // Запускаем проверку сразу при загрузке страницы:
