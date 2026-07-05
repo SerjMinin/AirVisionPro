@@ -1,32 +1,125 @@
 <!DOCTYPE html>
-<!-- ↑ Говорит браузеру: это современный HTML5-документ -->
-
+<!-- ↑ Это документ HTML5 -->
 <html lang="ru">
-<!-- ↑ Корень страницы. lang="ru" — основной язык русский (для поисковиков и озвучки) -->
+<!-- ↑ Корень страницы, основной язык — русский -->
 
 <head>
-<!-- ↑ "Голова" страницы: служебная информация, которую пользователь не видит напрямую -->
-
   <meta charset="UTF-8">
-  <!-- ↑ Кодировка UTF-8 — чтобы русские буквы отображались правильно, без "кракозябр" -->
-
+  <!-- ↑ Кодировка UTF-8 — русские буквы отображаются корректно -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- ↑ Адаптация под экран телефона: ширина = ширине устройства, масштаб 100% -->
+  <!-- ↑ Адаптация под экраны телефонов -->
+  <title>AirVision Pro — Вход</title>
+  <!-- ↑ Заголовок вкладки браузера -->
 
-  <title>AirVision Pro</title>
-  <!-- ↑ Текст во вкладке браузера -->
-
+  <style>
+    /* ↓ Простейшее оформление, чтобы форма выглядела аккуратно и по центру */
+    body {
+      font-family: Arial, sans-serif;   /* шрифт без засечек */
+      background: #f0f2f5;               /* светло-серый фон */
+      display: flex;                     /* включаем гибкое выравнивание */
+      justify-content: center;           /* центр по горизонтали */
+      align-items: center;               /* центр по вертикали */
+      height: 100vh;                     /* высота = весь экран */
+      margin: 0;                         /* убираем отступы браузера */
+    }
+    .card {
+      background: #fff;                  /* белая карточка */
+      padding: 32px;                     /* внутренние отступы */
+      border-radius: 12px;               /* скруглённые углы */
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1); /* мягкая тень */
+      width: 320px;                      /* фиксированная ширина */
+    }
+    h1 { text-align: center; margin-top: 0; font-size: 22px; }
+    /* ↑ Заголовок по центру */
+    input {
+      width: 100%;                       /* поле на всю ширину карточки */
+      padding: 10px;                     /* внутренний отступ */
+      margin: 8px 0;                     /* отступы сверху/снизу */
+      border: 1px solid #ccc;            /* серая рамка */
+      border-radius: 6px;                /* скругление */
+      box-sizing: border-box;            /* чтобы padding не расширял поле */
+    }
+    button {
+      width: 100%;                       /* кнопка на всю ширину */
+      padding: 10px;
+      background: #2563eb;               /* синий фон */
+      color: #fff;                       /* белый текст */
+      border: none;                      /* без рамки */
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;                   /* курсор-рука при наведении */
+      margin-top: 8px;
+    }
+    button:hover { background: #1d4ed8; } /* чуть темнее при наведении */
+    .msg {
+      text-align: center;                /* сообщение по центру */
+      margin-top: 12px;
+      font-size: 14px;
+      color: #e11d48;                    /* красный — для ошибок */
+      min-height: 18px;                  /* резерв места, чтобы не "прыгало" */
+    }
+  </style>
 </head>
 
 <body>
-<!-- ↑ "Тело" страницы: всё, что видит пользователь -->
+  <!-- ↓ Карточка с формой входа -->
+  <div class="card">
+    <h1>AirVision Pro</h1>
 
-  <h1>AirVision Pro</h1>
-  <!-- ↑ Главный заголовок страницы (h1 — самый крупный) -->
+    <!-- Поле для email. id нужен, чтобы обратиться к полю из скрипта -->
+    <input type="email" id="email" placeholder="Email">
 
-  <p>Сайт работает! 🎉 Это временная страница-заглушка.</p>
-  <!-- ↑ Обычный абзац текста (p = paragraph) -->
+    <!-- Поле для пароля. type="password" скрывает символы точками -->
+    <input type="password" id="password" placeholder="Пароль">
 
+    <!-- Кнопка входа. При клике вызовет функцию login() (описана ниже) -->
+    <button onclick="login()">Войти</button>
+
+    <!-- Сюда скрипт будет писать сообщения (ошибки/статус) -->
+    <p class="msg" id="message"></p>
+  </div>
+
+  <!-- ↓ Подключаем библиотеку Supabase из интернета (CDN).
+       Она добавляет глобальный объект supabase для работы с сервером. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- ↓ Подключаем наш файл с ключами (SUPABASE_URL и SUPABASE_ANON_KEY) -->
+  <script src="config.js"></script>
+
+  <!-- ↓ Наш собственный код входа -->
+  <script>
+    // Создаём "клиент" — объект для общения с вашим Supabase.
+    // Он использует адрес и ключ из config.js.
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Функция входа. async — потому что запрос к серверу идёт не мгновенно.
+    async function login() {
+      // Находим поля на странице по их id и берём введённые значения:
+      const email = document.getElementById("email").value;      // введённый email
+      const password = document.getElementById("password").value; // введённый пароль
+      const msg = document.getElementById("message");             // элемент для сообщений
+
+      msg.style.color = "#555";        // серый цвет для нейтрального статуса
+      msg.textContent = "Проверяем..."; // показываем, что идёт проверка
+
+      // Отправляем логин и пароль в Supabase Auth и ЖДЁМ ответ (await):
+      const { data, error } = await client.auth.signInWithPassword({
+        email: email,        // передаём email
+        password: password   // передаём пароль
+      });
+
+      // Если Supabase вернул ошибку (неверный логин/пароль и т.п.):
+      if (error) {
+        msg.style.color = "#e11d48";              // красный
+        msg.textContent = "Ошибка: " + error.message; // текст ошибки
+        return;                                    // выходим, дальше не идём
+      }
+
+      // Если ошибки нет — вход успешен:
+      msg.style.color = "#16a34a";      // зелёный
+      msg.textContent = "Успешный вход! 🎉";
+      // Позже здесь будет переход на главную страницу (dashboard.html)
+    }
+  </script>
 </body>
 </html>
-<!-- ↑ Закрываем тело и корень документа -->
