@@ -1,228 +1,65 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AirVision Pro — Кабинет</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AirVision Pro</title>
 
-  <style>
-    /* ↓ Базовое оформление кабинета */
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f2f5;
-      margin: 0;
-      visibility: hidden;   /* прячем страницу, пока не проверим вход */
-    }
-    /* Верхняя панель (шапка) */
-    header {
-      background: #2563eb;              /* синяя шапка */
-      color: #fff;                     /* белый текст */
-      padding: 16px 24px;
-      display: flex;                   /* элементы в ряд */
-      justify-content: space-between;  /* заголовок слева, кнопка справа */
-      align-items: center;             /* по центру по вертикали */
-    }
-    header h1 { margin: 0; font-size: 20px; }
-    /* Кнопка "Выйти" в шапке */
-    .logout {
-      background: #fff;
-      color: #2563eb;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .logout:hover { background: #e0e7ff; }
-    /* Основная область под шапкой */
-    main { padding: 24px; }
-    .box {
-      background: #fff;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-    /* Ряд карточек со значениями */
-    .cards {
-      display: flex;          /* карточки в ряд */
-      gap: 16px;              /* промежуток между ними */
-      margin-top: 24px;       /* отступ сверху */
-      flex-wrap: wrap;        /* переносить на телефоне */
-    }
-    .card-value {
-      background: #fff;
-      padding: 20px 28px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      text-align: center;
-      min-width: 120px;
-    }
-    .card-value .label { color: #666; font-size: 14px; }        /* подпись */
-    .card-value .value { font-size: 34px; font-weight: bold; }  /* число */
-    .card-value .unit  { color: #999; font-size: 13px; }        /* единица */
-    /* Блок с графиком */
-    .chart-box {
-      background: #fff;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      margin-top: 24px;
-    }
-    .chart-box h3 { margin: 0 0 16px; color: #333; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="config.js"></script>
+  <script src="i18n.js"></script>
+
+  <!-- скрываем страницу до проверки входа -->
+  <style>body { visibility: hidden; }</style>
 </head>
+<body class="page-dash">
 
-<body>
-  <!-- Шапка: название + кнопка выхода -->
-  <header>
-    <h1>AirVision Pro</h1>
-    <!-- При клике вызовется функция logout() (описана ниже) -->
-    <button class="logout" onclick="logout()">Выйти</button>
+  <!-- ШАПКА -->
+  <header class="topbar">
+    <div class="brand">AirVision Pro</div>
+
+    <div class="status-group">
+      <div class="status-item"><span class="dot" id="dot-in"></span><span data-i18n="indoor">Дом</span>: <span id="sn-in">IN-0001</span></div>
+      <div class="status-item"><span class="dot" id="dot-out"></span><span data-i18n="outdoor">Улица</span>: <span id="sn-out">OUT-0001</span></div>
+      <div class="status-item"><span class="dot" id="dot-wifi"></span><span data-i18n="wifi">WiFi</span></div>
+    </div>
+
+    <div class="spacer"></div>
+    <div class="ver" id="ver">Версия v1.0</div>
+
+    <div class="top-actions">
+      <button class="icon-btn" onclick="toggleTheme()" title="Тема">🌓</button>
+      <button class="icon-btn" id="lang-btn" title="Язык / Language">🌐</button>
+      <div class="lang-menu" id="lang-menu"></div>
+      <button class="icon-btn" title="Настройки">⚙</button>
+      <button class="icon-btn" onclick="logout()" title="Выйти">⎋</button>
+    </div>
   </header>
 
- <!-- Основное содержимое кабинета -->
-  <main>
-    <div class="box">
-      <!-- Сюда скрипт подставит email вошедшего пользователя -->
-      <h2 id="greeting">Загрузка...</h2>
-      <p>Это ваш личный кабинет. Скоро здесь появятся данные и графики. 📊</p>
-     </div>
-
-     <!-- Контейнер для карточек с текущими значениями -->
-     <div class="cards">
-      <!-- Карточка температуры -->
-      <div class="card-value">
-        <div class="label">Температура</div>
-        <div class="value" id="val-temp">—</div>
-        <div class="unit">°C</div>
-      </div>
-      <!-- Карточка влажности -->
-      <div class="card-value">
-        <div class="label">Влажность</div>
-        <div class="value" id="val-rh">—</div>
-        <div class="unit">%</div>
-      </div>
+  <!-- ОБЛАСТЬ ГРАФИКА -->
+  <main class="chart-area">
+    <div class="chart-head">
+      <div class="chart-title" id="chart-title">Температура</div>
     </div>
-    <!-- ↓↓↓ Контейнер для графика температуры ↓↓↓ -->
     <div class="chart-box">
-      <h3>Температура за последние часы</h3>
-      <canvas id="chart-temp"></canvas>
+      <canvas id="chart"></canvas>
     </div>
-    <!-- ↑↑↑ КОНЕЦ ↑↑↑ -->
   </main>
 
-  <!-- Подключаем библиотеку Supabase и наш config.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <!-- Библиотека Chart.js для рисования графиков -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <!-- УМНЫЕ СОВЕТЫ -->
+  <div class="advice" id="advice" data-i18n="advice_default">Советы появятся по мере поступления данных.</div>
 
-  <script>
-    // Создаём клиент Supabase (как на странице входа)
-    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  <!-- ВКЛАДКИ-ЛИСТЫ -->
+  <nav class="tabs" id="tabs"></nav>
 
-    // Функция-"охранник": проверяет, вошёл ли пользователь.
-    // Запускается СРАЗУ при открытии страницы.
-    async function checkAuth() {
-      // Спрашиваем Supabase: есть ли действующая сессия?
-      const { data } = await client.auth.getSession();
-
-      // Нет сессии → сразу редирект, страницу так и НЕ показываем:
-      if (!data.session) {
-        // Нет сессии → отправляем обратно на страницу входа:
-        window.location.href = "index.html";
-        return; // дальше код не выполняем
-      }
-
-      // Сессия есть → пользователь вошёл.
-      // Берём его email и показываем приветствие:
-      const email = data.session.user.email;
-      document.getElementById("greeting").textContent = "Здравствуйте, " + email;
-      // Проверка пройдена — делаем страницу видимой:
-      document.body.style.visibility = "visible";
-      // Загружаем текущие значения датчиков:
-      loadLatest();
-            // Рисуем график температуры:
-      drawTempChart();
-    }
-
-    // Функция выхода:
-    async function logout() {
-      await client.auth.signOut();          // завершаем сессию в Supabase
-      window.location.href = "index.html";  // возвращаемся на страницу входа
-    }
-
-    // Загружает последнее значение одного параметра (key) и пишет его в элемент elementId.
-    async function loadOne(key, elementId) {
-      // Запрашиваем из таблицы measurements:
-      const { data, error } = await client
-        .from("measurements")             // из таблицы measurements
-        .select("val, ts_device")         // берём значение и время
-        .eq("serial", "OUT-0001")         // только уличное устройство
-        .eq("key", key)                   // только нужный параметр (temp/rh)
-        .order("ts_device", { ascending: false }) // новые сверху
-        .limit(1);                        // берём одну самую свежую строку
-
-      // Если ошибка или пусто — оставляем прочерк:
-      if (error || !data || data.length === 0) {
-        console.log("Нет данных для", key, error);
-        return;
-      }
-
-      // Берём значение из первой (единственной) строки и показываем:
-      const value = data[0].val;
-      document.getElementById(elementId).textContent = value;
-    }
-
-    // Загружает все нужные текущие значения:
-    async function loadLatest() {
-      loadOne("temp", "val-temp");   // температура → в карточку val-temp
-      loadOne("rh", "val-rh");       // влажность → в карточку val-rh
-    }
-// ↓↓↓ ВСТАВЛЯЕМ НОВУЮ ФУНКЦИЮ ЗДЕСЬ ↓↓↓
-    async function drawTempChart() {
-      const { data, error } = await client
-        .from("measurements")
-        .select("val, ts_device")
-        .eq("serial", "OUT-0001")
-        .eq("key", "temp")
-        .order("ts_device", { ascending: true });
-
-      if (error || !data || data.length === 0) {
-        console.log("Нет данных для графика", error);
-        return;
-      }
-
-      const labels = data.map(row => {
-        const d = new Date(row.ts_device * 1000);
-        return d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
-      });
-
-      const values = data.map(row => row.val);
-
-      const canvas = document.getElementById("chart-temp");
-      new Chart(canvas, {
-        type: "line",
-        data: {
-          labels: labels,
-          datasets: [{
-            label: "Температура, °C",
-            data: values,
-            borderColor: "#667eea",
-            backgroundColor: "rgba(102,126,234,0.1)",
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: true } }
-        }
-      });
-    }
-    // ↑↑↑ КОНЕЦ НОВОЙ ФУНКЦИИ ↑↑↑
-    // Запускаем проверку сразу при загрузке страницы:
-    checkAuth();
-  </script>
+  <script src="app.js"></script>
+  <script>startDashboard();</script>
 </body>
 </html>
