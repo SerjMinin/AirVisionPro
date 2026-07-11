@@ -188,3 +188,10 @@ body.page-dash  { display: flex; flex-direction: column; min-height: 100vh; }
 /* RTL (арабский) */
 html[dir="rtl"] .lang-switch { right: auto; left: 18px; }
 html[dir="rtl"] .lang-menu { right: auto; left: 0; }
+/* Стрелки листания времени */
+.range-btn.arrow { font-size: 16px; font-weight: 700; padding: 6px 12px; line-height: 1; }
+.range-btn.disabled { opacity: 0.3; pointer-events: none; }
+
+/* Область компаса центрируется */
+.chart-box { display: flex; align-items: center; justify-content: center; }
+#chart { width: 100% !important; }
