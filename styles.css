@@ -251,3 +251,11 @@ html[dir="rtl"] .lang-menu { right: auto; left: 0; }
 .api-name { flex:1; font-size:14px; color:var(--text); }
 .api-toggle { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-dim); white-space:nowrap; }
 .set-hint { font-size:13px; color:var(--text-dim); margin-bottom:10px; }
+/* Умные советы */
+.adv-scroll { max-height: 46vh; overflow-y: auto; padding-right: 6px; }
+.adv-row { padding: 5px 4px; border-bottom: 1px solid var(--card-border); }
+.adv-row .set-check { margin-bottom: 0; align-items: flex-start; }
+.adv-crit .set-check span { color: var(--error); font-weight: 600; }
+.adv-unavail { opacity: 0.45; }
+.adv-scroll::-webkit-scrollbar { width: 7px; }
+.adv-scroll::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 4px; }

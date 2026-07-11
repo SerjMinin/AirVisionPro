@@ -15,6 +15,7 @@
   <script src="i18n.js"></script>
   <script src="units.js"></script>
   <script src="params.js"></script>
+  <script src="advice.js"></script>
   <style>body { visibility: hidden; }</style>
 </head>
 <body class="page-dash">
@@ -60,18 +61,19 @@
       <div class="range-bar" id="range-bar"></div>
     </div>
 
-    <!-- вид: график -->
     <div class="chart-box" id="chart-box-wrap">
       <canvas id="chart"></canvas>
       <canvas id="compass"></canvas>
     </div>
 
-    <!-- вид: доп. вкладки -->
     <div class="extra-box" id="extra-view" style="display:none;">
+      <div id="geomag-panel" style="display:none;"><div class="set-hint" data-i18n="geomag_soon">Магнитные бури (NOAA SWPC, Kp) — раздел в разработке.</div></div>
       <div id="api-panel" style="display:none;"><div id="api-body"></div>
         <div style="margin-top:14px;"><button class="set-btn" onclick="saveApiOut()" data-i18n="set_save">Сохранить</button></div>
       </div>
-      <div id="advice-panel" style="display:none;"><div class="set-hint" data-i18n="advice_soon">Умные советы — раздел в разработке.</div></div>
+      <div id="advice-panel" style="display:none;"><div id="advice-body"></div>
+        <div style="margin-top:14px;"><button class="set-btn" onclick="saveAdvice()" data-i18n="set_save">Сохранить</button></div>
+      </div>
       <div id="smarthome-panel" style="display:none;"><div class="set-hint" data-i18n="smart_soon">Home Assistant / MQTT — раздел в разработке.</div></div>
     </div>
   </main>
@@ -79,7 +81,6 @@
   <div class="advice" id="advice" data-i18n="advice_default">Советы появятся по мере поступления данных.</div>
   <nav class="tabs" id="tabs"></nav>
 
-  <!-- Главные настройки -->
   <div class="modal" id="settings-modal">
     <div class="modal-card">
       <div class="modal-head"><h2 data-i18n="set_title">Настройки</h2>
@@ -93,7 +94,6 @@
     </div>
   </div>
 
-  <!-- По-страничные настройки -->
   <div class="modal" id="param-modal">
     <div class="modal-card">
       <div class="modal-head"><h2 id="param-set-title">Настройки</h2>

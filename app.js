@@ -1,16 +1,13 @@
 /* AirVision Pro — движок дашборда. */
 
 const APP_VERSION = "v1.0";
-const OUTDOOR_SN = "OUT-0001";
-const INDOOR_SN  = "IN-0001";
-
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentKey = PARAMS[0].key;
 let currentRange = "24h";
 let offsetSteps = 0;
 let chart = null;
-let currentView = "param";   // "param" | "api" | "advice" | "smarthome"
+let currentView = "param";   // param | geomag | api | advice | smarthome
 
 const RANGES = {
   "24h":   { sec: 24*3600,     ticks: 24, i18n: "r_24h"   },
@@ -30,7 +27,6 @@ function toggleTheme() { setTheme(getTheme() === "dark" ? "light" : "dark"); }
 function onThemeChanged() { if (currentView === "param") renderParam(currentKey); }
 function onLangChanged() { buildTabs(); buildRangeBar(); refreshView(); }
 
-/* ---- вкладки: параметры (по настройкам) + 3 доп. ---- */
 function buildTabs() {
   const bar = document.getElementById("tabs");
   if (!bar) return;
@@ -43,10 +39,8 @@ function buildTabs() {
     tab.onclick = () => { currentView="param"; currentKey = p.key; offsetSteps = 0; buildTabs(); refreshView(); };
     bar.appendChild(tab);
   });
-  // разделитель
   const sep = document.createElement("span"); sep.className = "tab-sep"; bar.appendChild(sep);
-  // три доп. вкладки
-  [["api","API OUT"],["advice",t("tab_advice")],["smarthome",t("tab_smart")]].forEach(([view,label]) => {
+  [["geomag",t("tab_geomag")],["api","API OUT"],["advice",t("tab_advice")],["smarthome",t("tab_smart")]].forEach(([view,label]) => {
     const tab = document.createElement("button");
     tab.className = "tab tab-extra" + (currentView===view ? " active" : "");
     tab.textContent = label;
@@ -59,8 +53,7 @@ function buildRangeBar() {
   const bar = document.getElementById("range-bar");
   if (!bar) return;
   bar.innerHTML = "";
-  if (currentView !== "param") return;  // диапазоны только для графиков
-
+  if (currentView !== "param") return;
   const left = document.createElement("button");
   left.className = "range-btn arrow"; left.textContent = "‹";
   left.onclick = () => { offsetSteps++; renderParam(currentKey); };
@@ -68,7 +61,6 @@ function buildRangeBar() {
   right.className = "range-btn arrow" + (offsetSteps === 0 ? " disabled" : "");
   right.textContent = "›"; right.title = t("to_now");
   right.onclick = () => { if (offsetSteps > 0) { offsetSteps--; renderParam(currentKey); } };
-
   bar.appendChild(left);
   ["24h","week","month","year"].forEach(code => {
     const b = document.createElement("button");
@@ -80,7 +72,6 @@ function buildRangeBar() {
   bar.appendChild(right);
 }
 
-/* ---- переключение вида ---- */
 function refreshView() {
   const chartArea = document.getElementById("chart-box-wrap");
   const extra = document.getElementById("extra-view");
@@ -88,21 +79,22 @@ function refreshView() {
   buildRangeBar();
   if (currentView === "param") {
     chartArea.style.display = "flex"; extra.style.display = "none"; gear.style.display = "flex";
+    document.getElementById("loc-badge").style.display = "inline-block";
     renderParam(currentKey);
   } else {
     chartArea.style.display = "none"; extra.style.display = "block"; gear.style.display = "none";
     document.getElementById("loc-badge").style.display = "none";
+    if (currentView === "geomag")    { document.getElementById("chart-title").textContent = t("tab_geomag"); showExtra("geomag"); }
     if (currentView === "api")       { document.getElementById("chart-title").textContent = "API OUT"; buildApiOut(); showExtra("api"); }
-    if (currentView === "advice")    { document.getElementById("chart-title").textContent = t("tab_advice"); showExtra("advice"); }
+    if (currentView === "advice")    { document.getElementById("chart-title").textContent = t("tab_advice"); buildAdvice(); showExtra("advice"); }
     if (currentView === "smarthome") { document.getElementById("chart-title").textContent = t("tab_smart"); showExtra("smarthome"); }
   }
 }
 
 function showExtra(which) {
-  const map = { api:"api-panel", advice:"advice-panel", smarthome:"smarthome-panel" };
-  ["api-panel","advice-panel","smarthome-panel"].forEach(id => {
-    document.getElementById(id).style.display = (map[which]===id) ? "block" : "none";
-  });
+  const ids = ["geomag-panel","api-panel","advice-panel","smarthome-panel"];
+  const map = { geomag:"geomag-panel", api:"api-panel", advice:"advice-panel", smarthome:"smarthome-panel" };
+  ids.forEach(id => document.getElementById(id).style.display = (map[which]===id) ? "block" : "none");
 }
 
 async function loadSeries(serial, key, from, to) {
@@ -136,8 +128,6 @@ async function renderParam(key) {
   if (currentView !== "param") return;
   const p = PARAMS.find(x => x.key === key);
   if (!p) return;
-  document.getElementById("loc-badge").style.display = "inline-block";
-
   if (p.type === "compass") { await renderCompass(p); return; }
   showCanvasGraph();
 
@@ -168,7 +158,6 @@ async function renderParam(key) {
       const groups = {};
       rows.forEach(r => {
         const prov = (r.provider || r.src || "sensor");
-        // фильтр по источникам
         const srcKey = prov.includes("meteo") ? "open-meteo" : (prov.includes("owm")||prov.includes("weather") ? "owm" : "sensor");
         if (SETTINGS.sources && SETTINGS.sources[srcKey] === false) return;
         (groups[prov] = groups[prov] || []).push(r);
@@ -186,18 +175,15 @@ async function renderParam(key) {
   }
 
   document.getElementById("chart-title").textContent = t(p.i18n) + (uLabel ? " (" + uLabel + ")" : "");
-
-  // подсказка по давлению с учётом порогов
   const advice = document.getElementById("advice");
   if (p.key === "pressure" && datasets.length && datasets[0].data.length) {
-    const lastHpa = Number(datasets[0].data[datasets[0].data.length-1].y); // уже в выбранной ед.
-    advice.textContent = t(p.i18n) + ": " + lastHpa.toFixed(unitId==="inHg"?2:0) + " " + uLabel;
+    const last = Number(datasets[0].data[datasets[0].data.length-1].y);
+    advice.textContent = t(p.i18n) + ": " + last.toFixed(unitId==="inHg"?2:0) + " " + uLabel;
   } else advice.textContent = t("advice_default");
 
   const isLight = getTheme() === "light";
   const gridColor = isLight ? "rgba(20,60,110,0.12)" : "rgba(120,190,255,0.15)";
   const tickColor = isLight ? "#0d2a4a" : "#eaf4ff";
-
   const xLabels = [];
   for (let i=0;i<=ticks;i++) xLabels.push(fmtTick(from + i*step, currentRange));
 
@@ -208,8 +194,7 @@ async function renderParam(key) {
       interaction:{ mode:"nearest", intersect:false },
       plugins:{ legend:{ labels:{ color:tickColor } },
         zoom:{ zoom:{ wheel:{enabled:true}, pinch:{enabled:true}, mode:"x" }, pan:{ enabled:true, mode:"x" } } },
-      scales:{
-        x:{ type:"linear", min:0, max:ticks, grid:{ color:gridColor },
+      scales:{ x:{ type:"linear", min:0, max:ticks, grid:{ color:gridColor },
           ticks:{ color:tickColor, stepSize:1, autoSkip:false, maxRotation:0, callback:v=>xLabels[v]??"" } },
         y:{ grid:{ color:gridColor }, ticks:{ color:tickColor } } }
     }

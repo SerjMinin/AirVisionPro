@@ -1,18 +1,20 @@
-/* AirVision Pro — настройки: главные + по-страничные. */
+/* AirVision Pro — настройки: главные + по-страничные + вкладки. */
 
 let SETTINGS = null;
 
 const API_SERVICES = [
-  { id:"sensor_community", name:"sensor.community" },
-  { id:"madavi",          name:"madavi.de" },
-  { id:"aircms",          name:"aircms.online" },
-  { id:"opensensemap",    name:"opensensemap.org" },
-  { id:"thingspeak",      name:"ThingSpeak" },
-  { id:"ha_mqtt",         name:"Home Assistant / MQTT (Mosquitto)" },
-  { id:"custom_json",     name:"Custom JSON" },
-  { id:"narodmon",        name:"Narodmon.ru" },
+  { id:"aircms",          name:"AirCMS.online" },
   { id:"blynk",           name:"Blynk" },
-  { id:"thingsboard",     name:"ThingsBoard" }
+  { id:"custom_json",     name:"Custom JSON" },
+  { id:"ha",              name:"Home Assistant" },
+  { id:"madavi",          name:"Madavi.de" },
+  { id:"mosquitto",       name:"Mosquitto" },
+  { id:"mqtt",            name:"MQTT" },
+  { id:"narodmon",        name:"Narodmon.ru" },
+  { id:"opensensemap",    name:"openSenseMap.org" },
+  { id:"sensor_community",name:"Sensor.community" },
+  { id:"thingsboard",     name:"ThingsBoard" },
+  { id:"thingspeak",      name:"ThingSpeak" }
 ];
 
 const DEFAULT_SETTINGS = {
@@ -23,10 +25,10 @@ const DEFAULT_SETTINGS = {
   units: { temp:"C", pressure:"hPa", wind_spd:"ms", rad:"uSv", co2:"ppm", co:"ppm" },
   temp_round: 1,
   pressure_auto: true,
-  pressure_thr: { anom_low:970, low:1000, normal:1025, high:1040 }, // на уровне моря
+  pressure_thr: { anom_low:970, low:1000, normal:1025, high:1040, anom_high:1060 },
   tabs: {},
-  api_out: {},          // id -> { enabled:bool, cfg:{...} }
-  advice: { mode:"sequence", critical_first:true, items:{} }
+  api_out: {},
+  advice: { mode:"sequence", critical_first:true, disabled:{} }
 };
 
 function mergeSettings(base, extra) {
@@ -112,26 +114,28 @@ function readSettingsForm() {
 
 function openSettings() { buildSettingsForm(); document.getElementById("settings-modal").classList.add("open"); }
 function closeSettings() { document.getElementById("settings-modal").classList.remove("open"); }
-async function applySettings() { readSettingsForm(); await saveSettings(); closeSettings(); buildTabs(); renderParam(currentKey); }
+async function applySettings() { readSettingsForm(); await saveSettings(); closeSettings(); buildTabs(); refreshView(); }
 
 /* ============ ПО-СТРАНИЧНЫЕ НАСТРОЙКИ ============ */
+function altSum() { return (SETTINGS.alt_sea||0) + (SETTINGS.alt_ground||0); }
+
 function renderThresholdsInputs() {
   const s = SETTINGS;
   const u = s.units.pressure;
   const auto = s.pressure_auto !== false;
-  const eff = effectivePressureThresholds(s);            // hPa
+  const eff = effectivePressureThresholds(s);
   const show = v => convertUnit(v, "pressure", u).toFixed(u==="inHg"?2:0);
   const ul = unitLabel("pressure", u);
-
-  // в авто-режиме показываем вычисленные (только чтение), в ручном — редактируемые (в hPa на ур. моря)
   const box = document.getElementById("thr-box");
+
   if (auto) {
     box.innerHTML = `
-      <div class="set-hint">${t("thr_auto_hint")} (${(s.alt_sea||0)} м)</div>
+      <div class="set-hint">${t("thr_auto_hint")} (${(s.alt_sea||0)}м + ${(s.alt_ground||0)}м)</div>
       <div class="set-row"><label>${t("thr_anom_low")}</label><span>${show(eff.anom_low)} ${ul}</span></div>
       <div class="set-row"><label>${t("thr_low")}</label><span>${show(eff.low)} ${ul}</span></div>
       <div class="set-row"><label>${t("thr_normal")}</label><span>${show(eff.normal)} ${ul}</span></div>
-      <div class="set-row"><label>${t("thr_high")}</label><span>${show(eff.high)} ${ul}</span></div>`;
+      <div class="set-row"><label>${t("thr_high")}</label><span>${show(eff.high)} ${ul}</span></div>
+      <div class="set-row"><label>${t("thr_anom_high")}</label><span>${show(eff.anom_high)} ${ul}</span></div>`;
   } else {
     const b = s.pressure_thr;
     box.innerHTML = `
@@ -139,7 +143,8 @@ function renderThresholdsInputs() {
       <div class="set-row"><label>${t("thr_anom_low")}</label><input id="thr_al" class="set-input" type="number" value="${show(b.anom_low)}"></div>
       <div class="set-row"><label>${t("thr_low")}</label><input id="thr_l" class="set-input" type="number" value="${show(b.low)}"></div>
       <div class="set-row"><label>${t("thr_normal")}</label><input id="thr_n" class="set-input" type="number" value="${show(b.normal)}"></div>
-      <div class="set-row"><label>${t("thr_high")}</label><input id="thr_h" class="set-input" type="number" value="${show(b.high)}"></div>`;
+      <div class="set-row"><label>${t("thr_high")}</label><input id="thr_h" class="set-input" type="number" value="${show(b.high)}"></div>
+      <div class="set-row"><label>${t("thr_anom_high")}</label><input id="thr_ah" class="set-input" type="number" value="${show(b.anom_high)}"></div>`;
   }
 }
 
@@ -147,7 +152,7 @@ function buildParamSettings() {
   const p = PARAMS.find(x => x.key === currentKey);
   const s = SETTINGS;
   const g = PARAM_UNIT_GROUP[p.key];
-  let html = `<div class="set-section"><h3>${t(p.i18n)}</h3>`;
+  let html = `<div class="set-section">`;
   if (g) html += `<div class="set-row"><label>${t("set_unit")}</label>${selHtml("pu_unit", UNITS[g].opts, s.units[g])}</div>`;
   else   html += `<div class="set-row"><label>${t("set_unit")}</label><span>${p.unit || t("unit_none")} — ${t("unit_fixed")}</span></div>`;
   if (p.key === "temp")
@@ -157,15 +162,13 @@ function buildParamSettings() {
   if (p.key === "pressure") {
     html += `<div class="set-section"><h3>${t("set_pressure_thr")}</h3>
       <label class="set-check"><input type="checkbox" id="thr_auto" ${s.pressure_auto!==false?"checked":""}> ${t("thr_auto")}</label>
-      <div id="thr-box"></div>
-    </div>`;
+      <div id="thr-box"></div></div>`;
   }
   document.getElementById("param-set-title").textContent = t("set_page") + t(p.i18n);
   document.getElementById("param-body").innerHTML = html;
 
   if (p.key === "pressure") {
     renderThresholdsInputs();
-    // при смене единицы прямо в этом окне — перерисовать значения порогов
     const uSel = document.getElementById("pu_unit");
     if (uSel) uSel.addEventListener("change", () => { SETTINGS.units.pressure = uSel.value; renderThresholdsInputs(); });
     document.getElementById("thr_auto").addEventListener("change", e => { SETTINGS.pressure_auto = e.target.checked; renderThresholdsInputs(); });
@@ -185,16 +188,13 @@ async function applyParamSettings() {
     s.pressure_auto = document.getElementById("thr_auto").checked;
     if (!s.pressure_auto) {
       const u = s.units.pressure;
-      const toH = v => {  // из выбранной единицы обратно в hPa
-        if (u === "mmHg") return v/0.750062;
-        if (u === "inHg") return v/0.0295300;
-        return v; // hPa/mbar
-      };
+      const toH = v => { if (u==="mmHg") return v/0.750062; if (u==="inHg") return v/0.0295300; return v; };
       s.pressure_thr = {
         anom_low: toH(parseFloat(document.getElementById("thr_al").value)),
         low:      toH(parseFloat(document.getElementById("thr_l").value)),
         normal:   toH(parseFloat(document.getElementById("thr_n").value)),
-        high:     toH(parseFloat(document.getElementById("thr_h").value))
+        high:     toH(parseFloat(document.getElementById("thr_h").value)),
+        anom_high:toH(parseFloat(document.getElementById("thr_ah").value))
       };
     }
   }
@@ -212,15 +212,48 @@ function buildApiOut() {
       <button class="set-btn" onclick="alert('${t("api_soon")}')">${t("api_config")}</button>
     </div>`;
   }).join("");
-  document.getElementById("api-body").innerHTML = `
-    <div class="set-hint">${t("api_hint")}</div>${rows}`;
+  document.getElementById("api-body").innerHTML = `<div class="set-hint">${t("api_hint")}</div>${rows}`;
 }
 async function saveApiOut() {
   const s = SETTINGS;
-  API_SERVICES.forEach(svc => {
-    s.api_out[svc.id] = s.api_out[svc.id] || {};
-    s.api_out[svc.id].enabled = document.getElementById("api_en_"+svc.id).checked;
+  API_SERVICES.forEach(svc => { s.api_out[svc.id] = s.api_out[svc.id] || {}; s.api_out[svc.id].enabled = document.getElementById("api_en_"+svc.id).checked; });
+  await saveSettings(); alert(t("api_saved"));
+}
+
+/* ============ ВКЛАДКА УМНЫЕ СОВЕТЫ ============ */
+function buildAdvice() {
+  const s = SETTINGS;
+  const cfg = s.config;
+  const rows = ADVICE_LIST.map(it => {
+    const avail = adviceAvailable(it, cfg);
+    const off = s.advice.disabled[it.id] === true;
+    const checked = (!off && avail) ? "checked" : "";
+    const dis = avail ? "" : "disabled";
+    const cls = "adv-row" + (it.crit ? " adv-crit" : "") + (avail ? "" : " adv-unavail");
+    return `<div class="${cls}">
+      <label class="set-check"><input type="checkbox" id="adv_${it.id}" ${checked} ${dis}> <span>${it.text}</span></label>
+    </div>`;
+  }).join("");
+
+  document.getElementById("advice-body").innerHTML = `
+    <div class="set-section"><h3>${t("adv_output")}</h3>
+      <div class="set-row"><label>${t("adv_mode")}</label>
+        ${selHtml("adv_mode", [{id:"sequence",label:t("adv_seq")},{id:"marquee",label:t("adv_marquee")}], s.advice.mode)}</div>
+      <label class="set-check"><input type="checkbox" id="adv_critfirst" ${s.advice.critical_first?"checked":""}> ${t("adv_crit_first")}</label>
+    </div>
+    <div class="set-section"><h3>${t("adv_list")}</h3>
+      <div class="set-hint">${t("adv_hint")}</div>
+      <div class="adv-scroll">${rows}</div>
+    </div>`;
+}
+async function saveAdvice() {
+  const s = SETTINGS;
+  s.advice.mode = document.getElementById("adv_mode").value;
+  s.advice.critical_first = document.getElementById("adv_critfirst").checked;
+  s.advice.disabled = {};
+  ADVICE_LIST.forEach(it => {
+    const el = document.getElementById("adv_"+it.id);
+    if (el && !el.disabled && !el.checked) s.advice.disabled[it.id] = true;
   });
-  await saveSettings();
-  alert(t("api_saved"));
+  await saveSettings(); alert(t("api_saved"));
 }
