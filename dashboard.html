@@ -50,9 +50,12 @@
 
   <main class="chart-area">
     <div class="chart-head">
-      <div style="display:flex; align-items:center; gap:12px;">
+      <div style="display:flex; align-items:center; gap:10px;">
         <div class="chart-title" id="chart-title">Температура</div>
         <span class="loc-badge" id="loc-badge">Улица</span>
+        <button class="icon-btn" id="param-gear" onclick="openParamSettings()" title="Настройки параметра">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a7 7 0 0 0-1.7-1l-.4-2.5h-4l-.4 2.5a7 7 0 0 0-1.7 1l-2.3-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.3 1 2-3.5-2-1.5a7 7 0 0 0 .1-1z"/></svg>
+        </button>
       </div>
       <div class="range-bar" id="range-bar"></div>
     </div>
@@ -65,7 +68,7 @@
   <div class="advice" id="advice" data-i18n="advice_default">Советы появятся по мере поступления данных.</div>
   <nav class="tabs" id="tabs"></nav>
 
-  <!-- Модальное окно настроек -->
+  <!-- Главные настройки -->
   <div class="modal" id="settings-modal">
     <div class="modal-card">
       <div class="modal-head">
@@ -78,6 +81,23 @@
       <div class="modal-foot">
         <button class="set-btn ghost" onclick="closeSettings()" data-i18n="set_cancel">Отмена</button>
         <button class="set-btn" onclick="applySettings()" data-i18n="set_save">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- По-страничные настройки -->
+  <div class="modal" id="param-modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="param-set-title">Настройки</h2>
+        <button class="icon-btn" onclick="closeParamSettings()" title="✕">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="param-body"></div>
+      <div class="modal-foot">
+        <button class="set-btn ghost" onclick="closeParamSettings()" data-i18n="set_cancel">Отмена</button>
+        <button class="set-btn" onclick="applyParamSettings()" data-i18n="set_save">Сохранить</button>
       </div>
     </div>
   </div>

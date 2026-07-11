@@ -237,3 +237,8 @@ html[dir="rtl"] .lang-menu { right: auto; left: 0; }
 }
 .set-btn:hover { background: rgba(41,155,255,0.28); }
 .set-btn.ghost { background: transparent; border-color: var(--card-border); color: var(--text-dim); }
+/* Фикс: option не должен быть белым на белом */
+.set-input option { background: var(--menu-bg); color: var(--text); }
+
+/* Кнопка настроек на странице параметра */
+#param-gear svg { width: 22px; height: 22px; }
