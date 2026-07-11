@@ -30,17 +30,20 @@ html[data-theme="light"] {
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
 
 body {
   font-family: 'Exo 2', sans-serif;
-  min-height: 100vh;
   color: var(--text);
   background: radial-gradient(ellipse at center, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
   transition: background 0.4s, color 0.4s;
 }
 
-body.page-login { display: flex; align-items: center; justify-content: center; overflow: hidden; }
-body.page-dash  { display: flex; flex-direction: column; min-height: 100vh; }
+/* Вход — центрирование */
+body.page-login { display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+
+/* Дашборд — фиксирован по высоте экрана, без прокрутки страницы */
+body.page-dash { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
 .glow {
   position: absolute; width: 520px; height: 520px;
@@ -90,28 +93,22 @@ body.page-dash  { display: flex; flex-direction: column; min-height: 100vh; }
 
 .error { color: var(--error); font-size: 13px; min-height: 16px; text-align: center; }
 
-/* ---------- ИКОНКИ: прозрачный фон, все равные, крупнее (глобус +50%) ---------- */
+/* ---------- Иконки ---------- */
 .lang-switch { position: fixed; top: 18px; right: 18px; z-index: 50; }
-
 .icon-btn {
-  width: 48px; height: 48px;
-  background: transparent;          /* прозрачный фон */
-  border: none;
-  color: var(--accent-1);
-  font-size: 27px;                  /* крупнее (было ~20) */
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: 0.25s;
+  width: 48px; height: 48px; background: transparent; border: none;
+  color: var(--accent-1); font-size: 27px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: 0.25s;
   filter: drop-shadow(0 0 6px var(--card-shadow));
 }
 .icon-btn:hover { transform: scale(1.1); filter: drop-shadow(0 0 12px var(--accent-1)); }
-.icon-btn svg { width: 27px; height: 27px; }   /* для SVG-иконок */
+.icon-btn svg { width: 27px; height: 27px; }
 
 .lang-menu {
   position: absolute; top: 54px; right: 0; min-width: 160px;
   background: var(--card-bg); border: 1px solid var(--card-border);
   border-radius: 14px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 0 24px var(--card-shadow); overflow: hidden; display: none;
+  box-shadow: 0 0 24px var(--card-shadow); overflow: hidden; display: none; z-index: 60;
 }
 .lang-menu.open { display: block; }
 .lang-menu button {
@@ -122,8 +119,10 @@ body.page-dash  { display: flex; flex-direction: column; min-height: 100vh; }
 .lang-menu button:hover { background: rgba(41,155,255,0.15); }
 
 /* ============================================================ ДАШБОРД ============================================================ */
+
+/* Шапка — фиксированная высота */
 .topbar {
-  position: sticky; top: 0; z-index: 40;
+  flex: 0 0 auto;
   display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
   padding: 10px 20px; background: var(--card-bg);
   border-bottom: 1px solid var(--card-border);
@@ -143,34 +142,52 @@ body.page-dash  { display: flex; flex-direction: column; min-height: 100vh; }
 .ver { font-size: 12px; color: var(--text-dim); }
 .top-actions { display: flex; align-items: center; gap: 6px; position: relative; }
 
-.chart-area { flex: 1; padding: 22px; display: flex; flex-direction: column; gap: 16px; }
-.chart-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+/* Область графика — занимает всё между шапкой и вкладками */
+.chart-area {
+  flex: 1 1 auto; min-height: 0;      /* критично: разрешает сжатие под экран */
+  padding: 16px 22px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.chart-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
 .chart-title { font-size: 22px; font-weight: 600; }
 .loc-badge {
   font-size: 12px; padding: 4px 12px; border-radius: 999px;
-  background: rgba(41,155,255,0.15); border: 1px solid var(--card-border); color: var(--accent-1);
+  background: rgba(41,155,255,0.15); border: 1px solid var(--card-border); color: var(--accent-1); white-space: nowrap;
 }
-.chart-box {
-  flex: 1; min-height: 340px; position: relative;
-  background: var(--card-bg); border: 1px solid var(--card-border);
-  border-radius: 16px; padding: 18px;
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 0 24px var(--card-shadow);
-}
-.range-bar { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.range-bar { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
 .range-btn {
   padding: 6px 12px; border-radius: 8px; font-family: 'Exo 2', sans-serif; font-size: 12px;
-  background: transparent; border: 1px solid var(--card-border); color: var(--text-dim); cursor: pointer; transition: 0.2s;
+  background: transparent; border: 1px solid var(--card-border); color: var(--text-dim); cursor: pointer; transition: 0.2s; white-space: nowrap;
 }
 .range-btn:hover { color: var(--text); background: rgba(41,155,255,0.1); }
 .range-btn.active { color: var(--text); background: rgba(41,155,255,0.2); box-shadow: 0 0 10px var(--card-shadow); }
+.range-btn.arrow { font-size: 16px; font-weight: 700; padding: 6px 12px; line-height: 1; }
+.range-btn.disabled { opacity: 0.3; pointer-events: none; }
 
+/* Бокс графика — заполняет остаток, canvas вписывается */
+.chart-box {
+  flex: 1 1 auto; min-height: 0; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  border-radius: 16px; padding: 14px;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 0 24px var(--card-shadow);
+  overflow: hidden;
+}
+#chart { width: 100% !important; height: 100% !important; }
+#compass { display: none; }
+
+/* Умные советы — фиксированная высота */
 .advice {
-  margin: 0 22px 12px; padding: 14px 18px; border-radius: 14px; font-size: 14px;
+  flex: 0 0 auto;
+  margin: 0 22px 10px; padding: 12px 18px; border-radius: 14px; font-size: 14px;
   background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-dim);
 }
 
+/* Вкладки — фиксированная высота внизу */
 .tabs {
+  flex: 0 0 auto;
   display: flex; gap: 4px; overflow-x: auto; padding: 6px 12px 10px;
   border-top: 1px solid var(--card-border); background: var(--card-bg);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
@@ -181,17 +198,9 @@ body.page-dash  { display: flex; flex-direction: column; min-height: 100vh; }
 }
 .tab:hover { color: var(--text); background: rgba(41,155,255,0.10); }
 .tab.active { color: var(--text); background: rgba(41,155,255,0.18); border-color: var(--card-border); box-shadow: 0 0 14px var(--card-shadow); }
-.tab.disabled { opacity: 0.35; pointer-events: none; }
 .tabs::-webkit-scrollbar { height: 6px; }
 .tabs::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 3px; }
 
 /* RTL (арабский) */
 html[dir="rtl"] .lang-switch { right: auto; left: 18px; }
 html[dir="rtl"] .lang-menu { right: auto; left: 0; }
-/* Стрелки листания времени */
-.range-btn.arrow { font-size: 16px; font-weight: 700; padding: 6px 12px; line-height: 1; }
-.range-btn.disabled { opacity: 0.3; pointer-events: none; }
-
-/* Область компаса центрируется */
-.chart-box { display: flex; align-items: center; justify-content: center; }
-#chart { width: 100% !important; }
