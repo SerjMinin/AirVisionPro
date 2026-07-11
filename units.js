@@ -1,6 +1,5 @@
-/* AirVision Pro — единицы и пересчёт.
-   Базовые единицы (как приходят с устройств):
-   temp=°C, pressure=hPa, wind_spd=m/s, rad=µSv/h, co2=ppm, co=ppm */
+/* AirVision Pro — единицы, пересчёт, пороги давления по высоте.
+   Базовые единицы: temp=°C, pressure=hPa, wind_spd=m/s, rad=µSv/h, co2=ppm, co=ppm */
 
 const UNITS = {
   temp:     { def:"C",   opts:[ {id:"C",label:"°C"}, {id:"F",label:"°F"} ] },
@@ -36,7 +35,23 @@ function unitLabel(group, id) {
   return o ? o.label : "";
 }
 
-/* какой параметр к какой группе единиц относится (пусто = фиксированная единица) */
-const PARAM_UNIT_GROUP = {
-  temp:"temp", pressure:"pressure", wind_spd:"wind_spd", rad:"rad", co2:"co2", co:"co"
-};
+const PARAM_UNIT_GROUP = { temp:"temp", pressure:"pressure", wind_spd:"wind_spd", rad:"rad", co2:"co2", co:"co" };
+
+/* Барометрическая формула (ISA): порог с уровня моря -> на высоту H (м), результат в hPa */
+function pressureAtAltitude(p0_hPa, altitude_m) {
+  const H = altitude_m || 0;
+  return p0_hPa * Math.pow(1 - 0.0065 * H / 288.15, 5.255);
+}
+
+/* Итоговые пороги давления в hPa с учётом авто/ручного режима и высоты */
+function effectivePressureThresholds(s) {
+  const base = s.pressure_thr; // на уровне моря
+  if (s.pressure_auto === false) return { ...base };
+  const H = s.alt_sea || 0;
+  return {
+    anom_low: pressureAtAltitude(base.anom_low, H),
+    low:      pressureAtAltitude(base.low, H),
+    normal:   pressureAtAltitude(base.normal, H),
+    high:     pressureAtAltitude(base.high, H)
+  };
+}

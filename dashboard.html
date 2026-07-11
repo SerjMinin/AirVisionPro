@@ -59,9 +59,20 @@
       </div>
       <div class="range-bar" id="range-bar"></div>
     </div>
-    <div class="chart-box">
+
+    <!-- вид: график -->
+    <div class="chart-box" id="chart-box-wrap">
       <canvas id="chart"></canvas>
       <canvas id="compass"></canvas>
+    </div>
+
+    <!-- вид: доп. вкладки -->
+    <div class="extra-box" id="extra-view" style="display:none;">
+      <div id="api-panel" style="display:none;"><div id="api-body"></div>
+        <div style="margin-top:14px;"><button class="set-btn" onclick="saveApiOut()" data-i18n="set_save">Сохранить</button></div>
+      </div>
+      <div id="advice-panel" style="display:none;"><div class="set-hint" data-i18n="advice_soon">Умные советы — раздел в разработке.</div></div>
+      <div id="smarthome-panel" style="display:none;"><div class="set-hint" data-i18n="smart_soon">Home Assistant / MQTT — раздел в разработке.</div></div>
     </div>
   </main>
 
@@ -71,11 +82,8 @@
   <!-- Главные настройки -->
   <div class="modal" id="settings-modal">
     <div class="modal-card">
-      <div class="modal-head">
-        <h2 data-i18n="set_title">Настройки</h2>
-        <button class="icon-btn" onclick="closeSettings()" title="✕">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
-        </button>
+      <div class="modal-head"><h2 data-i18n="set_title">Настройки</h2>
+        <button class="icon-btn" onclick="closeSettings()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="modal-body" id="settings-body"></div>
       <div class="modal-foot">
@@ -88,11 +96,8 @@
   <!-- По-страничные настройки -->
   <div class="modal" id="param-modal">
     <div class="modal-card">
-      <div class="modal-head">
-        <h2 id="param-set-title">Настройки</h2>
-        <button class="icon-btn" onclick="closeParamSettings()" title="✕">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
-        </button>
+      <div class="modal-head"><h2 id="param-set-title">Настройки</h2>
+        <button class="icon-btn" onclick="closeParamSettings()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="modal-body" id="param-body"></div>
       <div class="modal-foot">
