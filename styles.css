@@ -209,3 +209,31 @@ body.page-dash { display: flex; flex-direction: column; height: 100vh; overflow:
 /* RTL (арабский) */
 html[dir="rtl"] .lang-switch { right: auto; left: 18px; }
 html[dir="rtl"] .lang-menu { right: auto; left: 0; }
+/* Модальное окно настроек */
+.modal { position: fixed; inset: 0; z-index: 500; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); }
+.modal.open { display: flex; }
+.modal-card {
+  width: min(560px, 92vw); max-height: 88vh; display: flex; flex-direction: column;
+  background: var(--menu-bg); border: 1px solid var(--accent-1); border-radius: 18px;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+}
+.modal-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--card-border); }
+.modal-head h2 { font-size: 20px; color: var(--text); }
+.modal-body { flex: 1 1 auto; overflow-y: auto; padding: 12px 20px; }
+.modal-foot { flex: 0 0 auto; display: flex; gap: 10px; justify-content: flex-end; padding: 14px 20px; border-top: 1px solid var(--card-border); }
+.set-section { margin-bottom: 18px; }
+.set-section h3 { font-size: 14px; color: var(--accent-1); margin-bottom: 8px; border-bottom: 1px solid var(--card-border); padding-bottom: 4px; }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.set-row label { font-size: 14px; color: var(--text); }
+.set-input {
+  padding: 7px 12px; border-radius: 8px; background: var(--field-bg); border: 1px solid var(--field-border);
+  color: var(--text); font-family: 'Exo 2', sans-serif; font-size: 14px; outline: none; min-width: 150px;
+}
+.set-check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); margin-bottom: 6px; cursor: pointer; }
+.set-tabs-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 16px; }
+.set-btn {
+  padding: 9px 22px; border-radius: 10px; font-family: 'Exo 2', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s;
+  background: rgba(41,155,255,0.15); border: 1px solid var(--accent-1); color: var(--accent-1);
+}
+.set-btn:hover { background: rgba(41,155,255,0.28); }
+.set-btn.ghost { background: transparent; border-color: var(--card-border); color: var(--text-dim); }

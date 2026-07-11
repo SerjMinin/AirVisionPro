@@ -291,7 +291,8 @@ async function refreshStatus() {
 async function startDashboard() {
   if (!(await guard())) return;
   document.body.style.visibility = "visible";
+  await loadSettings();                 // грузим настройки из Supabase/кэша
   buildTabs(); buildRangeBar(); await refreshStatus();
   renderParam(currentKey);
-  window.addEventListener("resize", () => renderParam(currentKey));  // перерисовка под размер экрана
+  window.addEventListener("resize", () => renderParam(currentKey));
 }
