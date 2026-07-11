@@ -14,6 +14,7 @@ html[data-theme="dark"] {
   --field-bg: rgba(255,255,255,0.03);
   --field-border: rgba(120,190,255,0.35);
   --error: #ff8080; --ok: #4dff9d; --warn: #ffcf4d;
+  --menu-bg: #0c1f38;                 /* плотная подложка меню (тёмная) */
 }
 
 html[data-theme="light"] {
@@ -27,6 +28,7 @@ html[data-theme="light"] {
   --field-bg: rgba(255,255,255,0.85);
   --field-border: rgba(41,155,255,0.35);
   --error: #d02020; --ok: #12a150; --warn: #c98a00;
+  --menu-bg: #ffffff;                 /* плотная подложка меню (светлая) */
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -39,10 +41,7 @@ body {
   transition: background 0.4s, color 0.4s;
 }
 
-/* Вход — центрирование */
 body.page-login { display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-
-/* Дашборд — фиксирован по высоте экрана, без прокрутки страницы */
 body.page-dash { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
 .glow {
@@ -94,7 +93,7 @@ body.page-dash { display: flex; flex-direction: column; height: 100vh; overflow:
 .error { color: var(--error); font-size: 13px; min-height: 16px; text-align: center; }
 
 /* ---------- Иконки ---------- */
-.lang-switch { position: fixed; top: 18px; right: 18px; z-index: 50; }
+.lang-switch { position: fixed; top: 18px; right: 18px; z-index: 200; }
 .icon-btn {
   width: 48px; height: 48px; background: transparent; border: none;
   color: var(--accent-1); font-size: 27px; cursor: pointer;
@@ -104,25 +103,33 @@ body.page-dash { display: flex; flex-direction: column; height: 100vh; overflow:
 .icon-btn:hover { transform: scale(1.1); filter: drop-shadow(0 0 12px var(--accent-1)); }
 .icon-btn svg { width: 27px; height: 27px; }
 
+/* Меню языков — поверх всего, плотный фон, по центру */
 .lang-menu {
-  position: absolute; top: 54px; right: 0; min-width: 160px;
-  background: var(--card-bg); border: 1px solid var(--card-border);
-  border-radius: 14px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 0 24px var(--card-shadow); overflow: hidden; display: none; z-index: 60;
+  position: absolute; top: 54px; right: 0; min-width: 170px;
+  background: var(--menu-bg);
+  border: 1px solid var(--accent-1);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 0 18px var(--card-shadow);
+  overflow: hidden; display: none;
+  z-index: 300;                        /* выше графика и шапки */
 }
 .lang-menu.open { display: block; }
 .lang-menu button {
   width: 100%; padding: 11px 16px; background: none; border: none;
   color: var(--text); font-family: 'Exo 2', sans-serif; font-size: 14px;
-  text-align: left; cursor: pointer; transition: 0.2s;
+  text-align: center;                  /* по центру */
+  cursor: pointer; transition: 0.2s;
+  border-bottom: 1px solid var(--card-border);
 }
-.lang-menu button:hover { background: rgba(41,155,255,0.15); }
+.lang-menu button:last-child { border-bottom: none; }
+.lang-menu button:hover { background: rgba(41,155,255,0.18); color: var(--accent-1); }
 
 /* ============================================================ ДАШБОРД ============================================================ */
 
-/* Шапка — фиксированная высота */
+/* Шапка — фиксированная высота + высокий слой (меню не ныряет под график) */
 .topbar {
   flex: 0 0 auto;
+  position: relative; z-index: 100;
   display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
   padding: 10px 20px; background: var(--card-bg);
   border-bottom: 1px solid var(--card-border);
@@ -144,7 +151,8 @@ body.page-dash { display: flex; flex-direction: column; height: 100vh; overflow:
 
 /* Область графика — занимает всё между шапкой и вкладками */
 .chart-area {
-  flex: 1 1 auto; min-height: 0;      /* критично: разрешает сжатие под экран */
+  flex: 1 1 auto; min-height: 0;
+  position: relative; z-index: 1;      /* ниже шапки */
   padding: 16px 22px;
   display: flex; flex-direction: column; gap: 12px;
 }
@@ -165,7 +173,6 @@ body.page-dash { display: flex; flex-direction: column; height: 100vh; overflow:
 .range-btn.arrow { font-size: 16px; font-weight: 700; padding: 6px 12px; line-height: 1; }
 .range-btn.disabled { opacity: 0.3; pointer-events: none; }
 
-/* Бокс графика — заполняет остаток, canvas вписывается */
 .chart-box {
   flex: 1 1 auto; min-height: 0; position: relative;
   display: flex; align-items: center; justify-content: center;
@@ -178,14 +185,12 @@ body.page-dash { display: flex; flex-direction: column; height: 100vh; overflow:
 #chart { width: 100% !important; height: 100% !important; }
 #compass { display: none; }
 
-/* Умные советы — фиксированная высота */
 .advice {
   flex: 0 0 auto;
   margin: 0 22px 10px; padding: 12px 18px; border-radius: 14px; font-size: 14px;
   background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-dim);
 }
 
-/* Вкладки — фиксированная высота внизу */
 .tabs {
   flex: 0 0 auto;
   display: flex; gap: 4px; overflow-x: auto; padding: 6px 12px 10px;
