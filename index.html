@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,20 +9,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Общие стили -->
   <link rel="stylesheet" href="styles.css">
 
-  <!-- Supabase + ключи + локализация -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="i18n.js"></script>
 </head>
-<body>
+<body class="page-login">
   <div class="glow"></div>
 
-  <!-- Глобус выбора языка -->
   <div class="lang-switch">
-    <button class="lang-btn" id="lang-btn" title="Язык / Language">🌐</button>
+    <button class="icon-btn" id="lang-btn" title="Язык / Language">🌐</button>
     <div class="lang-menu" id="lang-menu"></div>
   </div>
 
@@ -45,12 +42,10 @@
       const password = document.getElementById("password").value;
       const errorBox = document.getElementById("error");
       errorBox.textContent = "";
-
       const { error } = await client.auth.signInWithPassword({ email, password });
       if (error) { errorBox.textContent = t("err_login"); return; }
       window.location.href = "dashboard.html";
     }
-
     document.addEventListener("keydown", e => { if (e.key === "Enter") login(); });
   </script>
 </body>

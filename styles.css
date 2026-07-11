@@ -13,8 +13,7 @@ html[data-theme="dark"] {
   --accent-1: #4db2ff; --accent-2: #2e8fff;
   --field-bg: rgba(255,255,255,0.03);
   --field-border: rgba(120,190,255,0.35);
-  --error: #ff8080;
-  --ok: #4dff9d; --warn: #ffcf4d;
+  --error: #ff8080; --ok: #4dff9d; --warn: #ffcf4d;
 }
 
 html[data-theme="light"] {
@@ -27,8 +26,7 @@ html[data-theme="light"] {
   --accent-1: #1e7fff; --accent-2: #0a5fd6;
   --field-bg: rgba(255,255,255,0.85);
   --field-border: rgba(41,155,255,0.35);
-  --error: #d02020;
-  --ok: #12a150; --warn: #c98a00;
+  --error: #d02020; --ok: #12a150; --warn: #c98a00;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -41,33 +39,18 @@ body {
   transition: background 0.4s, color 0.4s;
 }
 
-/* Страница входа — центрирование */
-body.page-login {
-  display: flex; align-items: center; justify-content: center;
-  overflow: hidden;
-}
+body.page-login { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+body.page-dash  { display: flex; flex-direction: column; min-height: 100vh; }
 
-/* Страница дашборда — колонка на весь экран */
-body.page-dash {
-  display: flex; flex-direction: column; min-height: 100vh;
-}
-
-/* ---------- Свечение ---------- */
 .glow {
-  position: absolute;
-  width: 520px; height: 520px;
+  position: absolute; width: 520px; height: 520px;
   background: radial-gradient(circle, var(--glow) 0%, rgba(41,155,255,0) 70%);
-  filter: blur(20px);
-  z-index: 0;
+  filter: blur(20px); z-index: 0;
 }
 
-/* ---------- Стеклянная карточка (вход) ---------- */
 .card {
-  position: relative; z-index: 1;
-  width: 340px; padding: 44px 36px;
-  border-radius: 28px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
+  position: relative; z-index: 1; width: 340px; padding: 44px 36px;
+  border-radius: 28px; background: var(--card-bg); border: 1px solid var(--card-border);
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
   box-shadow: 0 0 40px var(--card-shadow), inset 0 0 25px rgba(41,155,255,0.08);
   display: flex; flex-direction: column; align-items: center; gap: 22px;
@@ -80,7 +63,6 @@ body.page-dash {
   text-shadow: 0 0 18px rgba(41,155,255,0.4); margin-bottom: 6px;
 }
 
-/* ---------- Поля ---------- */
 .field {
   width: 100%; padding: 14px 20px; border-radius: 999px;
   background: var(--field-bg); border: 1px solid var(--field-border);
@@ -90,7 +72,6 @@ body.page-dash {
 .field::placeholder { color: var(--text-dim); }
 .field:focus { border-color: var(--accent-1); box-shadow: 0 0 14px rgba(77,178,255,0.5); }
 
-/* ---------- Кнопка ---------- */
 .btn {
   margin-top: 6px; padding: 14px 52px; border-radius: 999px;
   background: rgba(41,155,255,0.12); border: 1px solid var(--field-border);
@@ -109,42 +90,42 @@ body.page-dash {
 
 .error { color: var(--error); font-size: 13px; min-height: 16px; text-align: center; }
 
-/* ---------- Глобус + меню языков ---------- */
-.lang-switch { position: fixed; top: 20px; right: 20px; z-index: 50; }
+/* ---------- ИКОНКИ: прозрачный фон, все равные, крупнее (глобус +50%) ---------- */
+.lang-switch { position: fixed; top: 18px; right: 18px; z-index: 50; }
+
 .icon-btn {
-  width: 44px; height: 44px; border-radius: 50%;
-  background: var(--card-bg); border: 1px solid var(--card-border);
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  color: var(--accent-1); font-size: 20px; cursor: pointer;
+  width: 48px; height: 48px;
+  background: transparent;          /* прозрачный фон */
+  border: none;
+  color: var(--accent-1);
+  font-size: 27px;                  /* крупнее (было ~20) */
+  cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: 0.25s; box-shadow: 0 0 14px var(--card-shadow);
+  transition: 0.25s;
+  filter: drop-shadow(0 0 6px var(--card-shadow));
 }
-.icon-btn:hover { transform: scale(1.08); box-shadow: 0 0 22px var(--card-shadow); }
+.icon-btn:hover { transform: scale(1.1); filter: drop-shadow(0 0 12px var(--accent-1)); }
+.icon-btn svg { width: 27px; height: 27px; }   /* для SVG-иконок */
 
 .lang-menu {
-  position: absolute; top: 52px; right: 0; min-width: 150px;
+  position: absolute; top: 54px; right: 0; min-width: 160px;
   background: var(--card-bg); border: 1px solid var(--card-border);
   border-radius: 14px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 0 24px var(--card-shadow); overflow: hidden; display: none;
 }
 .lang-menu.open { display: block; }
 .lang-menu button {
-  width: 100%; padding: 12px 16px; background: none; border: none;
+  width: 100%; padding: 11px 16px; background: none; border: none;
   color: var(--text); font-family: 'Exo 2', sans-serif; font-size: 14px;
   text-align: left; cursor: pointer; transition: 0.2s;
 }
 .lang-menu button:hover { background: rgba(41,155,255,0.15); }
 
-/* ============================================================
-   ДАШБОРД
-   ============================================================ */
-
-/* ---- Шапка ---- */
+/* ============================================================ ДАШБОРД ============================================================ */
 .topbar {
   position: sticky; top: 0; z-index: 40;
   display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
-  padding: 12px 20px;
-  background: var(--card-bg);
+  padding: 10px 20px; background: var(--card-bg);
   border-bottom: 1px solid var(--card-border);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 4px 24px var(--card-shadow);
@@ -152,8 +133,7 @@ body.page-dash {
 .topbar .brand {
   font-size: 20px; font-weight: 700; letter-spacing: 0.5px;
   background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-  white-space: nowrap;
+  -webkit-background-clip: text; background-clip: text; color: transparent; white-space: nowrap;
 }
 .status-group { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 13px; }
 .status-item { display: flex; align-items: center; gap: 6px; color: var(--text-dim); white-space: nowrap; }
@@ -161,53 +141,50 @@ body.page-dash {
 .dot.on { background: var(--ok); }
 .topbar .spacer { flex: 1; }
 .ver { font-size: 12px; color: var(--text-dim); }
-.top-actions { display: flex; align-items: center; gap: 10px; position: relative; }
+.top-actions { display: flex; align-items: center; gap: 6px; position: relative; }
 
-/* ---- Область графика ---- */
-.chart-area {
-  flex: 1; padding: 22px;
-  display: flex; flex-direction: column; gap: 16px;
-}
+.chart-area { flex: 1; padding: 22px; display: flex; flex-direction: column; gap: 16px; }
 .chart-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
 .chart-title { font-size: 22px; font-weight: 600; }
+.loc-badge {
+  font-size: 12px; padding: 4px 12px; border-radius: 999px;
+  background: rgba(41,155,255,0.15); border: 1px solid var(--card-border); color: var(--accent-1);
+}
 .chart-box {
-  flex: 1; min-height: 320px;
+  flex: 1; min-height: 340px; position: relative;
   background: var(--card-bg); border: 1px solid var(--card-border);
   border-radius: 16px; padding: 18px;
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 0 24px var(--card-shadow);
 }
+.range-bar { display: flex; gap: 6px; flex-wrap: wrap; }
+.range-btn {
+  padding: 6px 12px; border-radius: 8px; font-family: 'Exo 2', sans-serif; font-size: 12px;
+  background: transparent; border: 1px solid var(--card-border); color: var(--text-dim); cursor: pointer; transition: 0.2s;
+}
+.range-btn:hover { color: var(--text); background: rgba(41,155,255,0.1); }
+.range-btn.active { color: var(--text); background: rgba(41,155,255,0.2); box-shadow: 0 0 10px var(--card-shadow); }
 
-/* ---- Умные советы ---- */
 .advice {
-  margin: 0 22px 12px; padding: 14px 18px;
-  border-radius: 14px; font-size: 14px;
-  background: var(--card-bg); border: 1px solid var(--card-border);
-  color: var(--text-dim);
+  margin: 0 22px 12px; padding: 14px 18px; border-radius: 14px; font-size: 14px;
+  background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-dim);
 }
 
-/* ---- Вкладки-листы (как в Excel) ---- */
 .tabs {
-  display: flex; gap: 4px; overflow-x: auto;
-  padding: 6px 12px 10px;
-  border-top: 1px solid var(--card-border);
-  background: var(--card-bg);
+  display: flex; gap: 4px; overflow-x: auto; padding: 6px 12px 10px;
+  border-top: 1px solid var(--card-border); background: var(--card-bg);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
 }
 .tab {
-  padding: 9px 16px; border-radius: 10px 10px 0 0;
-  background: transparent; border: 1px solid transparent;
-  color: var(--text-dim); font-family: 'Exo 2', sans-serif; font-size: 13px;
-  white-space: nowrap; cursor: pointer; transition: 0.2s;
+  padding: 9px 16px; border-radius: 10px 10px 0 0; background: transparent; border: 1px solid transparent;
+  color: var(--text-dim); font-family: 'Exo 2', sans-serif; font-size: 13px; white-space: nowrap; cursor: pointer; transition: 0.2s;
 }
 .tab:hover { color: var(--text); background: rgba(41,155,255,0.10); }
-.tab.active {
-  color: var(--text); background: rgba(41,155,255,0.18);
-  border-color: var(--card-border);
-  box-shadow: 0 0 14px var(--card-shadow);
-}
+.tab.active { color: var(--text); background: rgba(41,155,255,0.18); border-color: var(--card-border); box-shadow: 0 0 14px var(--card-shadow); }
 .tab.disabled { opacity: 0.35; pointer-events: none; }
-
-/* Полоса прокрутки вкладок */
 .tabs::-webkit-scrollbar { height: 6px; }
 .tabs::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 3px; }
+
+/* RTL (арабский) */
+html[dir="rtl"] .lang-switch { right: auto; left: 18px; }
+html[dir="rtl"] .lang-menu { right: auto; left: 0; }
