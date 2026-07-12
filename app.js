@@ -16,6 +16,14 @@ const RANGES = {
   "year":  { sec: 365*24*3600, ticks: 12, i18n: "r_year"  }
 };
 
+/* верхние (над графиком) названия-переопределения */
+const TOP_TITLE = {
+  no2:"Диоксид азота NO₂", so2:"Диоксид серы SO₂", no:"Монооксид азота NO",
+  co2:"Углекислый газ CO₂", co:"Угарный газ CO", o3:"Озон O₃",
+  nh3:"Аммиак NH₃", hcho:"Формальдегид CH₂O", aqi:"AQI - Индекс качества воздуха"
+};
+function paramTopTitle(p) { return TOP_TITLE[p.key] || t(p.i18n); }
+
 async function guard() {
   const { data } = await client.auth.getSession();
   if (!data.session) { window.location.href = "index.html"; return false; }
@@ -72,6 +80,12 @@ function buildRangeBar() {
   bar.appendChild(right);
 }
 
+/* шестерёнка сверху: для параметра и для магнитных бурь */
+function openViewSettings() {
+  if (currentView === "param") openParamSettings();
+  else if (currentView === "geomag") openGeomagSettings();
+}
+
 function refreshView() {
   const chartArea = document.getElementById("chart-box-wrap");
   const extra = document.getElementById("extra-view");
@@ -79,15 +93,14 @@ function refreshView() {
   buildRangeBar();
   if (currentView === "param") {
     chartArea.style.display = "flex"; extra.style.display = "none"; gear.style.display = "flex";
-    document.getElementById("loc-badge").style.display = "inline-block";
     renderParam(currentKey);
   } else {
-    chartArea.style.display = "none"; extra.style.display = "block"; gear.style.display = "none";
-    document.getElementById("loc-badge").style.display = "none";
-    if (currentView === "geomag")    { document.getElementById("chart-title").textContent = t("tab_geomag"); showExtra("geomag"); }
+    chartArea.style.display = "none"; extra.style.display = "block";
+    gear.style.display = (currentView === "geomag") ? "flex" : "none";
+    if (currentView === "geomag")    { document.getElementById("chart-title").textContent = t("tab_geomag"); showExtra("geomag"); buildGeomag(); }
     if (currentView === "api")       { document.getElementById("chart-title").textContent = "API OUT"; buildApiOut(); showExtra("api"); }
     if (currentView === "advice")    { document.getElementById("chart-title").textContent = t("tab_advice"); buildAdvice(); showExtra("advice"); }
-    if (currentView === "smarthome") { document.getElementById("chart-title").textContent = t("tab_smart"); showExtra("smarthome"); }
+    if (currentView === "smarthome") { document.getElementById("chart-title").textContent = t("tab_smart"); buildSmartHome(); showExtra("smarthome"); }
   }
 }
 
@@ -138,13 +151,12 @@ async function renderParam(key) {
 
   const g = PARAM_UNIT_GROUP[p.key];
   const unitId = g ? SETTINGS.units[g] : null;
-  const uLabel = g ? unitLabel(g, unitId) : (p.unit || "");
+  const uLabel = paramUnitDisplay(p);
 
-  const locBadge = document.getElementById("loc-badge");
   let sources = [];
-  if (p.loc === "out" || p.loc === "pressure") { sources = [{ sn: SETTINGS.sn_out, tag: t("outdoor") }]; locBadge.textContent = t("outdoor"); }
-  else if (p.loc === "in") { sources = [{ sn: SETTINGS.sn_in, tag: t("indoor") }]; locBadge.textContent = t("indoor"); }
-  else { sources = [{ sn: SETTINGS.sn_out, tag: t("outdoor") }, { sn: SETTINGS.sn_in, tag: t("indoor") }]; locBadge.textContent = t("outdoor") + " + " + t("indoor"); }
+  if (p.loc === "out" || p.loc === "pressure") sources = [{ sn: SETTINGS.sn_out, tag: t("outdoor") }];
+  else if (p.loc === "in") sources = [{ sn: SETTINGS.sn_in, tag: t("indoor") }];
+  else sources = [{ sn: SETTINGS.sn_out, tag: t("outdoor") }, { sn: SETTINGS.sn_in, tag: t("indoor") }];
 
   const datasets = [];
   const palette = ["#4db2ff","#ff9d4d","#a0ff6b","#ff6bce","#ffe14d","#b98cff","#6bd2ff"];
@@ -174,7 +186,7 @@ async function renderParam(key) {
     }
   }
 
-  document.getElementById("chart-title").textContent = t(p.i18n) + (uLabel ? " (" + uLabel + ")" : "");
+  document.getElementById("chart-title").textContent = paramTopTitle(p) + (uLabel ? " (" + uLabel + ")" : "");
   const advice = document.getElementById("advice");
   if (p.key === "pressure" && datasets.length && datasets[0].data.length) {
     const last = Number(datasets[0].data[datasets[0].data.length-1].y);
@@ -215,7 +227,6 @@ function showCompass()     { document.getElementById("chart").style.display="non
 async function renderCompass(p) {
   showCompass();
   document.getElementById("chart-title").textContent = t(p.i18n);
-  document.getElementById("loc-badge").textContent = t("outdoor");
   document.getElementById("advice").textContent = t("advice_default");
   const { from, to } = windowRange();
   const rows = await loadSeries(SETTINGS.sn_out, "wind_dir", from, to);

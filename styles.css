@@ -259,3 +259,14 @@ html[dir="rtl"] .lang-menu { right: auto; left: 0; }
 .adv-unavail { opacity: 0.45; }
 .adv-scroll::-webkit-scrollbar { width: 7px; }
 .adv-scroll::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 4px; }
+/* Магнитные бури */
+.geo-card { border:2px solid var(--accent-1); border-radius:16px; padding:22px; text-align:center; max-width:520px; margin:0 auto; }
+.geo-kp { font-size:44px; font-weight:700; }
+.geo-level { display:inline-block; margin:10px 0; padding:6px 18px; border-radius:20px; color:#fff; font-weight:600; }
+.geo-desc { color:var(--text); margin:8px 0 14px; line-height:1.5; }
+.geo-table { width:100%; border-collapse:collapse; font-size:13px; }
+.geo-table th, .geo-table td { border:1px solid var(--card-border); padding:8px 10px; text-align:left; color:var(--text); vertical-align:top; }
+.geo-table th { color:var(--accent-1); }
+.modal-wide { width:min(760px,94vw); }
+/* Описание параметра (УФ/AQI) */
+.param-desc { color:var(--text); line-height:1.6; font-size:14px; }
