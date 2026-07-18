@@ -66,11 +66,46 @@ async function fetchGeomag(){
   ]);
   if(!fr.ok || !cr.ok) throw new Error("HTTP "+fr.status+"/"+cr.status);
   const f = await fr.json(), c = await cr.json();
-  const fact = f.slice(1).map(r=>({ts:parseNoaaTs(r[0]),kp:parseFloat(r[1])})).filter(x=>!isNaN(x.kp)&&!isNaN(x.ts));
-  const fcst = c.slice(1).map(r=>({ts:parseNoaaTs(r[0]),kp:parseFloat(r[1]),obs:(r[2]||"")}))
-                        .filter(x=>!isNaN(x.kp)&&!isNaN(x.ts)&&x.obs!=="observed");
+
+  const fact = normalizeKp(f).map(o => ({ ts:o.ts, kp:o.kp }))
+                             .filter(x=>!isNaN(x.kp)&&!isNaN(x.ts));
+  const fcst = normalizeKp(c).filter(o => o.obs !== "observed")
+                             .map(o => ({ ts:o.ts, kp:o.kp }))
+                             .filter(x=>!isNaN(x.kp)&&!isNaN(x.ts));
+
   console.log("[geomag] факт:", fact.length, "прогноз:", fcst.length);
   return { fact, fcst };
+}
+
+/* Понимает ОБА формата NOAA: старый (массив массивов с шапкой) и новый (массив объектов). */
+function normalizeKp(raw){
+  if(!Array.isArray(raw) || raw.length===0) return [];
+  // Старый формат: первый элемент — массив-заголовок ["time_tag","Kp",...]
+  if(Array.isArray(raw[0])){
+    const head = raw[0].map(s=>String(s).toLowerCase());
+    const iT = head.findIndex(h=>h.includes("time"));
+    const iK = head.findIndex(h=>h==="kp"||h.includes("kp"));
+    const iO = head.findIndex(h=>h.includes("observ"));
+    return raw.slice(1).map(r=>({
+      ts: parseNoaaTs(r[iT>=0?iT:0]),
+      kp: parseFloat(r[iK>=0?iK:1]),
+      obs: iO>=0 ? String(r[iO]||"") : ""
+    }));
+  }
+  // Новый формат: массив объектов {time_tag, Kp/kp, observed,...}
+  return raw.map(o=>{
+    const keys = Object.keys(o);
+    const kT = keys.find(k=>k.toLowerCase().includes("time")) || "time_tag";
+    const kK = keys.find(k=>k.toLowerCase()==="kp")
+            || keys.find(k=>k.toLowerCase().includes("kp"))
+            || keys.find(k=>k.toLowerCase().includes("k_index")) || "Kp";
+    const kO = keys.find(k=>k.toLowerCase().includes("observ"));
+    return {
+      ts: parseNoaaTs(o[kT]),
+      kp: parseFloat(o[kK]),
+      obs: kO ? String(o[kO]||"") : ""
+    };
+  });
 }
 
 function drawGeomagChart(fact, fcst, errText){
