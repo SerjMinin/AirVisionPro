@@ -80,7 +80,6 @@ async function fetchGeomag(){
 /* Понимает ОБА формата NOAA: старый (массив массивов с шапкой) и новый (массив объектов). */
 function normalizeKp(raw){
   if(!Array.isArray(raw) || raw.length===0) return [];
-  // Старый формат: первый элемент — массив-заголовок ["time_tag","Kp",...]
   if(Array.isArray(raw[0])){
     const head = raw[0].map(s=>String(s).toLowerCase());
     const iT = head.findIndex(h=>h.includes("time"));
@@ -92,7 +91,6 @@ function normalizeKp(raw){
       obs: iO>=0 ? String(r[iO]||"") : ""
     }));
   }
-  // Новый формат: массив объектов {time_tag, Kp/kp, observed,...}
   return raw.map(o=>{
     const keys = Object.keys(o);
     const kT = keys.find(k=>k.toLowerCase().includes("time")) || "time_tag";
@@ -120,24 +118,25 @@ function drawGeomagChart(fact, fcst, errText){
   const fF = fact.filter(p=>p.ts>=from && p.ts<=now).sort((a,b)=>a.ts-b.ts);
   const fC = fcst.filter(p=>p.ts>now && p.ts<=to).sort((a,b)=>a.ts-b.ts);
 
-  // ЕДИНЫЙ массив точек (факт + прогноз) → одна непрерывная сглаженная линия
+  // ЕДИНЫЙ массив (факт + прогноз) → одна непрерывная сглаженная линия
   const all = fF.concat(fC);
   const pts = all.map(p=>({ x:X(p.ts), y:p.kp, ts:p.ts }));
 
+  // тёмно-серый с разной прозрачностью — работает и на тёмной, и на светлой теме
   const COL = {
-    fact:"#37d67a",                         // факт — зелёный
-    d1:"#c2cad6",                           // 1 сутки — светло-серый (контраст)
-    d2:"#8a94a4",                           // 2 сутки — серый
-    d3:"rgba(90,100,114,0.5)"               // 3 сутки — тёмно-серый полупрозрачный
+    fact:"#37d67a",                        // факт — зелёный
+    d1:"rgba(90,100,114,1.0)",             // 1 сутки — плотный (0% прозрачности)
+    d2:"rgba(90,100,114,0.67)",            // 2 сутки — 33% прозрачности
+    d3:"rgba(90,100,114,0.34)"             // 3 сутки — 66% прозрачности
   };
   const colorForTs = ts => {
-    if(ts <= now)              return COL.fact;
-    if(ts <= now+1*86400)      return COL.d1;
-    if(ts <= now+2*86400)      return COL.d2;
+    if(ts <= now)         return COL.fact;
+    if(ts <= now+1*86400) return COL.d1;
+    if(ts <= now+2*86400) return COL.d2;
     return COL.d3;
   };
-  // цвет сегмента определяем по правой точке (куда линия идёт)
-  const segColor = ctx => colorForTs(from*1 + ctx.p1.parsed.x*3600);
+  const segColor = ctx => colorForTs(from + ctx.p1.parsed.x*3600);
+  const segDash  = ctx => (from + ctx.p1.parsed.x*3600) > now ? [6,4] : undefined;
   const pointColors = pts.map(p=>colorForTs(p.ts));
 
   const auroraPts = pts.map(p=>({x:p.x,visible:auroraVisible(p.y,mlat)}));
@@ -163,19 +162,17 @@ function drawGeomagChart(fact, fcst, errText){
       pointBackgroundColor:pointColors,
       pointBorderColor:pointColors,
       pointRadius:2,
-      tension:0.4,                          // сглаживание, стык плавный
+      tension:0.4,                         // сглаживание сквозь стык
       fill:false,
-      segment:{
-        borderColor: segColor,
-        borderDash: ctx => (from*1 + ctx.p1.parsed.x*3600) > now ? [6,4] : undefined
-      }
+      segment:{ borderColor:segColor, borderDash:segDash }
     }]},
     options:{ responsive:true, maintainAspectRatio:false, parsing:true,
       interaction:{ mode:"nearest", intersect:false },
       plugins:{ legend:{ labels:{
         color:tickColor, usePointStyle:true, boxWidth:28,
         generateLabels: () => legendItems.map(it=>({
-          text:it.text, strokeStyle:it.color, fillStyle:it.color,
+          text:it.text, fontColor:tickColor,
+          strokeStyle:it.color, fillStyle:it.color,
           lineWidth:3, lineDash:it.dash?[6,4]:[], pointStyle:"line", hidden:false
         }))
       } } },
@@ -199,8 +196,7 @@ async function renderGeomag(){
   if(currentView!=="geomag") return;
   showCanvasGraph();
   document.getElementById("chart-title").textContent = t("tab_geomag");
-  // сначала рисуем пустой каркас (оси 0–9 будут видны сразу)
-  drawGeomagChart([], [], null);
+  drawGeomagChart([], [], null);   // пустой каркас 0–9
   try{
     const { fact, fcst } = await fetchGeomag();
     drawGeomagChart(fact, fcst, null);
