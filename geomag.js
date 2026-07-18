@@ -106,6 +106,13 @@ function normalizeKp(raw){
   });
 }
 
+function geomagTickLabel(unix){
+  const d = locDate(unix); const p = n => String(n).padStart(2,"0");
+  if (currentRange==="24h")  return p(d.getUTCDate())+" "+p(d.getUTCHours())+":00"; // «18 14:00»
+  if (currentRange==="year") return d.getUTCFullYear()+"."+p(d.getUTCMonth()+1);   // «2026.07»
+  return p(d.getUTCDate())+"."+p(d.getUTCMonth()+1);                                // «18.07»
+}
+
 function drawGeomagChart(fact, fcst, errText){
   const now = Math.floor(Date.now()/1000);
   const pastSpan = RANGES[currentRange].sec;
@@ -175,9 +182,15 @@ function drawGeomagChart(fact, fcst, errText){
           lineWidth:3, lineDash:it.dash?[6,4]:[], pointStyle:"line", hidden:false
         }))
       } } },
-      scales:{
+     scales:{
         x:{ type:"linear", min:0, max:toX, grid:{ color:gridColor },
-          ticks:{ color:tickColor, maxTicksLimit:12, callback:v=>fmtTick(from+v*3600,currentRange) } },
+          afterBuildTicks: axis => {
+            const n = {"24h":12,"week":7,"month":4,"year":12}[currentRange] || 12;
+            axis.ticks = [];
+            for (let i=0;i<=n;i++) axis.ticks.push({ value: toX*i/n });
+          },
+          ticks:{ color:tickColor, autoSkip:false, maxRotation:0,
+            callback:v=>geomagTickLabel(from + v*3600) } },
         y:{ min:0, max:9, grid:{ color:gridColor },
           ticks:{ color:tickColor, stepSize:1, callback:v=>"Kp "+v } }
       }
