@@ -52,9 +52,14 @@ const wmPlugin = {
   afterDraw(chart){
     const { ctx, chartArea } = chart;
     ctx.save();
-    ctx.font="12px 'Exo 2',sans-serif"; ctx.fillStyle="rgba(150,170,200,0.4)";
+    ctx.fillStyle="rgba(150,170,200,0.4)";
     ctx.textAlign="right"; ctx.textBaseline="top";
+    ctx.font="12px 'Exo 2',sans-serif";
     ctx.fillText("Источник: NOAA SWPC · планетарный Kp", chartArea.right-8, chartArea.top+6);
+    if(chart.$bgLabel){
+      ctx.font="600 34px 'Exo 2',sans-serif";
+      ctx.fillText(chart.$bgLabel, chartArea.right-8, chartArea.top+26);
+    }
     ctx.restore();
   }
 };
@@ -199,6 +204,7 @@ function drawGeomagChart(fact, fcst, errText){
   });
   chart.$auroraPts = auroraPts;
   chart.$nowX = X(now);
+  chart.$bgLabel = bgDateLabel(from);
   chart.update();
 
   if(errText){ document.getElementById("advice").textContent = errText; }

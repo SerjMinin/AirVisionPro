@@ -17,7 +17,28 @@ const RANGES = {
   "year":  { sec: 365*24*3600, ticks: 12, i18n: "r_year"  }   // 12 месяцев
 };
 
-const MONTHS_ABBR = ["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
+const MONTHS_FULL = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+
+function bgDateLabel(unix){
+  const d = locDate(unix);
+  if (currentRange==="year")  return "";
+  if (currentRange==="month") return String(d.getUTCFullYear());
+  return MONTHS_FULL[d.getUTCMonth()] + " " + d.getUTCFullYear();   // неделя и 24ч
+}
+
+const paramWmPlugin = {
+  id:"paramwm",
+  afterDraw(chart){
+    if(!chart.$bgLabel) return;
+    const { ctx, chartArea } = chart;
+    ctx.save();
+    ctx.fillStyle="rgba(150,170,200,0.4)";
+    ctx.textAlign="right"; ctx.textBaseline="top";
+    ctx.font="600 34px 'Exo 2',sans-serif";
+    ctx.fillText(chart.$bgLabel, chartArea.right-8, chartArea.top+6);
+    ctx.restore();
+  }
+};
 
 const TOP_TITLE = {
   no2:"Диоксид азота NO₂", so2:"Диоксид серы SO₂", no:"Монооксид азота NO",
@@ -260,8 +281,10 @@ async function renderParam(key) {
       scales:{ x:{ type:"linear", min:0, max:ticks, grid:{ color:gridColor },
           ticks:{ color:tickColor, stepSize:1, autoSkip:false, maxRotation:0, callback:v=>xLabels[v]??"" } },
         y:{ grid:{ color:gridColor }, ticks:{ color:tickColor } } }
-    }
+    },
+    plugins:[paramWmPlugin]
   });
+  chart.$bgLabel = bgDateLabel(from);
 }
 
 function fmtTick(unix, range) {
