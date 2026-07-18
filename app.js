@@ -86,19 +86,20 @@ function buildRangeBar() {
   bar.innerHTML = "";
   if (!chartLikeView()) return;
   const render = () => currentView==="param" ? renderParam(currentKey) : renderGeomag();
+  const rerender = () => { buildRangeBar(); render(); };   // перестраиваем панель → стрелки обновляют состояние
   const left = document.createElement("button");
   left.className = "range-btn arrow"; left.textContent = "‹";
-  left.onclick = () => { offsetSteps++; render(); };
+  left.onclick = () => { offsetSteps++; rerender(); };
   const right = document.createElement("button");
   right.className = "range-btn arrow" + (offsetSteps === 0 ? " disabled" : "");
   right.textContent = "›"; right.title = t("to_now");
-  right.onclick = () => { if (offsetSteps > 0) { offsetSteps--; render(); } };
+  right.onclick = () => { if (offsetSteps > 0) { offsetSteps--; rerender(); } };
   bar.appendChild(left);
   ["24h","week","month","year"].forEach(code => {
     const b = document.createElement("button");
     b.className = "range-btn" + (code === currentRange ? " active" : "");
     b.textContent = t(RANGES[code].i18n);
-    b.onclick = () => { currentRange = code; offsetSteps = 0; buildRangeBar(); render(); };
+    b.onclick = () => { currentRange = code; offsetSteps = 0; rerender(); };
     bar.appendChild(b);
   });
   bar.appendChild(right);
@@ -152,9 +153,9 @@ function windowRange() {
 function viewWindow() {
   const day = 86400;
   const now = Math.floor(Date.now()/1000);
-  const midnight = Math.floor((now + TZ_OFFSET)/day)*day - TZ_OFFSET; // сегодняшняя локальная полночь
+  const midnight = Math.floor((now + TZ_OFFSET)/day)*day - TZ_OFFSET;
   const span = RANGES[currentRange].sec;
-  const to = midnight + day - offsetSteps*span;   // конец окна на границе суток
+  const to = midnight + day - offsetSteps*span;
   const from = to - span;
   return { from, to, span };
 }
