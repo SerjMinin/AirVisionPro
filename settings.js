@@ -92,6 +92,8 @@ function selHtml(id, options, selected) {
   return `<select id="${id}" class="set-input">` +
     options.map(o => `<option value="${o.id}" ${o.id===selected?"selected":""}>${o.label}</option>`).join("") + `</select>`;
 }
+/* ============ НАСТРОЙКИ УСТРОЙСТВА ============ */
+function openDeviceSettings(which) { alert(t("api_soon")); }
 
 /* ============ ГЛАВНЫЕ НАСТРОЙКИ ============ */
 function buildSettingsForm() {
@@ -113,9 +115,10 @@ function buildSettingsForm() {
     <div class="set-section"><h3>${t("set_devices")}</h3>
       <div class="set-row"><label>${t("outdoor")} SN</label><input id="s_sn_out" class="set-input" value="${s.sn_out}"></div>
       <div class="set-row"><label>${t("outdoor")} ${t("set_key")}</label><input id="s_sn_out_key" class="set-input" value="${s.sn_out_key||""}"></div>
+      <div class="set-row"><label></label><button class="set-btn sm" type="button" onclick="openDeviceSettings('out')">${t("settings")}</button></div>
       <div class="set-row"><label>${t("indoor")} SN</label><input id="s_sn_in" class="set-input" value="${s.sn_in}"></div>
       <div class="set-row"><label>${t("indoor")} ${t("set_key")}</label><input id="s_sn_in_key" class="set-input" value="${s.sn_in_key||""}"></div>
-      <div class="set-row"><label>${t("set_interval")}</label><input id="s_interval" class="set-input" type="number" min="1" value="${s.send_interval_min}"></div>
+      <div class="set-row"><label></label><button class="set-btn sm" type="button" onclick="openDeviceSettings('in')">${t("settings")}</button></div>
     </div>
     <div class="set-section"><h3>${t("set_location")}</h3>
       <div class="set-row"><label>${t("set_lat")}</label><input id="s_lat" class="set-input" type="number" step="0.000001" value="${s.lat}"></div>
@@ -134,7 +137,7 @@ function readSettingsForm() {
   s.sn_out_key = document.getElementById("s_sn_out_key").value.trim();
   s.sn_in  = document.getElementById("s_sn_in").value.trim();
   s.sn_in_key = document.getElementById("s_sn_in_key").value.trim();
-  s.send_interval_min = Math.max(1, parseInt(document.getElementById("s_interval").value)||5);
+  
   s.lat = parseFloat(document.getElementById("s_lat").value);
   s.lon = parseFloat(document.getElementById("s_lon").value);
   s.alt_sea = parseFloat(document.getElementById("s_alt_sea").value);
