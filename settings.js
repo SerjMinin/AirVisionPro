@@ -3,15 +3,26 @@
 let SETTINGS = null;
 
 const API_SERVICES = [
-  { id:"aircms", name:"AirCMS.online" }, { id:"blynk", name:"Blynk" },
-  { id:"custom_json", name:"Custom JSON" }, { id:"ha", name:"Home Assistant" },
-  { id:"madavi", name:"Madavi.de" }, { id:"mosquitto", name:"Mosquitto" },
-  { id:"mqtt", name:"MQTT" }, { id:"narodmon", name:"Narodmon.ru" },
-  { id:"opensensemap", name:"openSenseMap.org" }, { id:"sensor_community", name:"Sensor.community" },
-  { id:"thingsboard", name:"ThingsBoard" }, { id:"thingspeak", name:"ThingSpeak" }
+  { id:"narodmon",        name:"Narodmon.ru" },
+  { id:"thingspeak",      name:"ThingSpeak" },
+  { id:"sensor_community",name:"Sensor.community" }
 ];
 
-/* описания-справки для параметров без изменяемых настроек */
+const CONFIG_ITEMS = [
+  { id:"open_meteo", label:"Open-Meteo" },
+  { id:"owm",        label:"OpenWeatherMap" },
+  { id:"yandex",     label:"Yandex Weather (SmartHome API)" },
+  { id:"dev_out",    label:"Сайт + уличное устройство" },
+  { id:"dev_in",     label:"Сайт + домашнее устройство" }
+];
+
+const EXTRA_TABS = [
+  { id:"geomag", i18n:"tab_geomag" },
+  { id:"api",    label:"API OUT" },
+  { id:"advice", i18n:"tab_advice" },
+  { id:"smarthome", i18n:"tab_smart" }
+];
+
 const PARAM_INFO = {
   uv: `<div class="param-desc">
 0–2 (Низкий): защита не требуется.<br>
@@ -27,13 +38,11 @@ const PARAM_INFO = {
 201–300 (Очень плохой): серьёзное ухудшение. Всем рекомендуется оставаться в помещении.<br>
 301–500 (Опасный): экологическая угроза. Выходить на улицу опасно для жизни без средств защиты.</div>`
 };
-/* переопределения имени параметра в заголовке настроек */
 const PARAM_SET_NAME = { uv:"Ультрафиолетовый (УФ) индекс", aqi:"AQI - Индекс качества воздуха" };
 
 const DEFAULT_SETTINGS = {
-  config: "full",
-  sources: { "sensor":true, "open-meteo":true, "owm":true },
-  sn_out: "OUT-0001", sn_in: "IN-0001",
+  config_items: { open_meteo:true, owm:true, yandex:false, dev_out:true, dev_in:true },
+  sn_out:"OUT-0001", sn_out_key:"", sn_in:"IN-0001", sn_in_key:"", send_interval_min:5,
   lat: 55.752793, lon: 37.622672, alt_sea: 150, alt_ground: 5,
   units: { temp:"C", pressure:"hPa", wind_spd:"ms", rad:"uSv", co2:"ppm", co:"ppm" },
   temp_round: 1,
@@ -87,21 +96,26 @@ function selHtml(id, options, selected) {
 /* ============ ГЛАВНЫЕ НАСТРОЙКИ ============ */
 function buildSettingsForm() {
   const s = SETTINGS;
-  const srcRows = [["sensor",t("src_sensor")],["open-meteo","Open-Meteo"],["owm","OpenWeatherMap"]]
-    .map(([id,label]) => `<label class="set-check"><input type="checkbox" id="src_${id}" ${s.sources[id]!==false?"checked":""}> ${label}</label>`).join("");
-  const tabRows = PARAMS.map(p =>
-    `<label class="set-check"><input type="checkbox" id="tab_${p.key}" ${s.tabs[p.key]!==false?"checked":""}> ${t(p.i18n)}</label>`).join("");
+  const soon = t("api_soon");
+  const cfgRows = CONFIG_ITEMS.map(it => `
+    <div class="cfg-row">
+      <label class="set-check"><input type="checkbox" id="cfg_${it.id}" ${s.config_items[it.id]?"checked":""}> ${it.label}</label>
+      <button class="set-btn sm" onclick="alert('${soon}')">${t("api_config")}</button>
+    </div>`).join("");
+
+  const tabItems = PARAMS.map(p => ({ id:p.key, label:t(p.i18n) }))
+    .concat(EXTRA_TABS.map(it => ({ id:it.id, label: it.label || t(it.i18n) })));
+  const tabRows = tabItems.map(it =>
+    `<label class="set-check"><input type="checkbox" id="tab_${it.id}" ${s.tabs[it.id]!==false?"checked":""}> ${it.label}</label>`).join("");
 
   document.getElementById("settings-body").innerHTML = `
-    <div class="set-section"><h3>${t("set_config")}</h3>
-      <div class="set-row"><label><input type="radio" name="cfg" value="site" ${s.config==="site"?"checked":""}> ${t("cfg_site")}</label></div>
-      <div class="set-row"><label><input type="radio" name="cfg" value="outdoor" ${s.config==="outdoor"?"checked":""}> ${t("cfg_out")}</label></div>
-      <div class="set-row"><label><input type="radio" name="cfg" value="full" ${s.config==="full"?"checked":""}> ${t("cfg_full")}</label></div>
-    </div>
-    <div class="set-section"><h3>${t("set_sources")}</h3>${srcRows}</div>
+    <div class="set-section"><h3>${t("set_config")}</h3>${cfgRows}</div>
     <div class="set-section"><h3>${t("set_devices")}</h3>
       <div class="set-row"><label>${t("outdoor")} SN</label><input id="s_sn_out" class="set-input" value="${s.sn_out}"></div>
+      <div class="set-row"><label>${t("outdoor")} ${t("set_key")}</label><input id="s_sn_out_key" class="set-input" value="${s.sn_out_key||""}"></div>
       <div class="set-row"><label>${t("indoor")} SN</label><input id="s_sn_in" class="set-input" value="${s.sn_in}"></div>
+      <div class="set-row"><label>${t("indoor")} ${t("set_key")}</label><input id="s_sn_in_key" class="set-input" value="${s.sn_in_key||""}"></div>
+      <div class="set-row"><label>${t("set_interval")}</label><input id="s_interval" class="set-input" type="number" min="1" value="${s.send_interval_min}"></div>
     </div>
     <div class="set-section"><h3>${t("set_location")}</h3>
       <div class="set-row"><label>${t("set_lat")}</label><input id="s_lat" class="set-input" type="number" step="0.000001" value="${s.lat}"></div>
@@ -112,21 +126,27 @@ function buildSettingsForm() {
     <div class="set-section"><h3>${t("set_tabs")}</h3><div class="set-tabs-grid">${tabRows}</div></div>
   `;
 }
+
 function readSettingsForm() {
   const s = SETTINGS;
-  const cfg = document.querySelector('input[name="cfg"]:checked'); if (cfg) s.config = cfg.value;
-  ["sensor","open-meteo","owm"].forEach(id => { s.sources[id] = document.getElementById("src_"+id).checked; });
+  CONFIG_ITEMS.forEach(it => { s.config_items[it.id] = document.getElementById("cfg_"+it.id).checked; });
   s.sn_out = document.getElementById("s_sn_out").value.trim();
+  s.sn_out_key = document.getElementById("s_sn_out_key").value.trim();
   s.sn_in  = document.getElementById("s_sn_in").value.trim();
+  s.sn_in_key = document.getElementById("s_sn_in_key").value.trim();
+  s.send_interval_min = Math.max(1, parseInt(document.getElementById("s_interval").value)||5);
   s.lat = parseFloat(document.getElementById("s_lat").value);
   s.lon = parseFloat(document.getElementById("s_lon").value);
   s.alt_sea = parseFloat(document.getElementById("s_alt_sea").value);
   s.alt_ground = parseFloat(document.getElementById("s_alt_ground").value);
-  s.tabs = {}; PARAMS.forEach(p => { s.tabs[p.key] = document.getElementById("tab_"+p.key).checked; });
+  s.tabs = {};
+  PARAMS.forEach(p => { s.tabs[p.key] = document.getElementById("tab_"+p.key).checked; });
+  EXTRA_TABS.forEach(it => { s.tabs[it.id] = document.getElementById("tab_"+it.id).checked; });
 }
+
 function openSettings() { buildSettingsForm(); document.getElementById("settings-modal").classList.add("open"); }
 function closeSettings() { document.getElementById("settings-modal").classList.remove("open"); }
-async function applySettings() { readSettingsForm(); await saveSettings(); closeSettings(); buildTabs(); refreshView(); }
+async function applySettings() { readSettingsForm(); await saveSettings(); closeSettings(); await loadTimezone(); buildTabs(); refreshDeviceDots(); refreshView(); }
 
 /* ============ ПО-СТРАНИЧНЫЕ НАСТРОЙКИ ============ */
 function renderThresholdsInputs() {
@@ -163,9 +183,8 @@ function buildParamSettings() {
   const p = PARAMS.find(x => x.key === currentKey);
   const s = SETTINGS;
   const g = PARAM_UNIT_GROUP[p.key];
-  const editable = !!g;                       // редактируемые: temp/pressure/wind/rad/co2/co
+  const editable = !!g;
   let html = "";
-
   if (PARAM_INFO[p.key]) {
     html += `<div class="set-section">${PARAM_INFO[p.key]}</div>`;
   } else if (g) {
@@ -176,23 +195,19 @@ function buildParamSettings() {
   } else {
     html += `<div class="set-section"><div class="set-row"><label>${t("set_unit")}</label><span>${paramUnitDisplay(p) || t("unit_none")} — ${t("unit_fixed")}</span></div></div>`;
   }
-
   if (p.key === "pressure") {
     html += `<div class="set-section"><h3>${t("set_pressure_thr")}</h3>
       <label class="set-check"><input type="checkbox" id="thr_auto" ${s.pressure_auto!==false?"checked":""}> ${t("thr_auto")}</label>
       <div id="thr-box"></div></div>`;
   }
-
   document.getElementById("param-set-title").textContent = t("set_page") + paramSetName(p);
   document.getElementById("param-body").innerHTML = html;
-
-  // кнопки: если нечего сохранять — только «Закрыть»
   document.getElementById("param-save").style.display = editable ? "" : "none";
   document.getElementById("param-cancel").textContent = editable ? t("set_cancel") : t("set_close");
-
   if (p.key === "pressure") {
     renderThresholdsInputs();
     const uSel = document.getElementById("pu_unit");
+    if (uSel) uSel.addEventListener("change", () => { SETTINGS.units.pressure = uSel.value; renderThresholdsInputs(); });
     document.getElementById("thr_auto").addEventListener("change", e => { SETTINGS.pressure_auto = e.target.checked; renderThresholdsInputs(); });
   }
 }
@@ -246,9 +261,7 @@ function buildAdvice() {
   const rows = ADVICE_LIST.map(it => {
     const off = s.advice.disabled[it.id] === true;
     const cls = "adv-row" + (it.crit ? " adv-crit" : "");
-    return `<div class="${cls}">
-      <label class="set-check"><input type="checkbox" id="adv_${it.id}" ${off?"":"checked"}> <span>${it.text}</span></label>
-    </div>`;
+    return `<div class="${cls}"><label class="set-check"><input type="checkbox" id="adv_${it.id}" ${off?"":"checked"}> <span>${it.text}</span></label></div>`;
   }).join("");
   document.getElementById("advice-body").innerHTML = `
     <div class="set-hint">${t("advice_soon")}</div>
@@ -278,9 +291,7 @@ function buildSmartHome() {
   document.getElementById("smarthome-body").innerHTML = `
     <div class="set-hint">${t("smart_soon")}</div>
     <div class="set-section"><h3>${t("sh_title")}</h3>
-      ${row("json", t("sh_json"))}
-      ${row("mqtt", t("sh_mqtt"))}
-      ${row("rest", t("sh_rest"))}
+      ${row("json", t("sh_json"))}${row("mqtt", t("sh_mqtt"))}${row("rest", t("sh_rest"))}
     </div>`;
 }
 async function saveSmartHome() {

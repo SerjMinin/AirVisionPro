@@ -7,7 +7,8 @@ let currentKey = PARAMS[0].key;
 let currentRange = "24h";
 let offsetSteps = 0;
 let chart = null;
-let currentView = "param";   // param | geomag | api | advice | smarthome
+let currentView = "param";
+let TZ_OFFSET = 0;   // смещение часового пояса координат локации (сек)
 
 const RANGES = {
   "24h":   { sec: 24*3600,     ticks: 24, i18n: "r_24h"   },
@@ -16,7 +17,6 @@ const RANGES = {
   "year":  { sec: 365*24*3600, ticks: 12, i18n: "r_year"  }
 };
 
-/* верхние (над графиком) названия-переопределения */
 const TOP_TITLE = {
   no2:"Диоксид азота NO₂", so2:"Диоксид серы SO₂", no:"Монооксид азота NO",
   co2:"Углекислый газ CO₂", co:"Угарный газ CO", o3:"Озон O₃",
@@ -32,8 +32,20 @@ async function guard() {
 async function logout() { await client.auth.signOut(); window.location.href = "index.html"; }
 
 function toggleTheme() { setTheme(getTheme() === "dark" ? "light" : "dark"); }
-function onThemeChanged() { if (currentView === "param") renderParam(currentKey); }
+function onThemeChanged() { if (chartLikeView()) refreshView(); }
 function onLangChanged() { buildTabs(); buildRangeBar(); refreshView(); }
+
+function chartLikeView() { return currentView === "param" || currentView === "geomag"; }
+
+/* часовой пояс по координатам (Open-Meteo) */
+async function loadTimezone() {
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${SETTINGS.lat}&longitude=${SETTINGS.lon}&timezone=auto&forecast_days=1`);
+    const j = await r.json();
+    if (typeof j.utc_offset_seconds === "number") TZ_OFFSET = j.utc_offset_seconds;
+  } catch(e) { console.warn("tz:", e); }
+}
+function locDate(unix) { return new Date((unix + TZ_OFFSET) * 1000); }
 
 function buildTabs() {
   const bar = document.getElementById("tabs");
@@ -48,39 +60,45 @@ function buildTabs() {
     bar.appendChild(tab);
   });
   const sep = document.createElement("span"); sep.className = "tab-sep"; bar.appendChild(sep);
-  [["geomag",t("tab_geomag")],["api","API OUT"],["advice",t("tab_advice")],["smarthome",t("tab_smart")]].forEach(([view,label]) => {
+  EXTRA_TABS.forEach(it => {
+    if (SETTINGS && SETTINGS.tabs && SETTINGS.tabs[it.id] === false) return;
+    const label = it.label || t(it.i18n);
     const tab = document.createElement("button");
-    tab.className = "tab tab-extra" + (currentView===view ? " active" : "");
+    tab.className = "tab tab-extra" + (currentView===it.id ? " active" : "");
     tab.textContent = label;
-    tab.onclick = () => { currentView=view; buildTabs(); refreshView(); };
+    tab.onclick = () => { currentView=it.id; offsetSteps=0; buildTabs(); refreshView(); };
     bar.appendChild(tab);
   });
+}
+function scrollTabs(dir) {
+  const el = document.getElementById("tabs");
+  el.scrollBy({ left: dir * Math.max(180, el.clientWidth * 0.6), behavior: "smooth" });
 }
 
 function buildRangeBar() {
   const bar = document.getElementById("range-bar");
   if (!bar) return;
   bar.innerHTML = "";
-  if (currentView !== "param") return;
+  if (!chartLikeView()) return;
+  const render = () => currentView==="param" ? renderParam(currentKey) : renderGeomag();
   const left = document.createElement("button");
   left.className = "range-btn arrow"; left.textContent = "‹";
-  left.onclick = () => { offsetSteps++; renderParam(currentKey); };
+  left.onclick = () => { offsetSteps++; render(); };
   const right = document.createElement("button");
   right.className = "range-btn arrow" + (offsetSteps === 0 ? " disabled" : "");
   right.textContent = "›"; right.title = t("to_now");
-  right.onclick = () => { if (offsetSteps > 0) { offsetSteps--; renderParam(currentKey); } };
+  right.onclick = () => { if (offsetSteps > 0) { offsetSteps--; render(); } };
   bar.appendChild(left);
   ["24h","week","month","year"].forEach(code => {
     const b = document.createElement("button");
     b.className = "range-btn" + (code === currentRange ? " active" : "");
     b.textContent = t(RANGES[code].i18n);
-    b.onclick = () => { currentRange = code; offsetSteps = 0; buildRangeBar(); renderParam(currentKey); };
+    b.onclick = () => { currentRange = code; offsetSteps = 0; buildRangeBar(); render(); };
     bar.appendChild(b);
   });
   bar.appendChild(right);
 }
 
-/* шестерёнка сверху: для параметра и для магнитных бурь */
 function openViewSettings() {
   if (currentView === "param") openParamSettings();
   else if (currentView === "geomag") openGeomagSettings();
@@ -91,22 +109,19 @@ function refreshView() {
   const extra = document.getElementById("extra-view");
   const gear = document.getElementById("param-gear");
   buildRangeBar();
-  if (currentView === "param") {
+  if (chartLikeView()) {
     chartArea.style.display = "flex"; extra.style.display = "none"; gear.style.display = "flex";
-    renderParam(currentKey);
+    if (currentView === "param") renderParam(currentKey); else renderGeomag();
   } else {
-    chartArea.style.display = "none"; extra.style.display = "block";
-    gear.style.display = (currentView === "geomag") ? "flex" : "none";
-    if (currentView === "geomag")    { document.getElementById("chart-title").textContent = t("tab_geomag"); showExtra("geomag"); buildGeomag(); }
+    chartArea.style.display = "none"; extra.style.display = "block"; gear.style.display = "none";
     if (currentView === "api")       { document.getElementById("chart-title").textContent = "API OUT"; buildApiOut(); showExtra("api"); }
     if (currentView === "advice")    { document.getElementById("chart-title").textContent = t("tab_advice"); buildAdvice(); showExtra("advice"); }
     if (currentView === "smarthome") { document.getElementById("chart-title").textContent = t("tab_smart"); buildSmartHome(); showExtra("smarthome"); }
   }
 }
-
 function showExtra(which) {
-  const ids = ["geomag-panel","api-panel","advice-panel","smarthome-panel"];
-  const map = { geomag:"geomag-panel", api:"api-panel", advice:"advice-panel", smarthome:"smarthome-panel" };
+  const ids = ["api-panel","advice-panel","smarthome-panel"];
+  const map = { api:"api-panel", advice:"advice-panel", smarthome:"smarthome-panel" };
   ids.forEach(id => document.getElementById(id).style.display = (map[which]===id) ? "block" : "none");
 }
 
@@ -152,11 +167,20 @@ async function renderParam(key) {
   const g = PARAM_UNIT_GROUP[p.key];
   const unitId = g ? SETTINGS.units[g] : null;
   const uLabel = paramUnitDisplay(p);
+  const ci_ = SETTINGS.config_items;
 
   let sources = [];
-  if (p.loc === "out" || p.loc === "pressure") sources = [{ sn: SETTINGS.sn_out, tag: t("outdoor") }];
-  else if (p.loc === "in") sources = [{ sn: SETTINGS.sn_in, tag: t("indoor") }];
-  else sources = [{ sn: SETTINGS.sn_out, tag: t("outdoor") }, { sn: SETTINGS.sn_in, tag: t("indoor") }];
+  const outOk = ci_.dev_out !== false, inOk = ci_.dev_in !== false;
+  if (p.loc === "out" || p.loc === "pressure") { if (outOk) sources = [{ sn:SETTINGS.sn_out, tag:t("outdoor") }]; }
+  else if (p.loc === "in") { if (inOk) sources = [{ sn:SETTINGS.sn_in, tag:t("indoor") }]; }
+  else { if (outOk) sources.push({ sn:SETTINGS.sn_out, tag:t("outdoor") }); if (inOk) sources.push({ sn:SETTINGS.sn_in, tag:t("indoor") }); }
+
+  const provOk = prov => {
+    if (prov.includes("meteo")) return ci_.open_meteo !== false;
+    if (prov.includes("owm") || prov.includes("weather")) return ci_.owm !== false;
+    if (prov.includes("yandex")) return ci_.yandex !== false;
+    return true;
+  };
 
   const datasets = [];
   const palette = ["#4db2ff","#ff9d4d","#a0ff6b","#ff6bce","#ffe14d","#b98cff","#6bd2ff"];
@@ -170,8 +194,7 @@ async function renderParam(key) {
       const groups = {};
       rows.forEach(r => {
         const prov = (r.provider || r.src || "sensor");
-        const srcKey = prov.includes("meteo") ? "open-meteo" : (prov.includes("owm")||prov.includes("weather") ? "owm" : "sensor");
-        if (SETTINGS.sources && SETTINGS.sources[srcKey] === false) return;
+        if (!provOk(prov)) return;
         (groups[prov] = groups[prov] || []).push(r);
       });
       for (const gName in groups) {
@@ -214,11 +237,11 @@ async function renderParam(key) {
 }
 
 function fmtTick(unix, range) {
-  const d = new Date(unix*1000); const p = n => String(n).padStart(2,"0");
-  if (range==="24h")  return p(d.getHours());
-  if (range==="week") return p(d.getDate())+"."+p(d.getMonth()+1);
-  if (range==="month")return p(d.getDate());
-  return p(d.getMonth()+1);
+  const d = locDate(unix); const p = n => String(n).padStart(2,"0");
+  if (range==="24h")  return p(d.getUTCHours());
+  if (range==="week") return p(d.getUTCDate())+"."+p(d.getUTCMonth()+1);
+  if (range==="month")return p(d.getUTCDate());
+  return p(d.getUTCMonth()+1);
 }
 
 function showCanvasGraph() { document.getElementById("chart").style.display="block"; document.getElementById("compass").style.display="none"; }
@@ -272,11 +295,36 @@ async function refreshStatus() {
   document.getElementById("sn-in").textContent = SETTINGS.sn_in;
 }
 
+/* индикаторы устройств: красный, если нет данных дольше 3× интервала */
+async function refreshDeviceDots() {
+  const interval = (SETTINGS.send_interval_min || 5) * 60;
+  const thr = 3 * interval;
+  const now = Math.floor(Date.now()/1000);
+  const list = [
+    { sn:SETTINGS.sn_out, dot:"dot-out", on:SETTINGS.config_items.dev_out !== false },
+    { sn:SETTINGS.sn_in,  dot:"dot-in",  on:SETTINGS.config_items.dev_in  !== false }
+  ];
+  for (const d of list) {
+    const el = document.getElementById(d.dot);
+    if (!el) continue;
+    if (!d.on) { el.className = "dot dot-off"; continue; }
+    try {
+      const { data } = await client.from("measurements").select("ts_device")
+        .eq("serial", d.sn).order("ts_device", { ascending:false }).limit(1);
+      const fresh = data && data[0] && (now - Number(data[0].ts_device)) <= thr;
+      el.className = "dot " + (fresh ? "dot-ok" : "dot-bad");
+    } catch(e) { el.className = "dot dot-bad"; }
+  }
+}
+
 async function startDashboard() {
   if (!(await guard())) return;
   document.body.style.visibility = "visible";
   await loadSettings();
+  await loadTimezone();
   buildTabs(); buildRangeBar(); await refreshStatus();
   refreshView();
+  refreshDeviceDots();
+  setInterval(refreshDeviceDots, 60000);
   window.addEventListener("resize", () => { if (currentView==="param") renderParam(currentKey); });
 }

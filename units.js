@@ -4,7 +4,7 @@
 const UNITS = {
   temp:     { def:"C",   opts:[ {id:"C",label:"°C"}, {id:"F",label:"°F"} ] },
   pressure: { def:"hPa", opts:[ {id:"hPa",label:"гПа"}, {id:"mmHg",label:"мм рт.ст."}, {id:"mbar",label:"мбар"}, {id:"inHg",label:"дюйм рт.ст."} ] },
-  wind_spd: { def:"ms",  opts:[ {id:"ms",label:"м/с"}, {id:"kmh",label:"км/ч"}, {id:"mph",label:"миль в час"} ] },
+  wind_spd: { def:"ms",  opts:[ {id:"ms",label:"м/с"}, {id:"kmh",label:"км/ч"}, {id:"mph",label:"миль/ч"} ] },
   rad:      { def:"uSv", opts:[ {id:"uSv",label:"мкЗв/ч"}, {id:"uR",label:"мкР/ч"} ] },
   co2:      { def:"ppm", opts:[ {id:"ppm",label:"ppm"}, {id:"mgm3",label:"мг/м³"} ] },
   co:       { def:"ppm", opts:[ {id:"ppm",label:"ppm"}, {id:"mgm3",label:"мг/м³"} ] }

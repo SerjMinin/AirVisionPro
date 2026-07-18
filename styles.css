@@ -270,3 +270,52 @@ html[dir="rtl"] .lang-menu { right: auto; left: 0; }
 .modal-wide { width:min(760px,94vw); }
 /* Описание параметра (УФ/AQI) */
 .param-desc { color:var(--text); line-height:1.6; font-size:14px; }
+/* Единый стиль прокрутки во всех окнах */
+.modal-body, .extra-box, .adv-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--card-border) transparent;
+}
+.modal-body::-webkit-scrollbar,
+.extra-box::-webkit-scrollbar,
+.adv-scroll::-webkit-scrollbar { width: 7px; }
+.modal-body::-webkit-scrollbar-thumb,
+.extra-box::-webkit-scrollbar-thumb,
+.adv-scroll::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 4px; }
+.modal-body::-webkit-scrollbar-track,
+.extra-box::-webkit-scrollbar-track,
+.adv-scroll::-webkit-scrollbar-track { background: transparent; }
+.tabs-wrap { display:flex; align-items:center; gap:6px; padding:0 6px; }
+.tabs { flex:1 1 auto; overflow-x:auto; scrollbar-width:none; }
+.tabs::-webkit-scrollbar { display:none; }   /* прячем полосу — вместо неё стрелки */
+.tabs-nav { flex:0 0 auto; }
+/* Единый скроллбар во всех окнах */
+.modal-body, .extra-box, .adv-scroll {
+  scrollbar-width: thin; scrollbar-color: var(--card-border) transparent;
+}
+.modal-body::-webkit-scrollbar, .extra-box::-webkit-scrollbar, .adv-scroll::-webkit-scrollbar { width:7px; }
+.modal-body::-webkit-scrollbar-thumb, .extra-box::-webkit-scrollbar-thumb, .adv-scroll::-webkit-scrollbar-thumb { background:var(--card-border); border-radius:4px; }
+.modal-body::-webkit-scrollbar-track, .extra-box::-webkit-scrollbar-track, .adv-scroll::-webkit-scrollbar-track { background:transparent; }
+
+/* Нижние вкладки: стрелки вместо полосы */
+.tabs-wrap { display:flex; align-items:center; gap:6px; padding:0 6px; }
+.tabs { flex:1 1 auto; overflow-x:auto; display:flex; scrollbar-width:none; }
+.tabs::-webkit-scrollbar { display:none; }
+.tabs-nav { flex:0 0 auto; }
+
+/* Конфигурация: строка с кнопкой «Настроить» */
+.cfg-row { display:flex; align-items:center; gap:12px; padding:5px 2px; }
+.cfg-row .set-check { flex:1; margin-bottom:0; }
+.set-btn.sm { padding:5px 12px; font-size:13px; }
+
+/* Индикаторы устройств */
+.dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; }
+.dot-ok  { background:#37d67a; box-shadow:0 0 6px #37d67a; }
+.dot-bad { background:#e0413f; box-shadow:0 0 6px #e0413f; }
+.dot-off { background:#7d879a; }
+
+/* Магнитные бури — таблица настроек */
+.geo-table { width:100%; border-collapse:collapse; font-size:13px; }
+.geo-table th, .geo-table td { border:1px solid var(--card-border); padding:8px 10px; text-align:left; color:var(--text); vertical-align:top; }
+.geo-table th { color:var(--accent-1); }
+.modal-wide { width:min(760px,94vw); }
+.param-desc { color:var(--text); line-height:1.6; font-size:14px; }
