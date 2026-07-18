@@ -11,7 +11,7 @@ let currentView = "param";
 let TZ_OFFSET = 0;   // смещение часового пояса координат локации (сек)
 
 const RANGES = {
-  "24h":   { sec: 24*3600,     ticks: 12, i18n: "r_24h"   },  // каждые 2 ч → 0,2,4…24
+  "24h":   { sec: 24*3600,     ticks: 12, i18n: "r_24h"   },  // 0,2,4…24
   "week":  { sec: 7*24*3600,   ticks: 7,  i18n: "r_week"  },  // 7 дней
   "month": { sec: 30*24*3600,  ticks: 4,  i18n: "r_month" },  // ~4 недели
   "year":  { sec: 365*24*3600, ticks: 12, i18n: "r_year"  }   // 12 месяцев
@@ -70,6 +70,7 @@ function buildTabs() {
     bar.appendChild(tab);
   });
 }
+
 function scrollTabs(dir) {
   const el = document.getElementById("tabs");
   const tab = el.querySelector(".tab");
@@ -137,11 +138,37 @@ async function loadSeries(serial, key, from, to) {
   return data;
 }
 
+/* окно для компаса (не выровнено — ему не важно) */
 function windowRange() {
   const now = Math.floor(Date.now() / 1000);
   const span = RANGES[currentRange].sec;
   const to = now - offsetSteps * span;
   return { from: to - span, to, span };
+}
+
+/* окно графиков-параметров, выровненное по локальной полуночи координат */
+function alignedWindow() {
+  const now = Math.floor(Date.now()/1000);
+  const day = 86400;
+  const localMidnight = u => Math.floor((u + TZ_OFFSET)/day)*day - TZ_OFFSET;
+  const endBase = localMidnight(now) + day;   // ближайшая будущая локальная полночь
+  let mult;
+  if (currentRange==="24h")       mult = day;
+  else if (currentRange==="week") mult = 7*day;
+  else if (currentRange==="month")mult = 30*day;
+  else                             mult = 365*day;
+  const to = endBase - offsetSteps*mult;
+  const from = to - mult;
+  return { from, to, span: mult };
+}
+
+/* подписи делений в привычном виде */
+function tickLabel(i, from, step) {
+  const p = n => String(n).padStart(2,"0");
+  if (currentRange==="24h") return String(i*2);            // 0,2,4…24
+  const d = locDate(from + i*step);
+  if (currentRange==="year") return p(d.getUTCMonth()+1);  // месяц
+  return p(d.getUTCDate())+"."+p(d.getUTCMonth()+1);       // DD.MM
 }
 
 function smoothJ305(points) {
@@ -161,7 +188,7 @@ async function renderParam(key) {
   if (p.type === "compass") { await renderCompass(p); return; }
   showCanvasGraph();
 
-  const { from, span } = windowRange();
+  const { from, span } = alignedWindow();
   const ticks = RANGES[currentRange].ticks;
   const step = span / ticks;
   const to = from + span;
@@ -213,24 +240,20 @@ async function renderParam(key) {
 
   document.getElementById("chart-title").textContent = paramTopTitle(p) + (uLabel ? " (" + uLabel + ")" : "");
   const advice = document.getElementById("advice");
-  if (p.key === "pressure" && datasets.length && datasets[0].data.length) {
-    const last = Number(datasets[0].data[datasets[0].data.length-1].y);
-    advice.textContent = t(p.i18n) + ": " + last.toFixed(unitId==="inHg"?2:0) + " " + uLabel;
-  } else advice.textContent = t("advice_default");
+  advice.textContent = t("advice_default");
 
   const isLight = getTheme() === "light";
   const gridColor = isLight ? "rgba(20,60,110,0.12)" : "rgba(120,190,255,0.15)";
   const tickColor = isLight ? "#0d2a4a" : "#eaf4ff";
   const xLabels = [];
-  for (let i=0;i<=ticks;i++) xLabels.push(fmtTick(from + i*step, currentRange));
+  for (let i=0;i<=ticks;i++) xLabels.push(tickLabel(i, from, step));
 
   if (chart) { chart.destroy(); chart = null; }
   chart = new Chart(document.getElementById("chart"), {
     type:"line", data:{ datasets },
     options:{ responsive:true, maintainAspectRatio:false, parsing:false,
       interaction:{ mode:"nearest", intersect:false },
-      plugins:{ legend:{ labels:{ color:tickColor } },
-        zoom:{ zoom:{ wheel:{enabled:true}, pinch:{enabled:true}, mode:"x" }, pan:{ enabled:true, mode:"x" } } },
+      plugins:{ legend:{ labels:{ color:tickColor } } },
       scales:{ x:{ type:"linear", min:0, max:ticks, grid:{ color:gridColor },
           ticks:{ color:tickColor, stepSize:1, autoSkip:false, maxRotation:0, callback:v=>xLabels[v]??"" } },
         y:{ grid:{ color:gridColor }, ticks:{ color:tickColor } } }

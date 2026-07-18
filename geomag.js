@@ -118,45 +118,67 @@ function drawGeomagChart(fact, fcst, errText){
   const mlat = geomagLat(SETTINGS.lat, SETTINGS.lon);
 
   const fF = fact.filter(p=>p.ts>=from && p.ts<=now).sort((a,b)=>a.ts-b.ts);
-  const fC = fcst.filter(p=>p.ts>=now && p.ts<=to).sort((a,b)=>a.ts-b.ts);
+  const fC = fcst.filter(p=>p.ts>now && p.ts<=to).sort((a,b)=>a.ts-b.ts);
 
-  // факт
-  const factPts = fF.map(p=>({x:X(p.ts),y:p.kp}));
-  // прогноз по суткам
-  const seg = d => fC.filter(p=>p.ts>=now+d*86400 && p.ts<now+(d+1)*86400).map(p=>({x:X(p.ts),y:p.kp}));
-  const d1=seg(0), d2=seg(1), d3=seg(2);
+  // ЕДИНЫЙ массив точек (факт + прогноз) → одна непрерывная сглаженная линия
+  const all = fF.concat(fC);
+  const pts = all.map(p=>({ x:X(p.ts), y:p.kp, ts:p.ts }));
 
-  // «мостики»: пришиваем конец предыдущего сегмента к началу следующего
-  const bridge = (prevArr, curArr) => {
-    if(prevArr.length && curArr.length) return [prevArr[prevArr.length-1], ...curArr];
-    return curArr;
+  const COL = {
+    fact:"#37d67a",                         // факт — зелёный
+    d1:"#c2cad6",                           // 1 сутки — светло-серый (контраст)
+    d2:"#8a94a4",                           // 2 сутки — серый
+    d3:"rgba(90,100,114,0.5)"               // 3 сутки — тёмно-серый полупрозрачный
   };
-  const lastFact = factPts.length ? factPts[factPts.length-1] : null;
-  const d1b = lastFact && d1.length ? [lastFact, ...d1] : d1;
-  const d2b = bridge(d1b, d2);
-  const d3b = bridge(d2b, d3);
+  const colorForTs = ts => {
+    if(ts <= now)              return COL.fact;
+    if(ts <= now+1*86400)      return COL.d1;
+    if(ts <= now+2*86400)      return COL.d2;
+    return COL.d3;
+  };
+  // цвет сегмента определяем по правой точке (куда линия идёт)
+  const segColor = ctx => colorForTs(from*1 + ctx.p1.parsed.x*3600);
+  const pointColors = pts.map(p=>colorForTs(p.ts));
 
-  const factDs = { label:t("geomag_fact"), data:factPts,
-    borderColor:"#37d67a", backgroundColor:"rgba(55,214,122,0.15)", tension:0.25, pointRadius:2, fill:false };
-  const mk = (label,data,color) => ({ label, data, borderColor:color, backgroundColor:color+"22",
-    borderDash:[6,4], tension:0.25, pointRadius:2, fill:false });
-  const ds1 = mk(t("geomag_d1"), d1b, "#5a6472"); // 1 сутки — тёмно-серый
-  const ds2 = mk(t("geomag_d2"), d2b, "#8a94a4"); // 2 сутки — серый
-  const ds3 = mk(t("geomag_d3"), d3b, "#c2cad6"); // 3 сутки — светло-серый
-
-  const auroraPts = fF.concat(fC).map(p=>({x:X(p.ts),visible:auroraVisible(p.kp,mlat)}));
+  const auroraPts = pts.map(p=>({x:p.x,visible:auroraVisible(p.y,mlat)}));
 
   const isLight=getTheme()==="light";
   const gridColor=isLight?"rgba(20,60,110,0.14)":"rgba(120,190,255,0.18)";
   const tickColor=isLight?"#0d2a4a":"#eaf4ff";
 
+  const legendItems = [
+    { text:t("geomag_fact"), color:COL.fact, dash:false },
+    { text:t("geomag_d1"),   color:COL.d1,   dash:true  },
+    { text:t("geomag_d2"),   color:COL.d2,   dash:true  },
+    { text:t("geomag_d3"),   color:COL.d3,   dash:true  }
+  ];
+
   if(chart){ chart.destroy(); chart=null; }
   chart = new Chart(document.getElementById("chart"),{
     type:"line",
-    data:{ datasets:[factDs, ds1, ds2, ds3] },
+    data:{ datasets:[{
+      label:"Kp",
+      data:pts,
+      borderColor:COL.fact,
+      pointBackgroundColor:pointColors,
+      pointBorderColor:pointColors,
+      pointRadius:2,
+      tension:0.4,                          // сглаживание, стык плавный
+      fill:false,
+      segment:{
+        borderColor: segColor,
+        borderDash: ctx => (from*1 + ctx.p1.parsed.x*3600) > now ? [6,4] : undefined
+      }
+    }]},
     options:{ responsive:true, maintainAspectRatio:false, parsing:true,
       interaction:{ mode:"nearest", intersect:false },
-      plugins:{ legend:{ labels:{ color:tickColor, usePointStyle:true, pointStyle:"line", boxWidth:28 } } },
+      plugins:{ legend:{ labels:{
+        color:tickColor, usePointStyle:true, boxWidth:28,
+        generateLabels: () => legendItems.map(it=>({
+          text:it.text, strokeStyle:it.color, fillStyle:it.color,
+          lineWidth:3, lineDash:it.dash?[6,4]:[], pointStyle:"line", hidden:false
+        }))
+      } } },
       scales:{
         x:{ type:"linear", min:0, max:toX, grid:{ color:gridColor },
           ticks:{ color:tickColor, maxTicksLimit:12, callback:v=>fmtTick(from+v*3600,currentRange) } },
@@ -170,7 +192,6 @@ function drawGeomagChart(fact, fcst, errText){
   chart.$nowX = X(now);
   chart.update();
 
-  // строку советов больше НЕ трогаем здесь (см. п.2)
   if(errText){ document.getElementById("advice").textContent = errText; }
 }
 
