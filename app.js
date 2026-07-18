@@ -16,7 +16,7 @@ const RANGES = {
   "month": { sec: 28*24*3600,  ticks: 4,  i18n: "r_month" },  // 4 недели
   "year":  { sec: 365*24*3600, ticks: 12, i18n: "r_year"  }   // 12 месяцев
 };
-
+const MONTHS_ABBR = ["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
 const MONTHS_FULL = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 
 function bgDateLabel(unix){
@@ -69,7 +69,8 @@ async function loadTimezone() {
   } catch(e) { console.warn("tz:", e); }
 }
 function locDate(unix) { return new Date((unix + TZ_OFFSET) * 1000); }
-
+function showLoader(){ const el=document.getElementById("loader"); if(el) el.classList.add("show"); }
+function hideLoader(){ const el=document.getElementById("loader"); if(el) el.classList.remove("show"); }
 function buildTabs() {
   const bar = document.getElementById("tabs");
   if (!bar) return;
@@ -212,6 +213,7 @@ async function renderParam(key) {
   if (!p) return;
   if (p.type === "compass") { await renderCompass(p); return; }
   showCanvasGraph();
+  showLoader();
 
   const { from, span } = viewWindow();
   const ticks = RANGES[currentRange].ticks;
@@ -285,6 +287,7 @@ async function renderParam(key) {
     plugins:[paramWmPlugin]
   });
   chart.$bgLabel = bgDateLabel(from);
+  hideLoader();
 }
 
 function fmtTick(unix, range) {
@@ -300,6 +303,7 @@ function showCompass()     { document.getElementById("chart").style.display="non
 
 async function renderCompass(p) {
   showCompass();
+  showLoader();
   document.getElementById("chart-title").textContent = t(p.i18n);
   document.getElementById("advice").textContent = t("advice_default");
   const { from, to } = windowRange();
@@ -308,6 +312,7 @@ async function renderCompass(p) {
   rows.forEach(r => { let deg=((Number(r.val)%360)+360)%360; bins[Math.round(deg/45)%8]++; });
   const total = rows.length||1;
   drawCompass(bins.map(b=>b/total), rows.length ? Number(rows[rows.length-1].val) : null);
+  hideLoader();
 }
 
 function drawCompass(freq, currentDeg) {
