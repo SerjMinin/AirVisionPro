@@ -117,17 +117,33 @@ function drawGeomagChart(fact, fcst, errText){
   const X = ts => (ts - from)/3600;
   const mlat = geomagLat(SETTINGS.lat, SETTINGS.lon);
 
-  const fF = fact.filter(p=>p.ts>=from && p.ts<=now);
-  const fC = fcst.filter(p=>p.ts>=now && p.ts<=to);
+  const fF = fact.filter(p=>p.ts>=from && p.ts<=now).sort((a,b)=>a.ts-b.ts);
+  const fC = fcst.filter(p=>p.ts>=now && p.ts<=to).sort((a,b)=>a.ts-b.ts);
 
-  const factDs = { label:t("geomag_fact"), data:fF.map(p=>({x:X(p.ts),y:p.kp})),
+  // факт
+  const factPts = fF.map(p=>({x:X(p.ts),y:p.kp}));
+  // прогноз по суткам
+  const seg = d => fC.filter(p=>p.ts>=now+d*86400 && p.ts<now+(d+1)*86400).map(p=>({x:X(p.ts),y:p.kp}));
+  const d1=seg(0), d2=seg(1), d3=seg(2);
+
+  // «мостики»: пришиваем конец предыдущего сегмента к началу следующего
+  const bridge = (prevArr, curArr) => {
+    if(prevArr.length && curArr.length) return [prevArr[prevArr.length-1], ...curArr];
+    return curArr;
+  };
+  const lastFact = factPts.length ? factPts[factPts.length-1] : null;
+  const d1b = lastFact && d1.length ? [lastFact, ...d1] : d1;
+  const d2b = bridge(d1b, d2);
+  const d3b = bridge(d2b, d3);
+
+  const factDs = { label:t("geomag_fact"), data:factPts,
     borderColor:"#37d67a", backgroundColor:"rgba(55,214,122,0.15)", tension:0.25, pointRadius:2, fill:false };
-  const dayCol=["#5a6472","#8a94a4","#c2cad6"];
-  const fds=[0,1,2].map(d=>({
-    label:t("geomag_fcst")+" "+(d+1)+t("geomag_day"),
-    data:fC.filter(p=>p.ts>=now+d*86400 && p.ts<now+(d+1)*86400).map(p=>({x:X(p.ts),y:p.kp})),
-    borderColor:dayCol[d], backgroundColor:dayCol[d]+"22", borderDash:[6,4], tension:0.25, pointRadius:2, fill:false
-  }));
+  const mk = (label,data,color) => ({ label, data, borderColor:color, backgroundColor:color+"22",
+    borderDash:[6,4], tension:0.25, pointRadius:2, fill:false });
+  const ds1 = mk(t("geomag_d1"), d1b, "#5a6472"); // 1 сутки — тёмно-серый
+  const ds2 = mk(t("geomag_d2"), d2b, "#8a94a4"); // 2 сутки — серый
+  const ds3 = mk(t("geomag_d3"), d3b, "#c2cad6"); // 3 сутки — светло-серый
+
   const auroraPts = fF.concat(fC).map(p=>({x:X(p.ts),visible:auroraVisible(p.kp,mlat)}));
 
   const isLight=getTheme()==="light";
@@ -137,10 +153,10 @@ function drawGeomagChart(fact, fcst, errText){
   if(chart){ chart.destroy(); chart=null; }
   chart = new Chart(document.getElementById("chart"),{
     type:"line",
-    data:{ datasets:[factDs, ...fds] },
+    data:{ datasets:[factDs, ds1, ds2, ds3] },
     options:{ responsive:true, maintainAspectRatio:false, parsing:true,
       interaction:{ mode:"nearest", intersect:false },
-      plugins:{ legend:{ labels:{ color:tickColor } } },
+      plugins:{ legend:{ labels:{ color:tickColor, usePointStyle:true, pointStyle:"line", boxWidth:28 } } },
       scales:{
         x:{ type:"linear", min:0, max:toX, grid:{ color:gridColor },
           ticks:{ color:tickColor, maxTicksLimit:12, callback:v=>fmtTick(from+v*3600,currentRange) } },
@@ -154,14 +170,8 @@ function drawGeomagChart(fact, fcst, errText){
   chart.$nowX = X(now);
   chart.update();
 
-  const adv=document.getElementById("advice");
-  if(errText){ adv.textContent = errText; return; }
-  const last = fF.length ? fF[fF.length-1] : (fC[0]||null);
-  if(last){
-    const g = last.kp>=9?G_TABLE[4]:last.kp>=8?G_TABLE[3]:last.kp>=7?G_TABLE[2]:last.kp>=6?G_TABLE[1]:last.kp>=5?G_TABLE[0]:null;
-    adv.textContent = "Kp "+last.kp.toFixed(1)+(g?" · "+g.g+" "+g.name:" · "+t("geomag_calm"))+
-      (auroraVisible(last.kp,mlat)?" · "+t("geomag_aurora"):"");
-  } else adv.textContent = t("geomag_calm");
+  // строку советов больше НЕ трогаем здесь (см. п.2)
+  if(errText){ document.getElementById("advice").textContent = errText; }
 }
 
 async function renderGeomag(){
@@ -169,7 +179,7 @@ async function renderGeomag(){
   showCanvasGraph();
   document.getElementById("chart-title").textContent = t("tab_geomag");
   // сначала рисуем пустой каркас (оси 0–9 будут видны сразу)
-  drawGeomagChart([], [], t("advice_default"));
+  drawGeomagChart([], [], null);
   try{
     const { fact, fcst } = await fetchGeomag();
     drawGeomagChart(fact, fcst, null);

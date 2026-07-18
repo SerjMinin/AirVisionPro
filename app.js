@@ -11,10 +11,10 @@ let currentView = "param";
 let TZ_OFFSET = 0;   // смещение часового пояса координат локации (сек)
 
 const RANGES = {
-  "24h":   { sec: 24*3600,     ticks: 24, i18n: "r_24h"   },
-  "week":  { sec: 7*24*3600,   ticks: 7,  i18n: "r_week"  },
-  "month": { sec: 30*24*3600,  ticks: 30, i18n: "r_month" },
-  "year":  { sec: 365*24*3600, ticks: 12, i18n: "r_year"  }
+  "24h":   { sec: 24*3600,     ticks: 12, i18n: "r_24h"   },  // каждые 2 ч → 0,2,4…24
+  "week":  { sec: 7*24*3600,   ticks: 7,  i18n: "r_week"  },  // 7 дней
+  "month": { sec: 30*24*3600,  ticks: 4,  i18n: "r_month" },  // ~4 недели
+  "year":  { sec: 365*24*3600, ticks: 12, i18n: "r_year"  }   // 12 месяцев
 };
 
 const TOP_TITLE = {
