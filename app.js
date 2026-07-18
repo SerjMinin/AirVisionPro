@@ -72,7 +72,9 @@ function buildTabs() {
 }
 function scrollTabs(dir) {
   const el = document.getElementById("tabs");
-  el.scrollBy({ left: dir * Math.max(180, el.clientWidth * 0.6), behavior: "smooth" });
+  const tab = el.querySelector(".tab");
+  const step = tab ? tab.getBoundingClientRect().width + 8 : 120; // +8 = gap
+  el.scrollBy({ left: dir * step, behavior: "smooth" });
 }
 
 function buildRangeBar() {
