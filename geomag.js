@@ -109,25 +109,24 @@ function normalizeKp(raw){
 function drawGeomagChart(fact, fcst, errText){
   const now = Math.floor(Date.now()/1000);
   const pastSpan = RANGES[currentRange].sec;
+  // окно сдвигается ЦЕЛИКОМ при листании — масштаб не меняется
   const from = now - pastSpan - offsetSteps*pastSpan;
-  const to   = now + 3*24*3600;
+  const to   = now + 3*24*3600 - offsetSteps*pastSpan;
   const toX  = (to - from)/3600;
   const X = ts => (ts - from)/3600;
   const mlat = geomagLat(SETTINGS.lat, SETTINGS.lon);
 
-  const fF = fact.filter(p=>p.ts>=from && p.ts<=now).sort((a,b)=>a.ts-b.ts);
+  const fF = fact.filter(p=>p.ts>=from && p.ts<=Math.min(now,to)).sort((a,b)=>a.ts-b.ts);
   const fC = fcst.filter(p=>p.ts>now && p.ts<=to).sort((a,b)=>a.ts-b.ts);
 
-  // ЕДИНЫЙ массив (факт + прогноз) → одна непрерывная сглаженная линия
   const all = fF.concat(fC);
   const pts = all.map(p=>({ x:X(p.ts), y:p.kp, ts:p.ts }));
 
-  // тёмно-серый с разной прозрачностью — работает и на тёмной, и на светлой теме
   const COL = {
-    fact:"#37d67a",                        // факт — зелёный
-    d1:"rgba(90,100,114,1.0)",             // 1 сутки — плотный (0% прозрачности)
-    d2:"rgba(90,100,114,0.67)",            // 2 сутки — 33% прозрачности
-    d3:"rgba(90,100,114,0.34)"             // 3 сутки — 66% прозрачности
+    fact:"#37d67a",
+    d1:"rgba(90,100,114,1)",
+    d2:"rgba(90,100,114,0.67)",
+    d3:"rgba(90,100,114,0.34)"
   };
   const colorForTs = ts => {
     if(ts <= now)         return COL.fact;
@@ -162,7 +161,7 @@ function drawGeomagChart(fact, fcst, errText){
       pointBackgroundColor:pointColors,
       pointBorderColor:pointColors,
       pointRadius:2,
-      tension:0.4,                         // сглаживание сквозь стык
+      tension:0.4,
       fill:false,
       segment:{ borderColor:segColor, borderDash:segDash }
     }]},
@@ -196,7 +195,7 @@ async function renderGeomag(){
   if(currentView!=="geomag") return;
   showCanvasGraph();
   document.getElementById("chart-title").textContent = t("tab_geomag");
-  drawGeomagChart([], [], null);   // пустой каркас 0–9
+  drawGeomagChart([], [], null);
   try{
     const { fact, fcst } = await fetchGeomag();
     drawGeomagChart(fact, fcst, null);

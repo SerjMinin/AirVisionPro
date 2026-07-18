@@ -11,11 +11,13 @@ let currentView = "param";
 let TZ_OFFSET = 0;   // смещение часового пояса координат локации (сек)
 
 const RANGES = {
-  "24h":   { sec: 24*3600,     ticks: 12, i18n: "r_24h"   },  // 0,2,4…24
+  "24h":   { sec: 24*3600,     ticks: 12, i18n: "r_24h"   },  // 0,2…24
   "week":  { sec: 7*24*3600,   ticks: 7,  i18n: "r_week"  },  // 7 дней
-  "month": { sec: 30*24*3600,  ticks: 4,  i18n: "r_month" },  // ~4 недели
+  "month": { sec: 28*24*3600,  ticks: 4,  i18n: "r_month" },  // 4 недели
   "year":  { sec: 365*24*3600, ticks: 12, i18n: "r_year"  }   // 12 месяцев
 };
+
+const MONTHS_ABBR = ["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
 
 const TOP_TITLE = {
   no2:"Диоксид азота NO₂", so2:"Диоксид серы SO₂", no:"Монооксид азота NO",
@@ -74,7 +76,7 @@ function buildTabs() {
 function scrollTabs(dir) {
   const el = document.getElementById("tabs");
   const tab = el.querySelector(".tab");
-  const step = tab ? tab.getBoundingClientRect().width + 8 : 120; // +8 = gap
+  const step = tab ? tab.getBoundingClientRect().width + 8 : 120;
   el.scrollBy({ left: dir * step, behavior: "smooth" });
 }
 
@@ -138,7 +140,7 @@ async function loadSeries(serial, key, from, to) {
   return data;
 }
 
-/* окно для компаса (не выровнено — ему не важно) */
+/* окно для компаса (выравнивание не нужно) */
 function windowRange() {
   const now = Math.floor(Date.now() / 1000);
   const span = RANGES[currentRange].sec;
@@ -146,29 +148,30 @@ function windowRange() {
   return { from: to - span, to, span };
 }
 
-/* окно графиков-параметров, выровненное по локальной полуночи координат */
-function alignedWindow() {
-  const now = Math.floor(Date.now()/1000);
+/* окно графиков-параметров: привязано к локальной полуночи координат, шаг = ровно период */
+function viewWindow() {
   const day = 86400;
-  const localMidnight = u => Math.floor((u + TZ_OFFSET)/day)*day - TZ_OFFSET;
-  const endBase = localMidnight(now) + day;   // ближайшая будущая локальная полночь
-  let mult;
-  if (currentRange==="24h")       mult = day;
-  else if (currentRange==="week") mult = 7*day;
-  else if (currentRange==="month")mult = 30*day;
-  else                             mult = 365*day;
-  const to = endBase - offsetSteps*mult;
-  const from = to - mult;
-  return { from, to, span: mult };
+  const now = Math.floor(Date.now()/1000);
+  const midnight = Math.floor((now + TZ_OFFSET)/day)*day - TZ_OFFSET; // сегодняшняя локальная полночь
+  const span = RANGES[currentRange].sec;
+  const to = midnight + day - offsetSteps*span;   // конец окна на границе суток
+  const from = to - span;
+  return { from, to, span };
 }
 
-/* подписи делений в привычном виде */
-function tickLabel(i, from, step) {
+/* подписи делений */
+function tickLabel(v, from, step) {
   const p = n => String(n).padStart(2,"0");
-  if (currentRange==="24h") return String(i*2);            // 0,2,4…24
-  const d = locDate(from + i*step);
-  if (currentRange==="year") return p(d.getUTCMonth()+1);  // месяц
-  return p(d.getUTCDate())+"."+p(d.getUTCMonth()+1);       // DD.MM
+  if (currentRange==="24h") return String(v*2);              // 0,2,…24
+  const N = RANGES[currentRange].ticks;
+  if (currentRange==="year") {
+    if (v>=N) return "";
+    const m = (locDate(from).getUTCMonth() + v) % 12;
+    return MONTHS_ABBR[m];                                   // 12 месяцев
+  }
+  if (v>=N) return "";                                       // неделя/месяц: даты
+  const d = locDate(from + v*step);
+  return p(d.getUTCDate())+"."+p(d.getUTCMonth()+1);
 }
 
 function smoothJ305(points) {
@@ -188,7 +191,7 @@ async function renderParam(key) {
   if (p.type === "compass") { await renderCompass(p); return; }
   showCanvasGraph();
 
-  const { from, span } = alignedWindow();
+  const { from, span } = viewWindow();
   const ticks = RANGES[currentRange].ticks;
   const step = span / ticks;
   const to = from + span;
@@ -239,8 +242,7 @@ async function renderParam(key) {
   }
 
   document.getElementById("chart-title").textContent = paramTopTitle(p) + (uLabel ? " (" + uLabel + ")" : "");
-  const advice = document.getElementById("advice");
-  advice.textContent = t("advice_default");
+  document.getElementById("advice").textContent = t("advice_default");
 
   const isLight = getTheme() === "light";
   const gridColor = isLight ? "rgba(20,60,110,0.12)" : "rgba(120,190,255,0.15)";
