@@ -1,0 +1,10 @@
+# Arduino IDE
+/build/
+/bin/
+*.tmp
+.settings/
+.vscode/
+
+# OS files
+Thumbs.db
+.DS_Store
