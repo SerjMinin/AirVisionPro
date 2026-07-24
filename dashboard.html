@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AirVision Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
+  <script src="config.js"></script>
+  <script src="i18n.js"></script>
+  <script src="units.js"></script>
+  <script src="params.js"></script>
+  <script src="advice.js"></script>
+  <script src="geomag.js"></script>
+  <style>body { visibility: hidden; }</style>
+</head>
+<body class="page-dash">
+
+  <header class="topbar">
+    <div class="brand">AirVision Pro</div>
+    <div class="status-group">
+      <div class="status-item"><span class="dot" id="dot-in"></span><span data-i18n="indoor">Дом</span>: <span id="sn-in">IN-0001</span></div>
+      <div class="status-item"><span class="dot" id="dot-out"></span><span data-i18n="outdoor">Улица</span>: <span id="sn-out">OUT-0001</span></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="ver" id="ver">Версия v1.0</div>
+    <div class="top-actions">
+      <button class="icon-btn" onclick="toggleTheme()" title="Тема">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+      </button>
+      <button class="icon-btn" id="lang-btn" title="Язык / Language">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/>
+          <line x1="3" y1="12" x2="21" y2="12"/><path d="M4.5 7.5h15M4.5 16.5h15"/></svg>
+      </button>
+      <div class="lang-menu" id="lang-menu"></div>
+      <button class="icon-btn" onclick="openSettings()" title="Настройки">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a7 7 0 0 0-1.7-1l-.4-2.5h-4l-.4 2.5a7 7 0 0 0-1.7 1l-2.3-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.3 1 2-3.5-2-1.5a7 7 0 0 0 .1-1z"/></svg>
+      </button>
+      <button class="icon-btn" onclick="logout()" title="Выйти">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="chart-area">
+    <div class="chart-head">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="chart-title" id="chart-title">Температура</div>
+        <button class="icon-btn" id="param-gear" onclick="openViewSettings()" title="Настройки">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a7 7 0 0 0-1.7-1l-.4-2.5h-4l-.4 2.5a7 7 0 0 0-1.7 1l-2.3-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.3 1 2-3.5-2-1.5a7 7 0 0 0 .1-1z"/></svg>
+        </button>
+      </div>
+      <div class="range-bar" id="range-bar"></div>
+    </div>
+
+    <div class="chart-box" id="chart-box-wrap">
+      <canvas id="chart"></canvas>
+      <canvas id="compass"></canvas>
+    </div>
+
+    <div class="extra-box" id="extra-view" style="display:none;">
+      <div id="api-panel" style="display:none;"><div id="api-body"></div>
+        <div style="margin-top:14px;"><button class="set-btn" onclick="saveApiOut()" data-i18n="set_save">Сохранить</button></div>
+      </div>
+      <div id="advice-panel" style="display:none;"><div id="advice-body"></div>
+        <div style="margin-top:14px;"><button class="set-btn" onclick="saveAdvice()" data-i18n="set_save">Сохранить</button></div>
+      </div>
+      <div id="smarthome-panel" style="display:none;"><div id="smarthome-body"></div>
+        <div style="margin-top:14px;"><button class="set-btn" onclick="saveSmartHome()" data-i18n="set_save">Сохранить</button></div>
+      </div>
+    </div>
+  </main>
+
+  <div class="advice" id="advice" data-i18n="advice_default">Советы появятся по мере поступления данных.</div>
+
+  <nav class="tabs-wrap">
+    <button class="icon-btn tabs-nav" onclick="scrollTabs(-1)" title="Влево">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+    <div class="tabs" id="tabs"></div>
+    <button class="icon-btn tabs-nav" onclick="scrollTabs(1)" title="Вправо">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+  </nav>
+
+  <!-- Главные настройки -->
+  <div class="modal" id="settings-modal">
+    <div class="modal-card">
+      <div class="modal-head"><h2 data-i18n="set_title">Настройки</h2>
+        <button class="icon-btn" onclick="closeSettings()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body" id="settings-body"></div>
+      <div class="modal-foot">
+        <button class="set-btn ghost" onclick="closeSettings()" data-i18n="set_cancel">Отмена</button>
+        <button class="set-btn" onclick="applySettings()" data-i18n="set_save">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- По-страничные настройки -->
+  <div class="modal" id="param-modal">
+    <div class="modal-card">
+      <div class="modal-head"><h2 id="param-set-title">Настройки</h2>
+        <button class="icon-btn" onclick="closeParamSettings()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body" id="param-body"></div>
+      <div class="modal-foot">
+        <button class="set-btn ghost" id="param-cancel" onclick="closeParamSettings()" data-i18n="set_cancel">Отмена</button>
+        <button class="set-btn" id="param-save" onclick="applyParamSettings()" data-i18n="set_save">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Настройки Магнитных бурь -->
+  <div class="modal" id="geomag-modal">
+    <div class="modal-card modal-wide">
+      <div class="modal-head"><h2 id="geomag-set-title">Настройки</h2>
+        <button class="icon-btn" onclick="closeGeomagSettings()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body" id="geomag-set-body"></div>
+      <div class="modal-foot">
+        <button class="set-btn ghost" onclick="closeGeomagSettings()" data-i18n="set_close">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="settings.js"></script>
+  <script src="app.js"></script>
+  <script>startDashboard();</script>
+ 
+  <div id="loader" class="loader-overlay">
+  <div class="loader-ring"><span></span><span></span><span></span><span></span></div>
+  <div class="loader-text" id="loader-text" data-i18n="loading">Загрузка…</div>
+</div>
+
+</body>
+</html>
