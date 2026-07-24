@@ -1,8 +1,8 @@
 Домашняя метео станция AirVision Pro
 
-## Web-app Установка и настройка сайта AirVisionPro.
-## AirVisionPro-Outdor Сборка и прошивка уличного устройства.
-## AirVisionPro-Indor Сборка и прошивка домашнего устройства.
+### Web-app Установка и настройка сайта AirVisionPro.
+### AirVisionPro-Outdor Сборка и прошивка уличного устройства.
+### AirVisionPro-Indor Сборка и прошивка домашнего устройства.
 
 ИНСТРУКЦИЯ.
 
