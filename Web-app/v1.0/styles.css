@@ -438,7 +438,7 @@ body.page-dash .site-footer{
 }
 /* Футер на дашборде — тот же фон, что у панели вкладок */
 body.page-dash .site-footer{
-  background: #0d1017;
+  background: var(--card-bg);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
 }
