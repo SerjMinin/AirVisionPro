@@ -362,8 +362,21 @@ function drawCompass(freq, currentDeg) {
   if(currentDeg!==null && !isNaN(currentDeg)){ const ang=(currentDeg-90)*Math.PI/180;
     const x=cx+Math.cos(ang)*(R-6),y=cy+Math.sin(ang)*(R-6);
     ctx.strokeStyle=isLight?"#d02020":"#ff6b6b"; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke();
-    ctx.fillStyle=ctx.strokeStyle; ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
     ctx.fillStyle=txt; ctx.fillText(Math.round(currentDeg)+"°",cx,cy-10); ctx.fillText(t("wind_now"),cx,cy+10); }
+
+  // ===== Роза ветров: лучи из центра поверх диаграммы =====
+  for(let i=0;i<16;i++){
+    const ang=(i*22.5-90)*Math.PI/180;
+    const cardinal=(i%4===0);                  // С, В, Ю, З
+    const inter=(i%2===0);                      // + СВ, ЮВ, ЮЗ, СЗ
+    const len = cardinal ? R : (inter ? R*0.85 : R*0.6);
+    const x=cx+Math.cos(ang)*len, y=cy+Math.sin(ang)*len;
+    ctx.strokeStyle=line;
+    ctx.lineWidth = cardinal ? 1.8 : (inter ? 1.2 : 0.6);
+    ctx.globalAlpha = cardinal ? 1 : (inter ? 0.7 : 0.4);
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke();
+  }
+  ctx.globalAlpha=1; ctx.lineWidth=1;
 }
 
 async function refreshStatus() {
