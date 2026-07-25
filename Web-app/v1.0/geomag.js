@@ -3,7 +3,7 @@
  * Licensed under the GNU Affero General Public License v3.0.
  * See LICENSE file in the project root for full license information.
  */
-/* AirVision Pro — магнитные бури: Kp факт+прогноз, ось 0–9, ореол северного сияния. */
+/* AirVisionPro — магнитные бури: Kp факт+прогноз, ось 0–9, ореол северного сияния. */
 
 const GEOMAG_FACT_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json";
 const GEOMAG_FCST_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json";

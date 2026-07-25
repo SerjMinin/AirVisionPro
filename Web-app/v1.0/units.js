@@ -3,7 +3,7 @@
  * Licensed under the GNU Affero General Public License v3.0.
  * See LICENSE file in the project root for full license information.
  */
-/* AirVision Pro — единицы, пересчёт, пороги давления по высоте.
+/* AirVisionPro — единицы, пересчёт, пороги давления по высоте.
    Базовые: temp=°C, pressure=hPa, wind_spd=m/s, rad=µSv/h, co2=ppm, co=ppm */
 
 const UNITS = {

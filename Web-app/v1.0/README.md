@@ -1,4 +1,4 @@
-Домашняя метео станция AirVision Pro
+Домашняя метео станция AirVisionPro
 
 ### Web-app Установка и настройка сайта AirVisionPro.
 ### AirVisionPro-Outdor Сборка и прошивка уличного устройства.

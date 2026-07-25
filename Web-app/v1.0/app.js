@@ -3,7 +3,7 @@
  * Licensed under the GNU Affero General Public License v3.0.
  * See LICENSE file in the project root for full license information.
  */
-/* AirVision Pro — движок дашборда. */
+/* AirVisionPro — движок дашборда. */
 
 const APP_VERSION = "v1.0";
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

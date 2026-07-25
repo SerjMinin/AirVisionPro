@@ -3,7 +3,7 @@
  * Licensed under the GNU Affero General Public License v3.0.
  * See LICENSE file in the project root for full license information.
  */
-/* AirVision Pro — каталог умных советов (все галки активны). crit=true — красным, впереди. */
+/* AirVisionPro — каталог умных советов (все галки активны). crit=true — красным, впереди. */
 
 const ADVICE_LIST = [
   { id:"a01", crit:false, text:"Аномально высокое давление." },

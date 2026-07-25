@@ -4,7 +4,7 @@
  * See LICENSE file in the project root for full license information.
  */
 /* ============================================================
-   AirVision Pro — конфиги параметров (вкладок).
+   AirVisionPro — конфиги параметров (вкладок).
    Каждый блок КРОШЕЧНЫЙ и независимый.
      loc:  "out" | "in" | "both" | "pressure"
      type: (опц.) "compass" — рисуется роза ветров вместо графика

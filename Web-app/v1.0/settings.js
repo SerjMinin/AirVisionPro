@@ -3,7 +3,7 @@
  * Licensed under the GNU Affero General Public License v3.0.
  * See LICENSE file in the project root for full license information.
  */
-/* AirVision Pro — настройки: главные + по-страничные + вкладки. */
+/* AirVisionPro — настройки: главные + по-страничные + вкладки. */
 
 let SETTINGS = null;
 

@@ -3,10 +3,10 @@
  * Licensed under the GNU Affero General Public License v3.0.
  * See LICENSE file in the project root for full license information.
  */
-/* AirVision Pro — локализация (11 языков). */
+/* AirVisionPro — локализация (11 языков). */
 
 const I18N = {
-  en: { _name:"English", login_title:"AirVision Pro", email:"Email", password:"Password", enter:"Sign in", err_login:"Wrong email or password",
+  en: { _name:"English", login_title:"AirVisionPro", email:"Email", password:"Password", enter:"Sign in", err_login:"Wrong email or password",
     indoor:"Indoor", outdoor:"Outdoor", wifi:"WiFi", version:"Version", settings:"Settings", logout:"Sign out", theme:"Theme",
     advice_default:"Tips will appear as sensor data arrives.",
     to_now:"To present", wind_now:"Current", wind_freq:"Frequency, %",
@@ -56,7 +56,7 @@ const I18N = {
     p_rad:"Radiation", p_wind_spd:"Wind speed", p_wind_dir:"Wind direction", p_uv:"UV index", p_solar:"Solar rad.", p_lux:"Illuminance",
     p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
 
-  ru: { _name:"Русский", login_title:"AirVision Pro", email:"Email", password:"Пароль", enter:"Войти", err_login:"Неверный email или пароль",
+  ru: { _name:"Русский", login_title:"AirVisionPro", email:"Email", password:"Пароль", enter:"Войти", err_login:"Неверный email или пароль",
     indoor:"Дом", outdoor:"Улица", wifi:"WiFi", version:"Версия", settings:"Настройки", logout:"Выйти", theme:"Тема",
     advice_default:"Советы появятся по мере поступления данных с датчиков.",
     to_now:"К настоящему", wind_now:"Текущее", wind_freq:"Повторяемость, %",
@@ -106,7 +106,7 @@ const I18N = {
     p_rad:"Радиация", p_wind_spd:"Скорость ветра", p_wind_dir:"Направление ветра", p_uv:"УФ-индекс", p_solar:"Солн. радиация", p_lux:"Освещённость",
     p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
 
-  "zh-CN": { _name:"中文（简体）", login_title:"AirVision Pro", email:"邮箱", password:"密码", enter:"登录", err_login:"邮箱或密码错误",
+  "zh-CN": { _name:"中文（简体）", login_title:"AirVisionPro", email:"邮箱", password:"密码", enter:"登录", err_login:"邮箱或密码错误",
     indoor:"室内", outdoor:"室外", wifi:"WiFi", version:"版本", settings:"设置", logout:"退出", theme:"主题",
     advice_default:"数据到达后将显示提示。", to_now:"回到当前", wind_now:"当前", wind_freq:"频率, %",
     r_24h:"24小时", r_week:"周", r_month:"月", r_year:"年",
@@ -116,7 +116,7 @@ const I18N = {
     p_rad:"辐射", p_wind_spd:"风速", p_wind_dir:"风向", p_uv:"紫外线指数", p_solar:"太阳辐射", p_lux:"照度",
     p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
 
-  "zh-TW": { _name:"中文（繁體）", login_title:"AirVision Pro", email:"電子郵件", password:"密碼", enter:"登入", err_login:"電子郵件或密碼錯誤",
+  "zh-TW": { _name:"中文（繁體）", login_title:"AirVisionPro", email:"電子郵件", password:"密碼", enter:"登入", err_login:"電子郵件或密碼錯誤",
     indoor:"室內", outdoor:"室外", wifi:"WiFi", version:"版本", settings:"設定", logout:"登出", theme:"主題",
     advice_default:"資料到達後將顯示提示。", to_now:"回到目前", wind_now:"目前", wind_freq:"頻率, %",
     r_24h:"24小時", r_week:"週", r_month:"月", r_year:"年",
@@ -126,7 +126,7 @@ const I18N = {
     p_rad:"輻射", p_wind_spd:"風速", p_wind_dir:"風向", p_uv:"紫外線指數", p_solar:"太陽輻射", p_lux:"照度",
     p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
 
-  es: { _name:"Español", login_title:"AirVision Pro", email:"Correo", password:"Contraseña", enter:"Entrar", err_login:"Correo o contraseña incorrectos",
+  es: { _name:"Español", login_title:"AirVisionPro", email:"Correo", password:"Contraseña", enter:"Entrar", err_login:"Correo o contraseña incorrectos",
     indoor:"Interior", outdoor:"Exterior", wifi:"WiFi", version:"Versión", settings:"Ajustes", logout:"Salir", theme:"Tema",
     advice_default:"Los consejos aparecerán a medida que lleguen los datos.", to_now:"Al presente", wind_now:"Actual", wind_freq:"Frecuencia, %",
     r_24h:"24h", r_week:"Semana", r_month:"Mes", r_year:"Año",
@@ -136,7 +136,7 @@ const I18N = {
     p_rad:"Radiación", p_wind_spd:"Vel. viento", p_wind_dir:"Dir. viento", p_uv:"Índice UV", p_solar:"Rad. solar", p_lux:"Iluminancia",
     p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
 
-  ar: { _name:"العربية", login_title:"AirVision Pro", email:"البريد الإلكتروني", password:"كلمة المرور", enter:"دخول", err_login:"بريد إلكتروني أو كلمة مرور غير صحيحة",
+  ar: { _name:"العربية", login_title:"AirVisionPro", email:"البريد الإلكتروني", password:"كلمة المرور", enter:"دخول", err_login:"بريد إلكتروني أو كلمة مرور غير صحيحة",
     indoor:"داخلي", outdoor:"خارجي", wifi:"واي فاي", version:"الإصدار", settings:"الإعدادات", logout:"خروج", theme:"السمة",
     advice_default:"ستظهر النصائح عند وصول بيانات المستشعرات.", to_now:"إلى الآن", wind_now:"الحالي", wind_freq:"التكرار, %",
     r_24h:"24س", r_week:"أسبوع", r_month:"شهر", r_year:"سنة",
@@ -146,7 +146,7 @@ const I18N = {
     p_rad:"الإشعاع", p_wind_spd:"سرعة الرياح", p_wind_dir:"اتجاه الرياح", p_uv:"مؤشر UV", p_solar:"الإشعاع الشمسي", p_lux:"الإضاءة",
     p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
 
-  hi: { _name:"हिन्दी", login_title:"AirVision Pro", email:"ईमेल", password:"पासवर्ड", enter:"साइन इन", err_login:"गलत ईमेल या पासवर्ड",
+  hi: { _name:"हिन्दी", login_title:"AirVisionPro", email:"ईमेल", password:"पासवर्ड", enter:"साइन इन", err_login:"गलत ईमेल या पासवर्ड",
     indoor:"अंदर", outdoor:"बाहर", wifi:"WiFi", version:"संस्करण", settings:"सेटिंग्स", logout:"साइन आउट", theme:"थीम",
     advice_default:"सेंसर डेटा आने पर सुझाव दिखाई देंगे।", to_now:"वर्तमान तक", wind_now:"वर्तमान", wind_freq:"आवृत्ति, %",
     r_24h:"24घं", r_week:"सप्ताह", r_month:"माह", r_year:"वर्ष",
@@ -156,7 +156,7 @@ const I18N = {
     p_rad:"विकिरण", p_wind_spd:"हवा की गति", p_wind_dir:"हवा की दिशा", p_uv:"UV सूचकांक", p_solar:"सौर विकिरण", p_lux:"प्रकाश",
     p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
 
-  "pt-BR": { _name:"Português", login_title:"AirVision Pro", email:"E-mail", password:"Senha", enter:"Entrar", err_login:"E-mail ou senha incorretos",
+  "pt-BR": { _name:"Português", login_title:"AirVisionPro", email:"E-mail", password:"Senha", enter:"Entrar", err_login:"E-mail ou senha incorretos",
     indoor:"Interno", outdoor:"Externo", wifi:"WiFi", version:"Versão", settings:"Configurações", logout:"Sair", theme:"Tema",
     advice_default:"As dicas aparecerão conforme os dados chegarem.", to_now:"Ao presente", wind_now:"Atual", wind_freq:"Frequência, %",
     r_24h:"24h", r_week:"Semana", r_month:"Mês", r_year:"Ano",
@@ -166,7 +166,7 @@ const I18N = {
     p_rad:"Radiação", p_wind_spd:"Vel. vento", p_wind_dir:"Dir. vento", p_uv:"Índice UV", p_solar:"Rad. solar", p_lux:"Iluminância",
     p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
 
-  fr: { _name:"Français", login_title:"AirVision Pro", email:"E-mail", password:"Mot de passe", enter:"Se connecter", err_login:"E-mail ou mot de passe incorrect",
+  fr: { _name:"Français", login_title:"AirVisionPro", email:"E-mail", password:"Mot de passe", enter:"Se connecter", err_login:"E-mail ou mot de passe incorrect",
     indoor:"Intérieur", outdoor:"Extérieur", wifi:"WiFi", version:"Version", settings:"Paramètres", logout:"Déconnexion", theme:"Thème",
     advice_default:"Les conseils apparaîtront à mesure que les données arrivent.", to_now:"Au présent", wind_now:"Actuel", wind_freq:"Fréquence, %",
     r_24h:"24h", r_week:"Semaine", r_month:"Mois", r_year:"Année",
@@ -176,7 +176,7 @@ const I18N = {
     p_rad:"Radiation", p_wind_spd:"Vit. vent", p_wind_dir:"Dir. vent", p_uv:"Indice UV", p_solar:"Rad. solaire", p_lux:"Éclairement",
     p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
 
-  de: { _name:"Deutsch", login_title:"AirVision Pro", email:"E-Mail", password:"Passwort", enter:"Anmelden", err_login:"Falsche E-Mail oder Passwort",
+  de: { _name:"Deutsch", login_title:"AirVisionPro", email:"E-Mail", password:"Passwort", enter:"Anmelden", err_login:"Falsche E-Mail oder Passwort",
     indoor:"Innen", outdoor:"Außen", wifi:"WLAN", version:"Version", settings:"Einstellungen", logout:"Abmelden", theme:"Thema",
     advice_default:"Tipps erscheinen, sobald Sensordaten eintreffen.", to_now:"Zur Gegenwart", wind_now:"Aktuell", wind_freq:"Häufigkeit, %",
     r_24h:"24Std", r_week:"Woche", r_month:"Monat", r_year:"Jahr",
@@ -186,7 +186,7 @@ const I18N = {
     p_rad:"Strahlung", p_wind_spd:"Windgeschw.", p_wind_dir:"Windrichtung", p_uv:"UV-Index", p_solar:"Solarstrahlung", p_lux:"Beleuchtung",
     p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
 
-  ja: { _name:"日本語", login_title:"AirVision Pro", email:"メール", password:"パスワード", enter:"ログイン", err_login:"メールまたはパスワードが違います",
+  ja: { _name:"日本語", login_title:"AirVisionPro", email:"メール", password:"パスワード", enter:"ログイン", err_login:"メールまたはパスワードが違います",
     indoor:"屋内", outdoor:"屋外", wifi:"WiFi", version:"バージョン", settings:"設定", logout:"ログアウト", theme:"テーマ",
     advice_default:"センサーデータが届くとヒントが表示されます。", to_now:"現在へ", wind_now:"現在", wind_freq:"頻度, %",
     r_24h:"24時間", r_week:"週", r_month:"月", r_year:"年",
