@@ -431,15 +431,11 @@ input:-webkit-autofill:focus{
 .tabs-nav svg{ width:16px; height:16px; }
 .tabs-nav:hover{ color:var(--accent-1); background:rgba(41,155,255,0.10); transform:none; }
 
-/* Футер на дашборде — фон как у шапки */
-body.page-dash .site-footer{
-  background:var(--card-bg);
-  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+/* Футер: сплошной цвет как у вкладок, без прозрачности и градиента */
+body.page-dash .site-footer{ background:#0d1017; }
+html[data-theme="light"] body.page-dash .site-footer{ background:#f6faff; 
 }
-/* Футер на дашборде — тот же фон, что у панели вкладок */
-body.page-dash .site-footer{
-  background: var(--bg-1);
-}
+
 /* Верхние стрелки: меняем только символ на SVG, контур как у кнопок 24ч/Неделя */
 .range-btn.arrow{ padding: 6px 12px; display: flex; align-items: center; justify-content: center; }
 .range-btn.arrow svg{ width: 16px; height: 16px; display: block; }
