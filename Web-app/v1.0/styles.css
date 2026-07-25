@@ -447,15 +447,25 @@ body.page-dash .site-footer{
 .range-btn.arrow svg{ width: 16px; height: 16px; display: block; }
 .range-btn.arrow.disabled{ opacity: 0.3; pointer-events: none; 
 }
-/* Все выпадающие списки — тёмный фон в стиле сайта */
-select, .set-input, select.set-input{
-  background: var(--menu-bg);
-  color: var(--text);
-  border: 1px solid var(--field-border);
+/* Все выпадающие списки — единый тёмный стиль сайта */
+select,
+.set-input,
+select.set-input {
+  background-color: var(--menu-bg) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--accent-1) !important;
+  border-radius: 8px;
+  outline: none;
 }
-select option, .set-input option{
-  background: var(--menu-bg);
-  color: var(--text);
+select:focus,
+.set-input:focus {
+  border-color: var(--accent-1) !important;
+  box-shadow: 0 0 10px var(--card-shadow);
+}
+select option,
+.set-input option {
+  background-color: var(--menu-bg) !important;
+  color: var(--text) !important;
 }
 /* Числовые поля — без стрелок вверх/вниз */
 input[type="number"]{ -moz-appearance: textfield; appearance: textfield; }
