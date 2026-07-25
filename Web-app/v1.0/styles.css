@@ -438,20 +438,12 @@ body.page-dash .site-footer{
 }
 /* Футер на дашборде — тот же фон, что у панели вкладок */
 body.page-dash .site-footer{
-  background: var(--card-bg);
+  background: var(--bg-2);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
 }
-/* Верхние стрелки диапазона — вид как у нижних вкладок-стрелок */
-.range-btn.arrow{
-  padding: 8px 11px;
-  border-radius: 10px;
-  border: 1px solid var(--card-border);
-  color: var(--text-dim);
-  line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-}
+/* Верхние стрелки: меняем только символ на SVG, контур как у кнопок 24ч/Неделя */
+.range-btn.arrow{ padding: 6px 12px; display: flex; align-items: center; justify-content: center; }
 .range-btn.arrow svg{ width: 16px; height: 16px; display: block; }
-.range-btn.arrow:hover{ color: var(--accent-1); background: rgba(41,155,255,0.10); }
 .range-btn.arrow.disabled{ opacity: 0.3; pointer-events: none; 
 }
