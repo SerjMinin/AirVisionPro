@@ -438,9 +438,7 @@ body.page-dash .site-footer{
 }
 /* Футер на дашборде — тот же фон, что у панели вкладок */
 body.page-dash .site-footer{
-  background: var(--card-bg);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  background: var(--bg-1);
 }
 /* Верхние стрелки: меняем только символ на SVG, контур как у кнопок 24ч/Неделя */
 .range-btn.arrow{ padding: 6px 12px; display: flex; align-items: center; justify-content: center; }
