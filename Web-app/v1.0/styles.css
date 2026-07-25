@@ -370,3 +370,33 @@ html[dir="rtl"] .lang-menu { right: auto; left: 0; }
 .brand-bird .fill { fill:url(#birdGrad); }
 .topbar .brand-bird { font-size:20px; }   /* 2× кегля .brand (20px) */
 .card   .brand-bird { font-size:30px; }   /* 2× кегля .title (30px) */
+/* ===== Футер копирайта ===== */
+.site-footer{
+  flex:0 0 auto; text-align:center; padding:6px 14px;
+  font-size:11px; line-height:1.4; color:var(--text-dim);
+}
+.site-footer a{ color:var(--accent-1); text-decoration:none; }
+.site-footer a:hover{ text-decoration:underline; }
+/* на странице входа — прижат к низу экрана */
+body.page-login .site-footer{
+  position:fixed; left:0; right:0; bottom:0; padding:8px 14px; z-index:400;
+}
+@media (max-width:600px){ .site-footer{ font-size:9px; padding:5px 10px; } }
+
+/* ===== Ласточка: толщина линии ×2 ===== */
+.brand-bird path{
+  stroke:url(#birdGrad); stroke-width:45;
+  stroke-linejoin:round; stroke-linecap:round;
+}
+/* ===== Ласточка на входе — приподнять (в шапке НЕ трогаем) ===== */
+.card .brand-bird{ font-size:30px; top:0.02em; }
+
+/* ===== Убрать жёлтый фон автозаполнения браузера ===== */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus{
+  -webkit-text-fill-color: var(--text);
+  -webkit-box-shadow: 0 0 0 1000px var(--field-bg) inset;
+  caret-color: var(--text);
+  transition: background-color 9999s ease-in-out 0s;
+}
