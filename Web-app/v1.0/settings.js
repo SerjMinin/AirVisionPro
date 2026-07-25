@@ -94,8 +94,16 @@ async function saveSettings() {
 }
 
 function selHtml(id, options, selected) {
-  return `<select id="${id}" class="set-input">` +
-    options.map(o => `<option value="${o.id}" ${o.id===selected?"selected":""}>${o.label}</option>`).join("") + `</select>`;
+  const sel = options.find(o => o.id === selected) || options[0] || { label:"" };
+  const optsHtml = options.map(o =>
+    `<div class="avp-opt${o.id===selected?" sel":""}" data-val="${o.id}">${o.label}</div>`).join("");
+  const nativeHtml = options.map(o =>
+    `<option value="${o.id}" ${o.id===selected?"selected":""}>${o.label}</option>`).join("");
+  return `<div class="avp-select">
+    <select id="${id}" class="avp-native">${nativeHtml}</select>
+    <button type="button" class="avp-select-btn">${sel.label} <span class="avp-caret">▾</span></button>
+    <div class="avp-select-list">${optsHtml}</div>
+  </div>`;
 }
 /* ============ НАСТРОЙКИ УСТРОЙСТВА ============ */
 function openDeviceSettings(which) { alert(t("api_soon")); }
@@ -307,3 +315,33 @@ async function saveSmartHome() {
   ["json","mqtt","rest"].forEach(id => { s.smart_home[id] = document.getElementById("sh_"+id).checked; });
   await saveSettings(); alert(t("api_saved"));
 }
+/* ===== Кастомные выпадающие списки (неоновый стиль) ===== */
+function initCustomSelects(root){
+  (root||document).querySelectorAll('.avp-select').forEach(box=>{
+    if(box.dataset.ready) return;
+    box.dataset.ready = "1";
+    const native = box.querySelector('.avp-native');
+    const btn  = box.querySelector('.avp-select-btn');
+    const list = box.querySelector('.avp-select-list');
+    if(!native||!btn||!list) return;
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      document.querySelectorAll('.avp-select-list.open').forEach(l=>{ if(l!==list) l.classList.remove('open'); });
+      list.classList.toggle('open');
+    });
+    list.querySelectorAll('.avp-opt').forEach(opt=>{
+      opt.addEventListener('click', ()=>{
+        native.value = opt.dataset.val;
+        btn.childNodes[0].nodeValue = opt.textContent + " ";
+        list.querySelectorAll('.avp-opt').forEach(o=>o.classList.remove('sel'));
+        opt.classList.add('sel');
+        list.classList.remove('open');
+        native.dispatchEvent(new Event('change',{bubbles:true}));
+      });
+    });
+  });
+}
+document.addEventListener('click', ()=>{
+  document.querySelectorAll('.avp-select-list.open').forEach(l=>l.classList.remove('open'));
+});
+new MutationObserver(()=>initCustomSelects(document)).observe(document.documentElement,{childList:true,subtree:true});
