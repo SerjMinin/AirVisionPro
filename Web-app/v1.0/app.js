@@ -129,11 +129,13 @@ function buildRangeBar() {
   const render = () => currentView==="param" ? renderParam(currentKey) : renderGeomag();
   const rerender = () => { buildRangeBar(); render(); };   // перестраиваем панель → стрелки обновляют состояние
   const left = document.createElement("button");
-  left.className = "range-btn arrow"; left.textContent = "‹";
+  left.className = "range-btn arrow";
+  left.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6l-6 6 6 6"/></svg>';
   left.onclick = () => { offsetSteps++; rerender(); };
   const right = document.createElement("button");
   right.className = "range-btn arrow" + (offsetSteps === 0 ? " disabled" : "");
-  right.textContent = "›"; right.title = t("to_now");
+  right.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 6l6 6-6 6"/></svg>';
+  right.title = t("to_now");
   right.onclick = () => { if (offsetSteps > 0) { offsetSteps--; rerender(); } };
   bar.appendChild(left);
   ["24h","week","month","year"].forEach(code => {
