@@ -100,11 +100,25 @@ function buildTabs() {
   });
 }
 
-function scrollTabs(dir) {
-  const el = document.getElementById("tabs");
-  const tab = el.querySelector(".tab");
-  const step = tab ? tab.getBoundingClientRect().width + 8 : 120;
-  el.scrollBy({ left: dir * step, behavior: "smooth" });
+function scrollTabs(dir){
+  const box = document.getElementById('tabs');
+  if(!box) return;
+  const tabs = box.querySelectorAll('.tab');
+  if(!tabs.length) return;
+  const left = box.scrollLeft, eps = 2;
+  if(dir > 0){
+    for(const t of tabs){
+      if(t.offsetLeft + t.offsetWidth > left + box.clientWidth + eps){
+        box.scrollTo({ left:t.offsetLeft, behavior:'smooth' }); return;
+      }
+    }
+    box.scrollTo({ left:box.scrollWidth, behavior:'smooth' });
+  } else {
+    const goal = left - box.clientWidth;
+    let target = 0;
+    for(const t of tabs){ if(t.offsetLeft >= goal){ target = t.offsetLeft; break; } }
+    box.scrollTo({ left:target, behavior:'smooth' });
+  }
 }
 
 function buildRangeBar() {

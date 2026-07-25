@@ -400,3 +400,39 @@ input:-webkit-autofill:focus{
   caret-color: var(--text);
   transition: background-color 9999s ease-in-out 0s;
 }
+/* ===== Нижняя панель вкладок — зеркало шапки ===== */
+.tabs-wrap{
+  flex:0 0 auto;
+  display:flex; align-items:center; gap:8px;
+  padding:8px 22px;                        /* 22px = выравнивание по полю графика */
+  background:var(--card-bg);
+  border-top:1px solid var(--card-border); /* линия во всю ширину, зеркально верху */
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  box-shadow:0 -4px 24px var(--card-shadow);
+}
+.tabs{
+  flex:1 1 auto; min-width:0;
+  display:flex; gap:6px; overflow-x:auto;
+  background:transparent; border-top:none; padding:2px 0;
+  scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar{ display:none; }
+
+/* Вкладки — контур со всеми 4 скруглёнными углами */
+.tab{ border:1px solid var(--card-border); border-radius:10px; }
+.tab.active{ border-color:var(--accent-1); }
+
+/* Стрелки ‹ › — такой же контур, размер под вкладки, сдвинуты внутрь */
+.tabs-nav{
+  width:auto; height:auto; padding:8px 11px;
+  border:1px solid var(--card-border); border-radius:10px;
+  color:var(--text-dim);
+}
+.tabs-nav svg{ width:16px; height:16px; }
+.tabs-nav:hover{ color:var(--accent-1); background:rgba(41,155,255,0.10); transform:none; }
+
+/* Футер на дашборде — фон как у шапки */
+body.page-dash .site-footer{
+  background:var(--card-bg);
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+}
