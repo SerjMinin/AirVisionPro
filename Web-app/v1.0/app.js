@@ -364,19 +364,27 @@ function drawCompass(freq, currentDeg) {
     ctx.strokeStyle=isLight?"#d02020":"#ff6b6b"; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke();
     ctx.fillStyle=txt; ctx.fillText(Math.round(currentDeg)+"°",cx,cy-10); ctx.fillText(t("wind_now"),cx,cy+10); }
 
-  // ===== Роза ветров: лучи из центра поверх диаграммы =====
-  for(let i=0;i<16;i++){
-    const ang=(i*22.5-90)*Math.PI/180;
-    const cardinal=(i%4===0);                  // С, В, Ю, З
-    const inter=(i%2===0);                      // + СВ, ЮВ, ЮЗ, СЗ
-    const len = cardinal ? R : (inter ? R*0.85 : R*0.6);
-    const x=cx+Math.cos(ang)*len, y=cy+Math.sin(ang)*len;
-    ctx.strokeStyle=line;
-    ctx.lineWidth = cardinal ? 1.8 : (inter ? 1.2 : 0.6);
-    ctx.globalAlpha = cardinal ? 1 : (inter ? 0.7 : 0.4);
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke();
-  }
-  ctx.globalAlpha=1; ctx.lineWidth=1;
+  // ===== Роза ветров (звезда) из центра поверх диаграммы =====
+  const light = isLight ? "#dbe9ff" : "#cfe6ff";   // светлая грань луча
+  const dark  = isLight ? "#0d2a4a" : "#12406e";   // тёмная грань луча
+  const baseR = R*0.13;                            // «толщина» лучей у центра
+  const drawPoint = (i, tipR) => {
+    const at=(i*45-90)*Math.PI/180;
+    const aL=((i*45-45)-90)*Math.PI/180;
+    const aR=((i*45+45)-90)*Math.PI/180;
+    const tx=cx+Math.cos(at)*tipR,  ty=cy+Math.sin(at)*tipR;
+    const lx=cx+Math.cos(aL)*baseR, ly=cy+Math.sin(aL)*baseR;
+    const rx=cx+Math.cos(aR)*baseR, ry=cy+Math.sin(aR)*baseR;
+    ctx.strokeStyle=line; ctx.lineWidth=1;
+    ctx.fillStyle=light;                            // левая грань (свет)
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(lx,ly); ctx.lineTo(tx,ty); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle=dark;                             // правая грань (тень)
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(tx,ty); ctx.lineTo(rx,ry); ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+  // сначала диагональные (короткие), потом главные (длинные) — поверх
+  for(let i=1;i<8;i+=2) drawPoint(i, R*0.55);
+  for(let i=0;i<8;i+=2) drawPoint(i, R);
+  ctx.lineWidth=1;
 }
 
 async function refreshStatus() {
