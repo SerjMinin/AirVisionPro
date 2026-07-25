@@ -447,3 +447,19 @@ body.page-dash .site-footer{
 .range-btn.arrow svg{ width: 16px; height: 16px; display: block; }
 .range-btn.arrow.disabled{ opacity: 0.3; pointer-events: none; 
 }
+/* Все выпадающие списки — тёмный фон в стиле сайта */
+select, .set-input, select.set-input{
+  background: var(--menu-bg);
+  color: var(--text);
+  border: 1px solid var(--field-border);
+}
+select option, .set-input option{
+  background: var(--menu-bg);
+  color: var(--text);
+}
+/* Числовые поля — без стрелок вверх/вниз */
+input[type="number"]{ -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button{
+  -webkit-appearance: none; margin: 0;
+}
