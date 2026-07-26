@@ -69,21 +69,31 @@ const wmPlugin = {
   }
 };
 
-async function fetchGeomag(){
-  const [fr, cr] = await Promise.all([
-    fetch(GEOMAG_FACT_URL, {cache:"no-store"}),
-    fetch(GEOMAG_FCST_URL, {cache:"no-store"})
-  ]);
-  if(!fr.ok || !cr.ok) throw new Error("HTTP "+fr.status+"/"+cr.status);
-  const f = await fr.json(), c = await cr.json();
+/* факт — из накопленной таблицы geomag; прогноз — прямой из NOAA */
+async function fetchGeomag(from, to){
+  const factP = client.from("geomag")
+    .select("ts_utc, kp")
+    .gte("ts_utc", new Date(from*1000).toISOString())
+    .lte("ts_utc", new Date(to*1000).toISOString())
+    .order("ts_utc", { ascending:true });
 
-  const fact = normalizeKp(f).map(o => ({ ts:o.ts, kp:o.kp }))
-                             .filter(x=>!isNaN(x.kp)&&!isNaN(x.ts));
-  const fcst = normalizeKp(c).filter(o => o.obs !== "observed")
-                             .map(o => ({ ts:o.ts, kp:o.kp }))
-                             .filter(x=>!isNaN(x.kp)&&!isNaN(x.ts));
+  const fcstP = fetch(GEOMAG_FCST_URL, {cache:"no-store"}).then(r=>{
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return r.json();
+  });
 
-  console.log("[geomag] факт:", fact.length, "прогноз:", fcst.length);
+  const [factRes, cJson] = await Promise.all([factP, fcstP]);
+
+  const fact = (factRes.data || []).map(o => ({
+    ts: Math.floor(Date.parse(o.ts_utc)/1000),
+    kp: Number(o.kp)
+  })).filter(x=>!isNaN(x.kp)&&!isNaN(x.ts));
+
+  const fcst = normalizeKp(cJson).filter(o => o.obs !== "observed")
+                                 .map(o => ({ ts:o.ts, kp:o.kp }))
+                                 .filter(x=>!isNaN(x.kp)&&!isNaN(x.ts));
+
+  console.log("[geomag] факт(БД):", fact.length, "прогноз:", fcst.length);
   return { fact, fcst };
 }
 
@@ -221,7 +231,11 @@ async function renderGeomag(){
   document.getElementById("chart-title").textContent = t("tab_geomag");
   drawGeomagChart([], [], null);
   try{
-    const { fact, fcst } = await fetchGeomag();
+    const now = Math.floor(Date.now()/1000);
+    const pastSpan = RANGES[currentRange].sec;
+    const from = now - pastSpan - offsetSteps*pastSpan;
+    const to   = now + 3*24*3600 - offsetSteps*pastSpan;
+    const { fact, fcst } = await fetchGeomag(from, to);
     drawGeomagChart(fact, fcst, null);
   }catch(e){
     console.error("[geomag] ошибка загрузки:", e);
