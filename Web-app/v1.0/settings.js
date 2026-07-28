@@ -18,7 +18,8 @@ const CONFIG_ITEMS = [
   { id:"open_meteo_air", label:"Open-Meteo Air Quality" },
   { id:"owm",            label:"OpenWeatherMap" },
   { id:"dev_out",        label:"Уличное устройство" },
-  { id:"dev_in",         label:"Домашнее устройство" }
+  { id:"dev_in",         label:"Домашнее устройство" },
+  { id:"geomag",         label:"Магнитные бури" }
 ];
 
 const EXTRA_TABS = [
