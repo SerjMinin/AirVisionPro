@@ -5,8 +5,14 @@
  */
 /* AirVisionPro — магнитные бури: Kp факт+прогноз, ось 0–9, ореол северного сияния. */
 
-const GEOMAG_FACT_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json";
-const GEOMAG_FCST_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json";
+/* ссылки берём из настроек */
+function geomagUrls() {
+  const g = (SETTINGS && SETTINGS.weather_sources && SETTINGS.weather_sources.geomag) || {};
+  return {
+    fact: g.url || "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json",
+    fcst: g.url_forecast || "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json"
+  };
+}
 
 const G_TABLE = [
   { g:"G1", kp:5, name:"Слабая",        eff:"Незначительные сбои спутников, слабые сияния на севере." },
@@ -77,7 +83,7 @@ async function fetchGeomag(from, to){
     .lte("ts_utc", new Date(to*1000).toISOString())
     .order("ts_utc", { ascending:true });
 
-  const fcstP = fetch(GEOMAG_FCST_URL, {cache:"no-store"}).then(r=>{
+  const fcstP = fetch(geomagUrls().fcst, {cache:"no-store"}).then(r=>{
     if(!r.ok) throw new Error("HTTP "+r.status);
     return r.json();
   });
