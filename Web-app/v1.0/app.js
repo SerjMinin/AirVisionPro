@@ -157,6 +157,7 @@ function openViewSettings() {
 
 function refreshView() {
   const chartArea = document.getElementById("chart-box-wrap");
+  if (currentView === "geomag" && SETTINGS && SETTINGS.config_items && SETTINGS.config_items.geomag === false) { currentView = "param"; currentKey = PARAMS[0].key; buildTabs(); }
   const extra = document.getElementById("extra-view");
   const gear = document.getElementById("param-gear");
   buildRangeBar();
