@@ -74,7 +74,21 @@ const wmPlugin = {
   }
 };
 
-/* факт — из накопленной таблицы geomag; прогноз — прямой из NOAA */
+/* факт — из накопленной таблицы geomag; прогноз — прямой из NOAA (кэш 1 час) */
+let geomagFcstCache = { time: 0, data: null };
+
+async function getForecastJson(){
+  const now = Date.now();
+  if (geomagFcstCache.data && (now - geomagFcstCache.time) < 3600*1000) {
+    return geomagFcstCache.data;   // свежее часа — берём из памяти
+  }
+  const r = await fetch(geomagUrl(), {cache:"no-store"});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  const j = await r.json();
+  geomagFcstCache = { time: now, data: j };
+  return j;
+}
+
 async function fetchGeomag(from, to){
   const factP = client.from("geomag")
     .select("ts_utc, kp")
@@ -82,10 +96,7 @@ async function fetchGeomag(from, to){
     .lte("ts_utc", new Date(to*1000).toISOString())
     .order("ts_utc", { ascending:true });
 
-  const fcstP = fetch(geomagUrl(), {cache:"no-store"}).then(r=>{
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    return r.json();
-  });
+  const fcstP = getForecastJson();
 
   const [factRes, cJson] = await Promise.all([factP, fcstP]);
 
