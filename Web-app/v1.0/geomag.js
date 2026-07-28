@@ -6,6 +6,7 @@ upabase/*
 /* AirVisionPro — магнитные бури: Kp факт+прогноз, ось 0–9, ореол северного сияния. */
 
 /* ссылки берём из настроек */
+let geomagWindow = { from:0, to:0 };
 function geomagUrls() {
   const g = (SETTINGS && SETTINGS.weather_sources && SETTINGS.weather_sources.geomag) || {};
   return {
@@ -146,6 +147,7 @@ function drawGeomagChart(fact, fcst, errText){
   const from = now - pastSpan - offsetSteps*pastSpan;
   const to   = now + 3*24*3600 - offsetSteps*pastSpan;
   const toX  = (to - from)/3600;
+  geomagWindow = { from, to };
   const X = ts => (ts - from)/3600;
   const mlat = geomagLat(SETTINGS.lat, SETTINGS.lon);
 
@@ -237,10 +239,8 @@ async function renderGeomag(){
   showLoader();
   document.getElementById("chart-title").textContent = t("tab_geomag");
   try{
-    const now = Math.floor(Date.now()/1000);
-    const pastSpan = RANGES[currentRange].sec;
-    const from = now - pastSpan - offsetSteps*pastSpan;
-    const to   = now + 3*24*3600 - offsetSteps*pastSpan;
+    drawGeomagChart([], [], null);
+    const { from, to } = geomagWindow;
     const { fact, fcst } = await fetchGeomag(from, to);
     drawGeomagChart(fact, fcst, null);
   }catch(e){
