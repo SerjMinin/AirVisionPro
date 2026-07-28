@@ -119,7 +119,7 @@ function buildSettingsForm() {
     </div>`).join("");
 
   const tabItems = PARAMS.map(p => ({ id:p.key, label:t(p.i18n) }))
-    .concat(EXTRA_TABS.map(it => ({ id:it.id, label: it.label || t(it.i18n) })));
+    .concat(EXTRA_TABS.filter(it => it.id !== "geomag").map(it => ({ id:it.id, label: it.label || t(it.i18n) })));
   const tabRows = tabItems.map(it =>
     `<label class="set-check"><input type="checkbox" id="tab_${it.id}" ${s.tabs[it.id]!==false?"checked":""}> ${it.label}</label>`).join("");
 
@@ -157,7 +157,7 @@ function readSettingsForm() {
   s.alt_ground = parseFloat(document.getElementById("s_alt_ground").value);
   s.tabs = {};
   PARAMS.forEach(p => { s.tabs[p.key] = document.getElementById("tab_"+p.key).checked; });
-  EXTRA_TABS.forEach(it => { s.tabs[it.id] = document.getElementById("tab_"+it.id).checked; });
+  EXTRA_TABS.forEach(it => { const el = document.getElementById("tab_"+it.id); if (el) s.tabs[it.id] = el.checked; });
 }
 
 function openSettings() { buildSettingsForm(); document.getElementById("settings-modal").classList.add("open"); }
