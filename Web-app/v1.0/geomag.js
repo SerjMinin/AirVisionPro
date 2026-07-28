@@ -7,12 +7,9 @@
 
 /* ссылки берём из настроек */
 var geomagWindow = { from:0, to:0 };
-function geomagUrls() {
+function geomagUrl() {
   const g = (SETTINGS && SETTINGS.weather_sources && SETTINGS.weather_sources.geomag) || {};
-  return {
-    fact: g.url || "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json",
-    fcst: g.url_forecast || "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json"
-  };
+  return g.url || "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json";
 }
 
 const G_TABLE = [
@@ -84,7 +81,7 @@ async function fetchGeomag(from, to){
     .lte("ts_utc", new Date(to*1000).toISOString())
     .order("ts_utc", { ascending:true });
 
-  const fcstP = fetch(geomagUrls().fcst, {cache:"no-store"}).then(r=>{
+  const fcstP = fetch(geomagUrl(), {cache:"no-store"}).then(r=>{
     if(!r.ok) throw new Error("HTTP "+r.status);
     return r.json();
   });
