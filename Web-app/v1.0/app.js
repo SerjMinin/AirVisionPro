@@ -157,7 +157,19 @@ function openViewSettings() {
 
 function refreshView() {
   const chartArea = document.getElementById("chart-box-wrap");
-  if (currentView === "geomag" && SETTINGS && SETTINGS.config_items && SETTINGS.config_items.geomag === false) { currentView = "param"; currentKey = PARAMS[0].key; buildTabs(); }
+  {
+    const tabsOff = (SETTINGS && SETTINGS.tabs) || {};
+    const cfgOff  = (SETTINGS && SETTINGS.config_items) || {};
+    const hidden =
+      (currentView === "param"  && tabsOff[currentKey] === false) ||
+      (currentView === "geomag" && cfgOff.geomag === false) ||
+      (currentView !== "param" && currentView !== "geomag" && tabsOff[currentView] === false);
+    if (hidden) {
+      const firstParam = PARAMS.find(p => tabsOff[p.key] !== false);
+      if (firstParam) { currentView = "param"; currentKey = firstParam.key; }
+      buildTabs();
+    }
+  }
   const extra = document.getElementById("extra-view");
   const gear = document.getElementById("param-gear");
   buildRangeBar();
