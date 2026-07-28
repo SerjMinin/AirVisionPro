@@ -9,7 +9,8 @@
 var geomagWindow = { from:0, to:0 };
 function geomagUrl() {
   const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources.geomag) || {};
-  return gs.url || GEOMAG_DEFAULT_URL;
+  const u = gs.url || "";
+  return u.includes("forecast") ? u : GEOMAG_DEFAULT_URL;
 }
 
 const G_TABLE = [
@@ -264,7 +265,8 @@ const GEOMAG_FCST_HOURS = 60/60;    // прогноз обновляется р�
 
 function openSrcGeomag(){
   const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources.geomag) || {};
-  const url = gs.url || GEOMAG_DEFAULT_URL;
+  const saved = gs.url || "";
+  const url = saved.includes("forecast") ? saved : GEOMAG_DEFAULT_URL;
   document.getElementById("src-geomag-body").innerHTML =
     `<div class="set-hint" style="text-align:left;margin:0 0 8px;">Один запрос отдаёт и факт, и прогноз (NOAA).</div>
      <textarea id="src_geomag_url" class="set-input" style="width:100%;height:160px;resize:vertical;">${url}</textarea>`;
