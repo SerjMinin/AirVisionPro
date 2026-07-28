@@ -1,4 +1,4 @@
-/* 
+upabase/* 
  * Copyright (c) 2026 Минин Сергей Александрович.
  * Licensed under the GNU Affero General Public License v3.0.
  * See LICENSE file in the project root for full license information.
@@ -235,7 +235,6 @@ async function renderGeomag(){
   if(currentView!=="geomag") return;
   showCanvasGraph();
   document.getElementById("chart-title").textContent = t("tab_geomag");
-  drawGeomagChart([], [], null);
   try{
     const now = Math.floor(Date.now()/1000);
     const pastSpan = RANGES[currentRange].sec;
