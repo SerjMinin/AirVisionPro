@@ -14,11 +14,11 @@ const API_SERVICES = [
 ];
 
 const CONFIG_ITEMS = [
-  { id:"open_meteo", label:"Open-Meteo" },
-  { id:"owm",        label:"OpenWeatherMap" },
-  { id:"yandex",     label:"Yandex Weather (SmartHome API)" },
-  { id:"dev_out",    label:"Сайт + уличное устройство" },
-  { id:"dev_in",     label:"Сайт + домашнее устройство" }
+  { id:"open_meteo",     label:"Open-Meteo" },
+  { id:"open_meteo_air", label:"Open-Meteo Air Quality" },
+  { id:"owm",            label:"OpenWeatherMap" },
+  { id:"dev_out",        label:"Уличное устройство" },
+  { id:"dev_in",         label:"Домашнее устройство" }
 ];
 
 const EXTRA_TABS = [
@@ -46,7 +46,7 @@ const PARAM_INFO = {
 const PARAM_SET_NAME = { uv:"Ультрафиолетовый (УФ) индекс", aqi:"AQI - Индекс качества воздуха" };
 
 const DEFAULT_SETTINGS = {
-  config_items: { open_meteo:true, owm:true, yandex:false, dev_out:true, dev_in:true },
+  config_items: { open_meteo:true, open_meteo_air:true, owm:true, dev_out:true, dev_in:true },
   sn_out:"OUT-0001", sn_out_key:"", sn_in:"IN-0001", sn_in_key:"", send_interval_min:5,
   lat: 55.752793, lon: 37.622672, alt_sea: 150, alt_ground: 5,
   units: { temp:"C", pressure:"hPa", wind_spd:"ms", rad:"uSv", co2:"ppm", co:"ppm" },

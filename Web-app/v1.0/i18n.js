@@ -54,7 +54,7 @@ const I18N = {
     COMPASS:["N","NE","E","SE","S","SW","W","NW"],
     p_temp:"Temperature", p_rh:"Humidity", p_pressure:"Pressure", p_pm:"PM particles",
     p_rad:"Radiation", p_wind_spd:"Wind speed", p_wind_dir:"Wind direction", p_uv:"UV index", p_solar:"Solar rad.", p_lux:"Illuminance",
-    p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
+    p_hcho:"CH₂O", p_ch4:"CH₄", p_co:"CO", p_co2:"CO₂", p_nh3:"NH₃", p_no:"NO", p_no2:"NO₂", p_o3:"O₃", p_so2:"SO₂", p_aqi:"AQI" },
 
   ru: { _name:"Русский", login_title:"AirVisionPro", email:"Email", password:"Пароль", enter:"Войти", err_login:"Неверный email или пароль",
     indoor:"Дом", outdoor:"Улица", wifi:"WiFi", version:"Версия", settings:"Настройки", logout:"Выйти", theme:"Тема",
@@ -104,7 +104,7 @@ const I18N = {
     COMPASS:["С","СВ","В","ЮВ","Ю","ЮЗ","З","СЗ"],
     p_temp:"Температура", p_rh:"Влажность", p_pressure:"Давление", p_pm:"Частицы PM",
     p_rad:"Радиация", p_wind_spd:"Скорость ветра", p_wind_dir:"Направление ветра", p_uv:"УФ-индекс", p_solar:"Солн. радиация", p_lux:"Освещённость",
-    p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
+    p_hcho:"CH₂O", p_ch4:"CH₄", p_co:"CO", p_co2:"CO₂", p_nh3:"NH₃", p_no:"NO", p_no2:"NO₂", p_o3:"O₃", p_so2:"SO₂", p_aqi:"AQI" },
 
   "zh-CN": { _name:"中文（简体）", login_title:"AirVisionPro", email:"邮箱", password:"密码", enter:"登录", err_login:"邮箱或密码错误",
     indoor:"室内", outdoor:"室外", wifi:"WiFi", version:"版本", settings:"设置", logout:"退出", theme:"主题",
@@ -114,7 +114,7 @@ const I18N = {
     COMPASS:["北","东北","东","东南","南","西南","西","西北"],
     p_temp:"温度", p_rh:"湿度", p_pressure:"气压", p_pm:"PM颗粒物",
     p_rad:"辐射", p_wind_spd:"风速", p_wind_dir:"风向", p_uv:"紫外线指数", p_solar:"太阳辐射", p_lux:"照度",
-    p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
+    p_hcho:"CH₂O", p_ch4:"CH₄", p_co:"CO", p_co2:"CO₂", p_nh3:"NH₃", p_no:"NO", p_no2:"NO₂", p_o3:"O₃", p_so2:"SO₂", p_aqi:"AQI" },
 
   "zh-TW": { _name:"中文（繁體）", login_title:"AirVisionPro", email:"電子郵件", password:"密碼", enter:"登入", err_login:"電子郵件或密碼錯誤",
     indoor:"室內", outdoor:"室外", wifi:"WiFi", version:"版本", settings:"設定", logout:"登出", theme:"主題",
@@ -124,7 +124,7 @@ const I18N = {
     COMPASS:["北","東北","東","東南","南","西南","西","北西"],
     p_temp:"溫度", p_rh:"濕度", p_pressure:"氣壓", p_pm:"PM顆粒物",
     p_rad:"輻射", p_wind_spd:"風速", p_wind_dir:"風向", p_uv:"紫外線指數", p_solar:"太陽輻射", p_lux:"照度",
-    p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
+    p_hcho:"CH₂O", p_ch4:"CH₄", p_co:"CO", p_co2:"CO₂", p_nh3:"NH₃", p_no:"NO", p_no2:"NO₂", p_o3:"O₃", p_so2:"SO₂", p_aqi:"AQI" },
 
   es: { _name:"Español", login_title:"AirVisionPro", email:"Correo", password:"Contraseña", enter:"Entrar", err_login:"Correo o contraseña incorrectos",
     indoor:"Interior", outdoor:"Exterior", wifi:"WiFi", version:"Versión", settings:"Ajustes", logout:"Salir", theme:"Tema",
@@ -134,7 +134,7 @@ const I18N = {
     COMPASS:["N","NE","E","SE","S","SO","O","NO"],
     p_temp:"Temperatura", p_rh:"Humedad", p_pressure:"Presión", p_pm:"Partículas PM",
     p_rad:"Radiación", p_wind_spd:"Vel. viento", p_wind_dir:"Dir. viento", p_uv:"Índice UV", p_solar:"Rad. solar", p_lux:"Iluminancia",
-    p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
+    p_hcho:"CH₂O", p_ch4:"CH₄", p_co:"CO", p_co2:"CO₂", p_nh3:"NH₃", p_no:"NO", p_no2:"NO₂", p_o3:"O₃", p_so2:"SO₂", p_aqi:"AQI" },
 
   ar: { _name:"العربية", login_title:"AirVisionPro", email:"البريد الإلكتروني", password:"كلمة المرور", enter:"دخول", err_login:"بريد إلكتروني أو كلمة مرور غير صحيحة",
     indoor:"داخلي", outdoor:"خارجي", wifi:"واي فاي", version:"الإصدار", settings:"الإعدادات", logout:"خروج", theme:"السمة",
@@ -144,7 +144,7 @@ const I18N = {
     COMPASS:["ش","شق","ق","جق","ج","جغ","غ","شغ"],
     p_temp:"درجة الحرارة", p_rh:"الرطوبة", p_pressure:"الضغط", p_pm:"جسيمات PM",
     p_rad:"الإشعاع", p_wind_spd:"سرعة الرياح", p_wind_dir:"اتجاه الرياح", p_uv:"مؤشر UV", p_solar:"الإشعاع الشمسي", p_lux:"الإضاءة",
-    p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
+    p_hcho:"CH₂O", p_ch4:"CH₄", p_co:"CO", p_co2:"CO₂", p_nh3:"NH₃", p_no:"NO", p_no2:"NO₂", p_o3:"O₃", p_so2:"SO₂", p_aqi:"AQI" },
 
   hi: { _name:"हिन्दी", login_title:"AirVisionPro", email:"ईमेल", password:"पासवर्ड", enter:"साइन इन", err_login:"गलत ईमेल या पासवर्ड",
     indoor:"अंदर", outdoor:"बाहर", wifi:"WiFi", version:"संस्करण", settings:"सेटिंग्स", logout:"साइन आउट", theme:"थीम",
@@ -154,7 +154,7 @@ const I18N = {
     COMPASS:["उ","उपू","पू","दपू","द","दप","प","उप"],
     p_temp:"तापमान", p_rh:"आर्द्रता", p_pressure:"दबाव", p_pm:"PM कण",
     p_rad:"विकिरण", p_wind_spd:"हवा की गति", p_wind_dir:"हवा की दिशा", p_uv:"UV सूचकांक", p_solar:"सौर विकिरण", p_lux:"प्रकाश",
-    p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
+    p_hcho:"CH₂O", p_ch4:"CH₄", p_co:"CO", p_co2:"CO₂", p_nh3:"NH₃", p_no:"NO", p_no2:"NO₂", p_o3:"O₃", p_so2:"SO₂", p_aqi:"AQI" },
 
   "pt-BR": { _name:"Português", login_title:"AirVisionPro", email:"E-mail", password:"Senha", enter:"Entrar", err_login:"E-mail ou senha incorretos",
     indoor:"Interno", outdoor:"Externo", wifi:"WiFi", version:"Versão", settings:"Configurações", logout:"Sair", theme:"Tema",
@@ -164,7 +164,7 @@ const I18N = {
     COMPASS:["N","NE","L","SE","S","SO","O","NO"],
     p_temp:"Temperatura", p_rh:"Umidade", p_pressure:"Pressão", p_pm:"Partículas PM",
     p_rad:"Radiação", p_wind_spd:"Vel. vento", p_wind_dir:"Dir. vento", p_uv:"Índice UV", p_solar:"Rad. solar", p_lux:"Iluminância",
-    p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
+    p_hcho:"CH₂O", p_ch4:"CH₄", p_co:"CO", p_co2:"CO₂", p_nh3:"NH₃", p_no:"NO", p_no2:"NO₂", p_o3:"O₃", p_so2:"SO₂", p_aqi:"AQI" },
 
   fr: { _name:"Français", login_title:"AirVisionPro", email:"E-mail", password:"Mot de passe", enter:"Se connecter", err_login:"E-mail ou mot de passe incorrect",
     indoor:"Intérieur", outdoor:"Extérieur", wifi:"WiFi", version:"Version", settings:"Paramètres", logout:"Déconnexion", theme:"Thème",
@@ -174,7 +174,7 @@ const I18N = {
     COMPASS:["N","NE","E","SE","S","SO","O","NO"],
     p_temp:"Température", p_rh:"Humidité", p_pressure:"Pression", p_pm:"Particules PM",
     p_rad:"Radiation", p_wind_spd:"Vit. vent", p_wind_dir:"Dir. vent", p_uv:"Indice UV", p_solar:"Rad. solaire", p_lux:"Éclairement",
-    p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
+    p_hcho:"CH₂O", p_ch4:"CH₄", p_co:"CO", p_co2:"CO₂", p_nh3:"NH₃", p_no:"NO", p_no2:"NO₂", p_o3:"O₃", p_so2:"SO₂", p_aqi:"AQI" },
 
   de: { _name:"Deutsch", login_title:"AirVisionPro", email:"E-Mail", password:"Passwort", enter:"Anmelden", err_login:"Falsche E-Mail oder Passwort",
     indoor:"Innen", outdoor:"Außen", wifi:"WLAN", version:"Version", settings:"Einstellungen", logout:"Abmelden", theme:"Thema",
@@ -184,7 +184,7 @@ const I18N = {
     COMPASS:["N","NO","O","SO","S","SW","W","NW"],
     p_temp:"Temperatur", p_rh:"Luftfeuchte", p_pressure:"Luftdruck", p_pm:"PM-Partikel",
     p_rad:"Strahlung", p_wind_spd:"Windgeschw.", p_wind_dir:"Windrichtung", p_uv:"UV-Index", p_solar:"Solarstrahlung", p_lux:"Beleuchtung",
-    p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" },
+    p_hcho:"CH₂O", p_ch4:"CH₄", p_co:"CO", p_co2:"CO₂", p_nh3:"NH₃", p_no:"NO", p_no2:"NO₂", p_o3:"O₃", p_so2:"SO₂", p_aqi:"AQI" },
 
   ja: { _name:"日本語", login_title:"AirVisionPro", email:"メール", password:"パスワード", enter:"ログイン", err_login:"メールまたはパスワードが違います",
     indoor:"屋内", outdoor:"屋外", wifi:"WiFi", version:"バージョン", settings:"設定", logout:"ログアウト", theme:"テーマ",
@@ -194,7 +194,7 @@ const I18N = {
     COMPASS:["北","北東","東","南東","南","南西","西","北西"],
     p_temp:"気温", p_rh:"湿度", p_pressure:"気圧", p_pm:"PM粒子",
     p_rad:"放射線", p_wind_spd:"風速", p_wind_dir:"風向", p_uv:"UV指数", p_solar:"日射", p_lux:"照度",
-    p_no2:"NO₂", p_so2:"SO₂", p_no:"NO", p_co2:"CO₂", p_co:"CO", p_o3:"O₃", p_nh3:"NH₃", p_hcho:"CH₂O", p_aqi:"AQI" }
+    p_hcho:"CH₂O", p_ch4:"CH₄", p_co:"CO", p_co2:"CO₂", p_nh3:"NH₃", p_no:"NO", p_no2:"NO₂", p_o3:"O₃", p_so2:"SO₂", p_aqi:"AQI" }
 };
 
 const LANG_LIST = ["en","ru","zh-CN","zh-TW","es","ar","hi","pt-BR","fr","de","ja"];

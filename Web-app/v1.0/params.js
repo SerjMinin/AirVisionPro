@@ -46,14 +46,15 @@ const PARAMS = [
   { key:"solar", i18n:"p_solar", unit:"Вт/м²", loc:"out",  round:0, color:"#ffb84d" },
   { key:"lux",   i18n:"p_lux",   unit:"лк",    loc:"both", round:0, color:"#ffe14d" },
 
-  { key:"no2",  i18n:"p_no2",  unit:"мкг/м³", loc:"out",  round:0, color:"#ff7bce" },
-  { key:"so2",  i18n:"p_so2",  unit:"мкг/м³", loc:"out",  round:0, color:"#ff6bb0" },
-  { key:"no",   i18n:"p_no",   unit:"мкг/м³", loc:"out",  round:0, color:"#ff5b92" },
-  { key:"co2",  i18n:"p_co2",  unit:"ppm",    loc:"in",   round:0, color:"#6bffb0" },
-  { key:"co",   i18n:"p_co",   unit:"мг/м³",  loc:"both", round:1, color:"#ff8c6b" },
-  { key:"o3",   i18n:"p_o3",   unit:"мкг/м³", loc:"out",  round:0, color:"#6bd2ff" },
-  { key:"nh3",  i18n:"p_nh3",  unit:"мкг/м³", loc:"out",  round:0, color:"#a0ff6b" },
   { key:"hcho", i18n:"p_hcho", unit:"мг/м³",  loc:"in",   round:2, color:"#ff6bff" },
+  { key:"ch4",  i18n:"p_ch4",  unit:"мкг/м³", loc:"out",  round:0, color:"#7bffd2" },
+  { key:"co",   i18n:"p_co",   unit:"мг/м³",  loc:"both", round:1, color:"#ff8c6b" },
+  { key:"co2",  i18n:"p_co2",  unit:"ppm",    loc:"in",   round:0, color:"#6bffb0" },
+  { key:"nh3",  i18n:"p_nh3",  unit:"мкг/м³", loc:"out",  round:0, color:"#a0ff6b" },
+  { key:"no",   i18n:"p_no",   unit:"мкг/м³", loc:"out",  round:0, color:"#ff5b92" },
+  { key:"no2",  i18n:"p_no2",  unit:"мкг/м³", loc:"out",  round:0, color:"#ff7bce" },
+  { key:"o3",   i18n:"p_o3",   unit:"мкг/м³", loc:"out",  round:0, color:"#6bd2ff" },
+  { key:"so2",  i18n:"p_so2",  unit:"мкг/м³", loc:"out",  round:0, color:"#ff6bb0" },
 
   { key:"aqi", i18n:"p_aqi", unit:"", loc:"out", round:0, color:"#ffffff" }
 ];

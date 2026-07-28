@@ -46,9 +46,10 @@ const paramWmPlugin = {
 };
 
 const TOP_TITLE = {
-  no2:"Диоксид азота NO₂", so2:"Диоксид серы SO₂", no:"Монооксид азота NO",
-  co2:"Углекислый газ CO₂", co:"Угарный газ CO", o3:"Озон O₃",
-  nh3:"Аммиак NH₃", hcho:"Формальдегид CH₂O", aqi:"AQI - Индекс качества воздуха"
+  hcho:"Формальдегид CH₂O", ch4:"Метан CH₄", co:"Угарный газ CO",
+  co2:"Углекислый газ CO₂", nh3:"Аммиак NH₃", no:"Монооксид азота NO",
+  no2:"Диоксид азота NO₂", o3:"Озон O₃", so2:"Диоксид серы SO₂",
+  aqi:"AQI - Индекс качества воздуха"
 };
 function paramTopTitle(p) { return TOP_TITLE[p.key] || t(p.i18n); }
 
