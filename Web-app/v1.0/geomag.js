@@ -6,7 +6,7 @@ upabase/*
 /* AirVisionPro — магнитные бури: Kp факт+прогноз, ось 0–9, ореол северного сияния. */
 
 /* ссылки берём из настроек */
-let geomagWindow = { from:0, to:0 };
+var geomagWindow = { from:0, to:0 };
 function geomagUrls() {
   const g = (SETTINGS && SETTINGS.weather_sources && SETTINGS.weather_sources.geomag) || {};
   return {
