@@ -255,3 +255,26 @@ function openGeomagSettings(){
   document.getElementById("geomag-modal").classList.add("open");
 }
 function closeGeomagSettings(){ document.getElementById("geomag-modal").classList.remove("open"); }
+/* ===== Окно «Магнитные бури — источник» ===== */
+const GEOMAG_DEFAULT_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json";
+
+function openSrcGeomag(){
+  const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources.geomag) || {};
+  const url = gs.url || GEOMAG_DEFAULT_URL;
+  document.getElementById("src-geomag-body").innerHTML =
+    `<div class="set-row col">
+       <label>Ссылка на источник</label>
+       <textarea id="src_geomag_url" class="set-input src-url" rows="3">${url}</textarea>
+       <div class="set-hint">Один запрос отдаёт и факт, и прогноз (NOAA).</div>
+     </div>`;
+  document.getElementById("src-geomag-modal").classList.add("open");
+}
+function closeSrcGeomag(){ document.getElementById("src-geomag-modal").classList.remove("open"); }
+async function saveSrcGeomag(){
+  const val = document.getElementById("src_geomag_url").value.trim();
+  if(!SETTINGS.weather_sources) SETTINGS.weather_sources = {};
+  if(!SETTINGS.weather_sources.geomag) SETTINGS.weather_sources.geomag = {};
+  SETTINGS.weather_sources.geomag.url = val || GEOMAG_DEFAULT_URL;
+  await saveSettings();
+  closeSrcGeomag();
+}

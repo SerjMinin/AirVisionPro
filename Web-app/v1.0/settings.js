@@ -113,11 +113,16 @@ function openDeviceSettings(which) { alert(t("api_soon")); }
 function buildSettingsForm() {
   const s = SETTINGS;
   const soon = t("api_soon");
-  const cfgRows = CONFIG_ITEMS.map(it => `
+  const cfgRows = CONFIG_ITEMS.map(it => {
+    const btn = it.id === "geomag"
+      ? `<button class="set-btn sm" onclick="openSrcGeomag()">${t("api_config")}</button>`
+      : `<button class="set-btn sm" onclick="alert('${soon}')">${t("api_config")}</button>`;
+    return `
     <div class="cfg-row">
       <label class="set-check"><input type="checkbox" id="cfg_${it.id}" ${s.config_items[it.id]?"checked":""}> ${it.label}</label>
-      <button class="set-btn sm" onclick="alert('${soon}')">${t("api_config")}</button>
-    </div>`).join("");
+      ${btn}
+    </div>`;
+  }).join("");
 
   const tabItems = PARAMS.map(p => ({ id:p.key, label:t(p.i18n) }))
     .concat(EXTRA_TABS.filter(it => it.id !== "geomag").map(it => ({ id:it.id, label: it.label || t(it.i18n) })));
