@@ -137,9 +137,12 @@
         <button class="icon-btn" onclick="closeSrcGeomag()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="modal-body" id="src-geomag-body"></div>
-      <div class="modal-foot">
-        <button class="set-btn ghost" onclick="closeSrcGeomag()">Отмена</button>
-        <button class="set-btn" onclick="saveSrcGeomag()">Сохранить</button>
+      <div class="modal-foot" style="justify-content:space-between;align-items:center;">
+        <div id="src-geomag-stats" style="display:flex;gap:16px;opacity:0.6;font-size:13px;"></div>
+        <div style="display:flex;gap:10px;">
+          <button class="set-btn" onclick="closeSrcGeomag()">Отмена</button>
+          <button class="set-btn" onclick="saveSrcGeomag()">Сохранить</button>
+        </div>
       </div>
     </div>
   </div>
