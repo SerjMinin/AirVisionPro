@@ -8,7 +8,8 @@
 /* ссылки берём из настроек */
 var geomagWindow = { from:0, to:0 };
 function geomagUrl() {
-  return "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json";
+  const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources.geomag) || {};
+  return gs.url || GEOMAG_DEFAULT_URL;
 }
 
 const G_TABLE = [

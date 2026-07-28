@@ -91,6 +91,7 @@ function buildTabs() {
   });
   const sep = document.createElement("span"); sep.className = "tab-sep"; bar.appendChild(sep);
   EXTRA_TABS.forEach(it => {
+    if (it.id === "geomag" && SETTINGS && SETTINGS.config_items && SETTINGS.config_items.geomag === false) return;
     if (SETTINGS && SETTINGS.tabs && SETTINGS.tabs[it.id] === false) return;
     const label = it.label || t(it.i18n);
     const tab = document.createElement("button");
