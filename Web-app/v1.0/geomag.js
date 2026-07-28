@@ -234,6 +234,7 @@ function drawGeomagChart(fact, fcst, errText){
 async function renderGeomag(){
   if(currentView!=="geomag") return;
   showCanvasGraph();
+  showLoader();
   document.getElementById("chart-title").textContent = t("tab_geomag");
   try{
     const now = Math.floor(Date.now()/1000);
@@ -245,6 +246,8 @@ async function renderGeomag(){
   }catch(e){
     console.error("[geomag] ошибка загрузки:", e);
     drawGeomagChart([], [], t("geomag_err"));
+  }finally{
+    hideLoader();
   }
 }
 
