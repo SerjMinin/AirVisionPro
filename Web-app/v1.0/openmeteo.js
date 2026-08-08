@@ -11,7 +11,7 @@ const OPENMETEO_DEFAULT_URL =
   "&timezone=GMT";
 
 function openSrcOpenmeteo(){
-  const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources.openmeteo) || {};
+  const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources["open-meteo"]) || {};
   const url = gs.url || OPENMETEO_DEFAULT_URL;
   document.getElementById("src-openmeteo-body").innerHTML =
     `<div class="set-hint" style="text-align:left;margin:0 0 8px;">Один запрос отдаёт все погодные параметры (Open-Meteo). Ключ не нужен.</div>
@@ -24,8 +24,8 @@ function closeSrcOpenmeteo(){ document.getElementById("src-openmeteo-modal").cla
 async function saveSrcOpenmeteo(){
   const val = document.getElementById("src_openmeteo_url").value.trim();
   if(!SETTINGS.weather_sources) SETTINGS.weather_sources = {};
-  if(!SETTINGS.weather_sources.openmeteo) SETTINGS.weather_sources.openmeteo = {};
-  SETTINGS.weather_sources.openmeteo.url = val || OPENMETEO_DEFAULT_URL;
+  if(!SETTINGS.weather_sources["open-meteo"]) SETTINGS.weather_sources["open-meteo"] = {};
+  SETTINGS.weather_sources["open-meteo"].url = val || OPENMETEO_DEFAULT_URL;
   await saveSettings();
   closeSrcOpenmeteo();
 }
