@@ -18,6 +18,7 @@
   <script src="params.js"></script>
   <script src="advice.js"></script>
   <script src="geomag.js"></script>
+  <script src="openmeteo.js"></script>
   <style>body { visibility: hidden; }</style>
 </head>
 <body class="page-dash">
@@ -125,6 +126,23 @@
       <div class="modal-foot">
         <button class="set-btn" id="param-cancel" onclick="closeParamSettings()" data-i18n="set_cancel">Отмена</button>
         <button class="set-btn" id="param-save" onclick="applyParamSettings()" data-i18n="set_save">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+<!-- Окно: настройка источника «Open-Meteo» -->
+  <div class="modal" id="src-openmeteo-modal">
+    <div class="modal-card">
+      <div class="modal-head"><h2>Open-Meteo — источник</h2>
+        <button class="icon-btn" onclick="closeSrcOpenmeteo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body" id="src-openmeteo-body"></div>
+      <div class="modal-foot" style="justify-content:space-between;align-items:center;">
+        <div id="src-openmeteo-stats" style="display:flex;gap:16px;opacity:0.6;font-size:13px;"></div>
+        <div style="display:flex;gap:10px;">
+          <button class="set-btn" onclick="closeSrcOpenmeteo()">Отмена</button>
+          <button class="set-btn" onclick="saveSrcOpenmeteo()">Сохранить</button>
+        </div>
       </div>
     </div>
   </div>
