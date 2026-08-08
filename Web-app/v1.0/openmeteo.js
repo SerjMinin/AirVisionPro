@@ -41,9 +41,9 @@ async function openSrcOpenmeteo(){
   statsEl.innerHTML = `<span>Данные в базе: считаю…</span>`;
   document.getElementById("src-openmeteo-modal").classList.add("open");
   const step = await weatherStepMin("open-meteo");
-  statsEl.innerHTML = step
-    ? `<span>Данные в базе: ${fmtStep(step)}</span>`
-    : `<span>Данных в базе пока нет</span>`;
+  statsEl.innerHTML =
+    (step ? `<span>Факт в базе: ${fmtStep(step)}</span>` : `<span>Факт в базе: нет данных</span>`) +
+    `<span>Прогноз: раз в 1 ч</span>`;
 }
 function closeSrcOpenmeteo(){ document.getElementById("src-openmeteo-modal").classList.remove("open"); }
 async function saveSrcOpenmeteo(){
