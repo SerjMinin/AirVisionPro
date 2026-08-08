@@ -114,9 +114,10 @@ function buildSettingsForm() {
   const s = SETTINGS;
   const soon = t("api_soon");
   const cfgRows = CONFIG_ITEMS.map(it => {
-    const btn = it.id === "geomag"
-      ? `<button class="set-btn sm" onclick="openSrcGeomag()">${t("api_config")}</button>`
-      : `<button class="set-btn sm" onclick="alert('${soon}')">${t("api_config")}</button>`;
+    let onclickAttr = `alert('${soon}')`;
+    if (it.id === "geomag")     onclickAttr = "openSrcGeomag()";
+    if (it.id === "open_meteo") onclickAttr = "openSrcOpenmeteo()";
+    const btn = `<button class="set-btn sm" onclick="${onclickAttr}">${t("api_config")}</button>`;
     return `
     <div class="cfg-row">
       <label class="set-check"><input type="checkbox" id="cfg_${it.id}" ${s.config_items[it.id]?"checked":""}> ${it.label}</label>
