@@ -48,7 +48,7 @@ async function openSrcOpenmeteo(){
   const url = gs.url || OPENMETEO_DEFAULT_URL;
   document.getElementById("src-openmeteo-body").innerHTML =
     `<div class="set-hint" style="text-align:left;margin:0 0 8px;">Один запрос отдаёт все погодные параметры (Open-Meteo).</div>
-     <textarea id="src_openmeteo_url" class="set-input" style="width:100%;height:120px;resize:vertical;">${url}</textarea>
+     <textarea id="src_openmeteo_url" class="set-input" style="width:100%;height:120px;resize:vertical;"></textarea>
      <div style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 6px;">
        <span class="set-hint" style="text-align:left;">Куда выводить параметры:</span>
        <button class="set-btn sm" type="button" onclick="refreshOpenmeteoMap()">Обновить</button>
@@ -57,6 +57,7 @@ async function openSrcOpenmeteo(){
   const statsEl = document.getElementById("src-openmeteo-stats");
   statsEl.innerHTML = `<span>Факт в базе: считаю…</span>`;
   document.getElementById("src-openmeteo-modal").classList.add("open");
+  document.getElementById("src_openmeteo_url").value = url;
 
   const step = await weatherStepMin("open-meteo");
   statsEl.innerHTML =
