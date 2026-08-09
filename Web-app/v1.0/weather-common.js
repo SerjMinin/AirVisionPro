@@ -49,13 +49,17 @@ function renderSourceMap(containerId, fields, curMap){
   const opts = tabSelectOptions();
   const rows = fields.map((f,i) => {
     const sel = (curMap && curMap[f.field] != null) ? curMap[f.field] : "no";
-    return `<div class="cfg-row">
-      <span style="flex:1;">${f.label}</span>
-      ${selHtml("map_"+i, opts, sel)}
-    </div>`;
+    return `<span style="align-self:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.label}</span>
+      <div style="min-width:0;">${selHtml("map_"+i, opts, sel)}</div>`;
   }).join("");
-  document.getElementById(containerId).innerHTML =
-    rows || `<div class="set-hint">Источник не прислал параметров.</div>`;
+  const container = document.getElementById(containerId);
+  if (!rows) { container.innerHTML = `<div class="set-hint">Источник не прислал параметров.</div>`; return; }
+  container.style.display = "grid";
+  container.style.gridTemplateColumns = "1fr minmax(0, 180px)";
+  container.style.columnGap = "12px";
+  container.style.rowGap = "8px";
+  container.style.alignItems = "center";
+  container.innerHTML = rows;
 }
 
 /* читает выбор обратно в объект {поле: вкладка} */
