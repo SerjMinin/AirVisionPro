@@ -118,6 +118,7 @@ function buildSettingsForm() {
     if (it.id === "geomag")     onclickAttr = "openSrcGeomag()";
     if (it.id === "open_meteo") onclickAttr = "openSrcOpenmeteo()";
     if (it.id === "open_meteo_air") onclickAttr = "openSrcAirquality()";
+    if (it.id === "owm") onclickAttr = "openSrcOwm()";
     const btn = `<button class="set-btn sm" onclick="${onclickAttr}">${t("api_config")}</button>`;
     return `
     <div class="cfg-row">
