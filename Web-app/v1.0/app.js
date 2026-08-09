@@ -28,6 +28,7 @@ function bgDateLabel(unix){
   const d = locDate(unix);
   if (currentRange==="year")  return "";
   if (currentRange==="month") return String(d.getUTCFullYear());
+  if (currentRange==="24h") return d.getUTCDate() + " " + MONTHS_FULL[d.getUTCMonth()] + " " + d.getUTCFullYear();
   return MONTHS_FULL[d.getUTCMonth()] + " " + d.getUTCFullYear();   // неделя и 24ч
 }
 
@@ -332,7 +333,7 @@ async function renderParam(key) {
     const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources[ws.source]) || {};
     const wmap = (gs.map && Object.keys(gs.map).length) ? gs.map : ws.defMap;
     for (const param in wmap) {
-      if (wmap[param] !== p.key) continue;
+      if (wmap[param] === "no") continue;
       const rows = await loadWeatherSeries(ws.source, param, from, to);
       if (!rows.length) continue;
       const pts = rows.map(r => ({ x:(Date.parse(r.ts_utc)/1000 - from)/step, y:convertUnit(Number(r.val), g, unitId) }));
