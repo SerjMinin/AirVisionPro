@@ -357,7 +357,7 @@ async function renderParam(key) {
     type:"line", data:{ datasets },
     options:{ responsive:true, maintainAspectRatio:false, parsing:false,
       interaction:{ mode:"nearest", intersect:false },
-      plugins:{ legend:{ labels:{ color:tickColor } } },
+      plugins:{ legend:{ labels:{ color:tickColor, usePointStyle:true, pointStyle:"line", boxWidth:28 } } },
       scales:{ x:{ type:"linear", min:0, max:ticks, grid:{ color:gridColor },
           ticks:{ color:tickColor, stepSize:1, autoSkip:false, maxRotation:0, callback:v=>xLabels[v]??"" } },
         y:{ grid:{ color:gridColor }, ticks:{ color:tickColor } } }
