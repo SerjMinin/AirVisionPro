@@ -189,6 +189,18 @@ function showExtra(which) {
   ids.forEach(id => document.getElementById(id).style.display = (map[which]===id) ? "block" : "none");
 }
 
+async function loadWeatherSeries(source, param, from, to) {
+  const fromIso = new Date(from*1000).toISOString();
+  const toIso   = new Date(to*1000).toISOString();
+  const { data, error } = await client.from("weather")
+    .select("val, ts_utc")
+    .eq("source", source).eq("param", param).eq("kind", "current")
+    .gte("ts_utc", fromIso).lte("ts_utc", toIso)
+    .order("ts_utc", { ascending: true });
+  if (error || !data) return [];
+  return data;
+}
+
 async function loadSeries(serial, key, from, to) {
   const { data, error } = await client.from("measurements")
     .select("val, ts_device, src, provider")
