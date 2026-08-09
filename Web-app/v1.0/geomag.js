@@ -274,16 +274,20 @@ const GEOMAG_DEFAULT_URL = "https://services.swpc.noaa.gov/products/noaa-planeta
 const GEOMAG_FACT_HOURS = 180/60;   // факт пишется в БД раз в 3 ч (крон)
 const GEOMAG_FCST_HOURS = 60/60;    // прогноз обновляется раз в 1 ч (кэш)
 
-function openSrcGeomag(){
+async function openSrcGeomag(){
   const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources.geomag) || {};
   const saved = gs.url || "";
   const url = saved.includes("forecast") ? saved : GEOMAG_DEFAULT_URL;
   document.getElementById("src-geomag-body").innerHTML =
     `<div class="set-hint" style="text-align:left;margin:0 0 8px;">Один запрос отдаёт и факт, и прогноз (NOAA).</div>
      <textarea id="src_geomag_url" class="set-input" style="width:100%;height:160px;resize:vertical;">${url}</textarea>`;
-  document.getElementById("src-geomag-stats").innerHTML =
-    `<span>Факт: раз в ${GEOMAG_FACT_HOURS} ч</span><span>Прогноз: раз в ${GEOMAG_FCST_HOURS} ч</span>`;
+  const statsEl = document.getElementById("src-geomag-stats");
+  statsEl.innerHTML = `<span>Факт в базе: считаю…</span>`;
   document.getElementById("src-geomag-modal").classList.add("open");
+  const step = await geomagStepMin();
+  statsEl.innerHTML =
+    (step ? `<span>Факт в базе: ${fmtStep(step)}</span>` : `<span>Факт в базе: нет данных</span>`) +
+    `<span>Прогноз: раз в 1 ч</span>`;
 }
 function closeSrcGeomag(){ document.getElementById("src-geomag-modal").classList.remove("open"); }
 async function saveSrcGeomag(){

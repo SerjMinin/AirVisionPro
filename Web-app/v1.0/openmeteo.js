@@ -14,7 +14,7 @@ async function openSrcOpenmeteo(){
   const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources["open-meteo"]) || {};
   const url = gs.url || OPENMETEO_DEFAULT_URL;
   document.getElementById("src-openmeteo-body").innerHTML =
-    `<div class="set-hint" style="text-align:left;margin:0 0 8px;">Один запрос отдаёт все погодные параметры (Open-Meteo). Ключ не нужен.</div>
+    `<div class="set-hint" style="text-align:left;margin:0 0 8px;">Один запрос отдаёт все погодные параметры (Open-Meteo).</div>
      <textarea id="src_openmeteo_url" class="set-input" style="width:100%;height:160px;resize:vertical;">${url}</textarea>`;
   const statsEl = document.getElementById("src-openmeteo-stats");
   statsEl.innerHTML = `<span>Данные в базе: считаю…</span>`;
