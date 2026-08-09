@@ -3,13 +3,13 @@
 const AIRQUALITY_INTERVAL_MIN = 60; // раз в 60 минут
 /* человеческие подписи (после префикса iOA_) */
 const AIRQUALITY_NAMES = {
-  pm2_5:"2,5", pm10:"10", dust:"Пыль", aerosol_optical_depth:"Дымка",
-  methane:"Метан", carbon_monoxide:"CO", carbon_dioxide:"CO₂",
-  ammonia:"NH₃", nitrogen_dioxide:"NO₂", ozone:"O₃", sulphur_dioxide:"SO₂",
-  uv_index:"УФ-индекс", us_aqi:"US AQI", european_aqi:"EU AQI",
-  alder_pollen:"Пыльца ольхи", birch_pollen:"Пыльца берёзы",
-  grass_pollen:"Пыльца травы", mugwort_pollen:"Пыльца полыни",
-  olive_pollen:"Пыльца оливы", ragweed_pollen:"Пыльца амброзии"
+  pm2_5:"2,5", pm10:"10",
+  methane:"", carbon_monoxide:"", carbon_dioxide:"",
+  ammonia:"", nitrogen_dioxide:"", ozone:"", sulphur_dioxide:"",
+  dust:"Dust", aerosol_optical_depth:"Depth",
+  uv_index:"", us_aqi:"us", european_aqi:"eu",
+  alder_pollen:"Ольха", birch_pollen:"Берёза", grass_pollen:"Травы",
+  mugwort_pollen:"Полынь", olive_pollen:"Олива", ragweed_pollen:"Амброзия"
 };
 /* распределение по умолчанию (по твоей таблице) */
 const AIRQUALITY_DEFAULT_MAP = {
@@ -27,7 +27,8 @@ const AIRQUALITY_DEFAULT_URL =
   "?latitude={lat}&longitude={lon}" +
   "&current=pm2_5,pm10,dust,aerosol_optical_depth," +
   "carbon_monoxide,carbon_dioxide,nitrogen_dioxide,sulphur_dioxide,ozone,ammonia,methane," +
-  "uv_index,us_aqi,european_aqi" +
+  "uv_index,us_aqi,european_aqi," +
+  "alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen" +
   "&timezone=GMT";
 
 /* пробный запрос: узнать, какие поля реально приходят */
