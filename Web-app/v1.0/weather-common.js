@@ -37,3 +37,33 @@ function fmtStep(min){
   if (min >= 60) return `раз в ~${Math.round(min/60)} ч`;
   return `раз в ~${min} мин`;
 }
+/* справочник вкладок для распределения (без служебных: бури/API/советы/дом) */
+function tabSelectOptions(){
+  const opts = [{ id:"no", label:"Не показывать" }];
+  PARAMS.forEach(p => opts.push({ id:p.key, label:t(p.i18n) }));
+  return opts;
+}
+
+/* рисует список «параметр → вкладка». fields = [{field, label}] */
+function renderSourceMap(containerId, fields, curMap){
+  const opts = tabSelectOptions();
+  const rows = fields.map((f,i) => {
+    const sel = (curMap && curMap[f.field] != null) ? curMap[f.field] : "no";
+    return `<div class="cfg-row">
+      <span style="flex:1;">${f.label}</span>
+      ${selHtml("map_"+i, opts, sel)}
+    </div>`;
+  }).join("");
+  document.getElementById(containerId).innerHTML =
+    rows || `<div class="set-hint">Источник не прислал параметров.</div>`;
+}
+
+/* читает выбор обратно в объект {поле: вкладка} */
+function readSourceMap(fields){
+  const map = {};
+  fields.forEach((f,i) => {
+    const el = document.getElementById("map_"+i);
+    map[f.field] = el ? el.value : "no";
+  });
+  return map;
+}
