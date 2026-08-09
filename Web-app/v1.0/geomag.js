@@ -153,8 +153,16 @@ function drawGeomagChart(fact, fcst, errText){
   const now = Math.floor(Date.now()/1000);
   const pastSpan = RANGES[currentRange].sec;
   // окно сдвигается ЦЕЛИКОМ при листании — масштаб не меняется
-  const from = now - pastSpan - offsetSteps*pastSpan;
-  const to   = now + 3*24*3600 - offsetSteps*pastSpan;
+  let from, to;
+  if (currentRange === "24h") {
+    const day = 86400;
+    const midnight = Math.floor((now + TZ_OFFSET)/day)*day - TZ_OFFSET;
+    from = midnight - offsetSteps*day;   // сегодня 0:00
+    to   = from + day;                    // сегодня 24:00
+  } else {
+    from = now - pastSpan - offsetSteps*pastSpan;
+    to   = now + 3*24*3600 - offsetSteps*pastSpan;
+  }
   const toX  = (to - from)/3600;
   geomagWindow = { from, to };
   const X = ts => (ts - from)/3600;
