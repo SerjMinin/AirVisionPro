@@ -255,8 +255,10 @@ function smoothJ305(points) {
   });
 }
 
+let renderParamToken = 0;
 async function renderParam(key) {
   if (currentView !== "param") return;
+  const myToken = ++renderParamToken;
   const p = PARAMS.find(x => x.key === key);
   if (!p) return;
   if (p.type === "compass") { await renderCompass(p); return; }
@@ -351,6 +353,7 @@ async function renderParam(key) {
   const tickColor = isLight ? "#0d2a4a" : "#eaf4ff";
   const xLabels = [];
   for (let i=0;i<=ticks;i++) xLabels.push(tickLabel(i, from, step));
+  if (myToken !== renderParamToken) { hideLoader(); return; }
 
   if (chart) { chart.destroy(); chart = null; }
   chart = new Chart(document.getElementById("chart"), {
