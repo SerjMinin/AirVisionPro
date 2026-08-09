@@ -41,7 +41,7 @@ async function airqualityProbe(url){
     const fields = [];
     for (const k of Object.keys(cur)){
       if (k === "time" || k === "interval") continue;
-      fields.push({ field:k, label:"iOA_" + (AIRQUALITY_NAMES[k] || k) });
+      fields.push({ field:k, label:"iOA_" + (k in AIRQUALITY_NAMES ? AIRQUALITY_NAMES[k] : k) });
     }
     return fields;
   } catch(e){ return []; }
