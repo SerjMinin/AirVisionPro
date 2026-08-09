@@ -3,7 +3,7 @@
 const AIRQUALITY_INTERVAL_MIN = 60; // раз в 60 минут
 /* человеческие подписи (после префикса iOA_) */
 const AIRQUALITY_NAMES = {
-  pm2_5:"2,5", pm10:"10", dust:"Пыль", aerosol_optical_depth:"Мутность",
+  pm2_5:"2,5", pm10:"10", dust:"Пыль", aerosol_optical_depth:"Дымка",
   methane:"Метан", carbon_monoxide:"CO", carbon_dioxide:"CO₂",
   ammonia:"NH₃", nitrogen_dioxide:"NO₂", ozone:"O₃", sulphur_dioxide:"SO₂",
   uv_index:"УФ-индекс", us_aqi:"US AQI", european_aqi:"EU AQI",
