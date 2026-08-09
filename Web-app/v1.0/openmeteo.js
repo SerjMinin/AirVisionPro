@@ -47,9 +47,12 @@ async function openSrcOpenmeteo(){
   const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources["open-meteo"]) || {};
   const url = gs.url || OPENMETEO_DEFAULT_URL;
   document.getElementById("src-openmeteo-body").innerHTML =
-    `<div class="set-hint" style="text-align:left;margin:0 0 8px;">Один запрос отдаёт все погодные параметры (Open-Meteo). Ключ не нужен.</div>
+    `<div class="set-hint" style="text-align:left;margin:0 0 8px;">Один запрос отдаёт все погодные параметры (Open-Meteo).</div>
      <textarea id="src_openmeteo_url" class="set-input" style="width:100%;height:120px;resize:vertical;">${url}</textarea>
-     <div class="set-hint" style="text-align:left;margin:12px 0 6px;">Куда выводить параметры:</div>
+     <div style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 6px;">
+       <span class="set-hint" style="text-align:left;">Куда выводить параметры:</span>
+       <button class="set-btn sm" type="button" onclick="refreshOpenmeteoMap()">Обновить</button>
+     </div>
      <div id="src-openmeteo-map"><div class="set-hint">Запрашиваю параметры…</div></div>`;
   const statsEl = document.getElementById("src-openmeteo-stats");
   statsEl.innerHTML = `<span>Факт в базе: считаю…</span>`;
@@ -60,7 +63,21 @@ async function openSrcOpenmeteo(){
     (step ? `<span>Факт в базе: ${fmtStep(step)}</span>` : `<span>Факт в базе: нет данных</span>`) +
     `<span>Прогноз: раз в 1 ч</span>`;
 
-  openmeteoFields = await openmeteoProbe(url);
+  await refreshOpenmeteoMap();
+}
+
+async function refreshOpenmeteoMap(){
+  const box = document.getElementById("src-openmeteo-map");
+  box.innerHTML = `<div class="set-hint">Запрашиваю параметры…</div>`;
+  const url = document.getElementById("src_openmeteo_url").value.trim() || OPENMETEO_DEFAULT_URL;
+  const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources["open-meteo"]) || {};
+  const fields = await openmeteoProbe(url);
+  if (!fields.length){
+    box.innerHTML = `<div class="set-hint">Нет связи с источником. Проверьте ссылку и нажмите «Обновить».</div>`;
+    openmeteoFields = [];
+    return;
+  }
+  openmeteoFields = fields;
   const curMap = (gs.map && Object.keys(gs.map).length) ? gs.map : OPENMETEO_DEFAULT_MAP;
   renderSourceMap("src-openmeteo-map", openmeteoFields, curMap);
 }
