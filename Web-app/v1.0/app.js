@@ -313,6 +313,36 @@ async function renderParam(key) {
     }
   }
 
+  // ===== интернет-источники (таблица weather), ФАКТ = сплошная линия =====
+  const WEATHER_SOURCES = [
+    { source:"open-meteo",     cfg:"open_meteo",     prefix:"iOM_",
+      names:(typeof OPENMETEO_NAMES!=="undefined"?OPENMETEO_NAMES:{}),
+      defMap:(typeof OPENMETEO_DEFAULT_MAP!=="undefined"?OPENMETEO_DEFAULT_MAP:{}) },
+    { source:"open-meteo-air", cfg:"open_meteo_air", prefix:"iOA_",
+      names:(typeof AIRQUALITY_NAMES!=="undefined"?AIRQUALITY_NAMES:{}),
+      defMap:(typeof AIRQUALITY_DEFAULT_MAP!=="undefined"?AIRQUALITY_DEFAULT_MAP:{}) },
+    { source:"owm",            cfg:"owm",            prefix:"iOWM_",
+      names:(typeof OWM_NAMES!=="undefined"?OWM_NAMES:{}),
+      defMap:(typeof OWM_DEFAULT_MAP!=="undefined"?OWM_DEFAULT_MAP:{}) }
+  ];
+  for (const ws of WEATHER_SOURCES) {
+    if (ci_[ws.cfg] === false) continue;
+    const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources[ws.source]) || {};
+    const wmap = (gs.map && Object.keys(gs.map).length) ? gs.map : ws.defMap;
+    for (const param in wmap) {
+      if (wmap[param] !== p.key) continue;
+      const rows = await loadWeatherSeries(ws.source, param, from, to);
+      if (!rows.length) continue;
+      const pts = rows.map(r => ({ x:(Date.parse(r.ts_utc)/1000 - from)/step, y:convertUnit(Number(r.val), g, unitId) }));
+      const col = palette[ci % palette.length];
+      const nm = (param in ws.names ? ws.names[param] : param);
+      datasets.push({ label: ws.prefix + nm, data: pts,
+        borderColor: col, backgroundColor: col+"22", fill:false, tension:0.3,
+        pointRadius:2, spanGaps:false });
+      ci++;
+    }
+  }
+
   document.getElementById("chart-title").textContent = paramTopTitle(p) + (uLabel ? " (" + uLabel + ")" : "");
   document.getElementById("advice").textContent = t("advice_default");
 
