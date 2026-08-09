@@ -51,7 +51,7 @@ function renderSourceMap(containerId, fields, curMap){
     const sel = (curMap && curMap[f.field] != null) ? curMap[f.field] : "no";
     return `<tr>
       <td style="width:50%;padding:4px 8px 4px 0;white-space:nowrap;">${f.label}</td>
-      <td style="width:50%;padding:4px 0;">${selHtml("map_"+i, opts, sel)}</td>
+      <td style="width:50%;padding:4px 0;">${selHtml(containerId+"_map_"+i, opts, sel)}</td>
     </tr>`;
   }).join("");
   const container = document.getElementById(containerId);
@@ -66,10 +66,10 @@ function renderSourceMap(containerId, fields, curMap){
 }
 
 /* читает выбор обратно в объект {поле: вкладка} */
-function readSourceMap(fields){
+function readSourceMap(fields, containerId){
   const map = {};
   fields.forEach((f,i) => {
-    const el = document.getElementById("map_"+i);
+    const el = document.getElementById(containerId+"_map_"+i);
     map[f.field] = el ? el.value : "no";
   });
   return map;

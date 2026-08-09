@@ -92,7 +92,7 @@ async function saveSrcAirquality(){
   if(!SETTINGS.weather_sources) SETTINGS.weather_sources = {};
   if(!SETTINGS.weather_sources["open-meteo-air"]) SETTINGS.weather_sources["open-meteo-air"] = {};
   SETTINGS.weather_sources["open-meteo-air"].url = val || AIRQUALITY_DEFAULT_URL;
-  SETTINGS.weather_sources["open-meteo-air"].map = readSourceMap(airqualityFields);
+  SETTINGS.weather_sources["open-meteo-air"].map = readSourceMap(airqualityFields, "src-airquality-map");
   await saveSettings();
   closeSrcAirquality();
 }

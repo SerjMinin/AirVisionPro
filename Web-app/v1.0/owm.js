@@ -106,7 +106,7 @@ async function saveSrcOwm(){
   if(!SETTINGS.weather_sources["owm"]) SETTINGS.weather_sources["owm"] = {};
   SETTINGS.weather_sources["owm"].url = val || OWM_DEFAULT_URL;
   SETTINGS.weather_sources["owm"].key = key;
-  SETTINGS.weather_sources["owm"].map = readSourceMap(owmFields);
+  SETTINGS.weather_sources["owm"].map = readSourceMap(owmFields, "src-owm-map");
   await saveSettings();
   closeSrcOwm();
 }

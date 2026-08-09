@@ -88,7 +88,7 @@ async function saveSrcOpenmeteo(){
   if(!SETTINGS.weather_sources) SETTINGS.weather_sources = {};
   if(!SETTINGS.weather_sources["open-meteo"]) SETTINGS.weather_sources["open-meteo"] = {};
   SETTINGS.weather_sources["open-meteo"].url = val || OPENMETEO_DEFAULT_URL;
-  SETTINGS.weather_sources["open-meteo"].map = readSourceMap(openmeteoFields);
+  SETTINGS.weather_sources["open-meteo"].map = readSourceMap(openmeteoFields, "src-openmeteo-map");
   await saveSettings();
   closeSrcOpenmeteo();
 }
