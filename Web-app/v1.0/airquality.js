@@ -4,10 +4,10 @@ const AIRQUALITY_INTERVAL_MIN = 60; // раз в 60 минут
 /* человеческие подписи (после префикса iOA_) */
 const AIRQUALITY_NAMES = {
   pm2_5:"2,5", pm10:"10",
-  methane:"", carbon_monoxide:"", carbon_dioxide:"",
-  ammonia:"", nitrogen_dioxide:"", ozone:"", sulphur_dioxide:"",
+  methane:"CH₄", carbon_monoxide:"CO", carbon_dioxide:"CO₂",
+  ammonia:"NH₃", nitrogen_dioxide:"NO₂", ozone:"O₃", sulphur_dioxide:"SO₂",
   dust:"Dust", aerosol_optical_depth:"Depth",
-  uv_index:"", us_aqi:"us", european_aqi:"eu",
+  uv_index:"UV", us_aqi:"us", european_aqi:"eu",
   alder_pollen:"Ольха", birch_pollen:"Берёза", grass_pollen:"Травы",
   mugwort_pollen:"Полынь", olive_pollen:"Олива", ragweed_pollen:"Амброзия"
 };
