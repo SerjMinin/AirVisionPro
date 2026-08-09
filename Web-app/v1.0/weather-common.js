@@ -49,13 +49,14 @@ function renderSourceMap(containerId, fields, curMap){
   const opts = tabSelectOptions();
   const rows = fields.map((f,i) => {
     const sel = (curMap && curMap[f.field] != null) ? curMap[f.field] : "no";
-    return `<span style="align-self:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.label}</span>
-      <div style="min-width:0;">${selHtml("map_"+i, opts, sel)}</div>`;
+    return `<span style="align-self:center;white-space:nowrap;">${f.label}</span>
+      <div style="width:180px;">${selHtml("map_"+i, opts, sel)}</div>`;
   }).join("");
   const container = document.getElementById(containerId);
   if (!rows) { container.innerHTML = `<div class="set-hint">Источник не прислал параметров.</div>`; return; }
   container.style.display = "grid";
-  container.style.gridTemplateColumns = "1fr minmax(0, 180px)";
+  container.style.gridTemplateColumns = "max-content 180px";
+  container.style.justifyContent = "start";
   container.style.columnGap = "12px";
   container.style.rowGap = "8px";
   container.style.alignItems = "center";
