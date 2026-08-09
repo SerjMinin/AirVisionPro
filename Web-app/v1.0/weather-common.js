@@ -49,18 +49,15 @@ function renderSourceMap(containerId, fields, curMap){
   const opts = tabSelectOptions();
   const rows = fields.map((f,i) => {
     const sel = (curMap && curMap[f.field] != null) ? curMap[f.field] : "no";
-    return `<span style="align-self:center;white-space:nowrap;">${f.label}</span>
-      <div style="width:180px;">${selHtml("map_"+i, opts, sel)}</div>`;
+    return `<tr>
+      <td style="width:50%;padding:4px 8px 4px 0;white-space:nowrap;">${f.label}</td>
+      <td style="width:50%;padding:4px 0;">${selHtml("map_"+i, opts, sel)}</td>
+    </tr>`;
   }).join("");
   const container = document.getElementById(containerId);
   if (!rows) { container.innerHTML = `<div class="set-hint">Источник не прислал параметров.</div>`; return; }
-  container.style.display = "grid";
-  container.style.gridTemplateColumns = "max-content 180px";
-  container.style.justifyContent = "start";
-  container.style.columnGap = "12px";
-  container.style.rowGap = "8px";
-  container.style.alignItems = "center";
-  container.innerHTML = rows;
+  container.innerHTML = `<table style="width:100%;table-layout:fixed;border-collapse:collapse;">${rows}</table>`;
+  container.querySelectorAll('.avp-select').forEach(b => b.style.width = "100%");
 }
 
 /* читает выбор обратно в объект {поле: вкладка} */
