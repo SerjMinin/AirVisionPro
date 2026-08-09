@@ -57,6 +57,7 @@ function renderSourceMap(containerId, fields, curMap){
   const container = document.getElementById(containerId);
   if (!rows) { container.innerHTML = `<div class="set-hint">Источник не прислал параметров.</div>`; return; }
   container.innerHTML = `<table style="width:100%;table-layout:fixed;border-collapse:collapse;">${rows}</table>`;
+  container.style.maxHeight = "90vh"; container.style.overflowY = "auto";
   container.querySelectorAll('.avp-select').forEach(b => b.style.width = "100%");
 }
 
