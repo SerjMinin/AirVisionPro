@@ -276,43 +276,27 @@ async function renderParam(key) {
   const uLabel = paramUnitDisplay(p);
   const ci_ = SETTINGS.config_items;
 
-  let sources = [];
-  const outOk = ci_.dev_out !== false, inOk = ci_.dev_in !== false;
-  if (p.loc === "out" || p.loc === "pressure") { if (outOk) sources = [{ sn:SETTINGS.sn_out, tag:t("outdoor") }]; }
-  else if (p.loc === "in") { if (inOk) sources = [{ sn:SETTINGS.sn_in, tag:t("indoor") }]; }
-  else { if (outOk) sources.push({ sn:SETTINGS.sn_out, tag:t("outdoor") }); if (inOk) sources.push({ sn:SETTINGS.sn_in, tag:t("indoor") }); }
-
-  const provOk = prov => {
-    if (prov.includes("meteo")) return ci_.open_meteo !== false;
-    if (prov.includes("owm") || prov.includes("weather")) return ci_.owm !== false;
-    if (prov.includes("yandex")) return ci_.yandex !== false;
-    return true;
-  };
-
   const datasets = [];
   const palette = ["#4db2ff","#ff9d4d","#a0ff6b","#ff6bce","#ffe14d","#b98cff","#6bd2ff"];
   let ci = 0;
-  const lineDefs = p.lines ? p.lines : [{ dbkey: p.key, label: null, color: p.color }];
 
-  for (const s of sources) {
-    for (const ld of lineDefs) {
-      const rows = await loadSeries(s.sn, ld.dbkey, from, to);
-      if (rows.length === 0) continue;
-      const groups = {};
-      rows.forEach(r => {
-        const prov = (r.provider || r.src || "sensor");
-        if (!provOk(prov)) return;
-        (groups[prov] = groups[prov] || []).push(r);
-      });
-      for (const gName in groups) {
-        let pts = groups[gName].map(r => ({ x:(r.ts_device-from)/step, y: convertUnit(Number(r.val), g, unitId) }));
-        if (p.algo === "j305") pts = smoothJ305(pts);
-        let label = ld.label ? ld.label : (s.tag + " · " + gName);
-        if (p.lines && sources.length > 1) label = s.tag + " " + ld.label;
-        datasets.push({ label, data: pts, borderColor: ld.color||palette[ci%palette.length],
-          backgroundColor:(ld.color||palette[ci%palette.length])+"22", fill:false, tension:0.3, pointRadius:2, spanGaps:false });
-        ci++;
-      }
+  // ===== реальные устройства (таблица measurements), по карте «параметр → вкладка вывода» =====
+  for (const which of ["out","in"]) {
+    if (ci_["dev_"+which] !== true) continue;
+    const sn = which === "out" ? SETTINGS.sn_out : SETTINGS.sn_in;
+    if (!sn) continue;
+    const dmap = (SETTINGS.devices && SETTINGS.devices[which] && SETTINGS.devices[which].map) || {};
+    for (const dk in dmap) {
+      if (dmap[dk] === "no") continue;
+      if (dmap[dk] !== p.key) continue;
+      const rows = await loadSeries(sn, dk, from, to);
+      if (!rows.length) continue;
+      let pts = rows.map(r => ({ x:(r.ts_device - from)/step, y: convertUnit(Number(r.val), g, unitId) }));
+      if (p.algo === "j305") pts = smoothJ305(pts);
+      const col = palette[ci % palette.length];
+      datasets.push({ label: dk, data: pts, borderColor: col,
+        backgroundColor: col+"22", fill:false, tension:0.3, pointRadius:2, spanGaps:false });
+      ci++;
     }
   }
 
