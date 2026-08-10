@@ -46,12 +46,14 @@ async function fetchOMForecast(baseUrl, source, defMap){
   const r = await fetch(url, {cache:"no-store"});
   const j = await r.json();
   const time = (j.hourly && j.hourly.time) || [];
+  const nowH = Math.floor(Date.now()/1000/3600)*3600;
+  const lim3 = nowH + 3*24*3600;
   const out = {};
   fields.forEach(f => {
     const arr = j.hourly && j.hourly[f];
     if (!arr) return;
     out[f] = time.map((tt,i) => ({ ts: Math.floor(Date.parse(tt+":00Z")/1000), val: Number(arr[i]) }))
-                 .filter(x => !isNaN(x.val) && !isNaN(x.ts));
+                 .filter(x => !isNaN(x.val) && !isNaN(x.ts) && x.ts >= nowH && x.ts <= lim3);
   });
   return out;
 }
