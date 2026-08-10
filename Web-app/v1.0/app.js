@@ -193,13 +193,22 @@ function showExtra(which) {
 async function loadWeatherSeries(source, param, from, to) {
   const fromIso = new Date(from*1000).toISOString();
   const toIso   = new Date(to*1000).toISOString();
-  const { data, error } = await client.from("weather")
-    .select("val, ts_utc")
-    .eq("source", source).eq("param", param).eq("kind", "current")
-    .gte("ts_utc", fromIso).lte("ts_utc", toIso)
-    .order("ts_utc", { ascending: true });
-  if (error || !data) return [];
-  return data;
+  const all = [];
+  let offset = 0;
+  const PAGE = 1000;
+  while (true) {
+    const { data, error } = await client.from("weather")
+      .select("val, ts_utc")
+      .eq("source", source).eq("param", param).eq("kind", "current")
+      .gte("ts_utc", fromIso).lte("ts_utc", toIso)
+      .order("ts_utc", { ascending: true })
+      .range(offset, offset + PAGE - 1);
+    if (error || !data || !data.length) break;
+    all.push(...data);
+    if (data.length < PAGE) break;
+    offset += PAGE;
+  }
+  return all;
 }
 
 async function loadSeries(serial, key, from, to) {
