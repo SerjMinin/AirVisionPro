@@ -384,11 +384,45 @@ async function renderCompass(p) {
   document.getElementById("chart-title").textContent = t(p.i18n);
   document.getElementById("advice").textContent = t("advice_default");
   const { from, to } = windowRange();
-  const rows = await loadSeries(SETTINGS.sn_out, "wind_dir", from, to);
+  const ci_ = SETTINGS.config_items;
+
+  let allVals = [];   // {ts, val} — направление ветра со всех источников
+
+  // реальные устройства (по карте «параметр → вкладка»)
+  for (const which of ["out","in"]) {
+    if (ci_["dev_"+which] !== true) continue;
+    const sn = which === "out" ? SETTINGS.sn_out : SETTINGS.sn_in;
+    if (!sn) continue;
+    const dmap = (SETTINGS.devices && SETTINGS.devices[which] && SETTINGS.devices[which].map) || {};
+    for (const dk in dmap) {
+      if (dmap[dk] !== p.key) continue;
+      const rows = await loadSeries(sn, dk, from, to);
+      rows.forEach(r => allVals.push({ ts:Number(r.ts_device), val:Number(r.val) }));
+    }
+  }
+
+  // интернет-источники (таблица weather, по карте)
+  const WSRC = [
+    { source:"open-meteo",     cfg:"open_meteo",     defMap:(typeof OPENMETEO_DEFAULT_MAP!=="undefined"?OPENMETEO_DEFAULT_MAP:{}) },
+    { source:"open-meteo-air", cfg:"open_meteo_air", defMap:(typeof AIRQUALITY_DEFAULT_MAP!=="undefined"?AIRQUALITY_DEFAULT_MAP:{}) },
+    { source:"owm",            cfg:"owm",            defMap:(typeof OWM_DEFAULT_MAP!=="undefined"?OWM_DEFAULT_MAP:{}) }
+  ];
+  for (const ws of WSRC) {
+    if (ci_[ws.cfg] === false) continue;
+    const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources[ws.source]) || {};
+    const wmap = (gs.map && Object.keys(gs.map).length) ? gs.map : ws.defMap;
+    for (const param in wmap) {
+      if (wmap[param] !== p.key) continue;
+      const rows = await loadWeatherSeries(ws.source, param, from, to);
+      rows.forEach(r => allVals.push({ ts:Date.parse(r.ts_utc)/1000, val:Number(r.val) }));
+    }
+  }
+
+  allVals.sort((a,b) => a.ts - b.ts);
   const bins = new Array(8).fill(0);
-  rows.forEach(r => { let deg=((Number(r.val)%360)+360)%360; bins[Math.round(deg/45)%8]++; });
-  const total = rows.length||1;
-  drawCompass(bins.map(b=>b/total), rows.length ? Number(rows[rows.length-1].val) : null);
+  allVals.forEach(v => { let deg=((v.val%360)+360)%360; bins[Math.round(deg/45)%8]++; });
+  const total = allVals.length || 1;
+  drawCompass(bins.map(b => b/total), allVals.length ? allVals[allVals.length-1].val : null);
   hideLoader();
 }
 
