@@ -68,11 +68,14 @@ async function fetchOWMForecast(){
   const r = await fetch(url, {cache:"no-store"});
   const j = await r.json();
   if (String(j.cod) !== "200") return {};
+  const nowH = Math.floor(Date.now()/1000/3600)*3600;
+  const lim3 = nowH + 3*24*3600;
   const list = j.list || [];
   const out = { temp:[], feels_like:[], humidity:[], pressure:[], clouds:[],
                 wind_speed:[], wind_gust:[], wind_deg:[], visibility:[] };
   list.forEach(it => {
     const ts = Number(it.dt);
+    if (ts < nowH || ts > lim3) return;
     const f = owmFlatten(it);
     for (const k in out){ if (f[k] != null) out[k].push({ ts, val: Number(f[k]) }); }
   });
