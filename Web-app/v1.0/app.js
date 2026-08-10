@@ -226,7 +226,8 @@ function viewWindow() {
   const now = Math.floor(Date.now()/1000);
   const midnight = Math.floor((now + TZ_OFFSET)/day)*day - TZ_OFFSET;
   const span = RANGES[currentRange].sec;
-  const to = midnight + day - offsetSteps*span;
+  const fcst = (currentRange !== "24h" && offsetSteps === 0) ? 3*day : 0;
+  const to = midnight + day + fcst - offsetSteps*span;
   const from = to - span;
   return { from, to, span };
 }
@@ -271,9 +272,6 @@ async function renderParam(key) {
   const step = span / ticks;
   const to = from + span;
   const nowSec = Math.floor(Date.now()/1000);
-  const fcstExtra = (currentRange === "24h") ? 0 : (3*86400)/step;   // как у бурь: +3 дня вправо
-  const xMax = ticks + fcstExtra;
-
   const g = PARAM_UNIT_GROUP[p.key];
   const unitId = g ? SETTINGS.units[g] : null;
   const uLabel = paramUnitDisplay(p);
@@ -328,7 +326,7 @@ async function renderParam(key) {
       if (offsetSteps === 0) {                       // прогноз только на «сейчас», при перемотке назад — нет
         const fRows = await loadWeatherForecast(ws.source, param);
         fcstPts = fRows
-          .filter(o => o.ts > nowSec && (o.ts - from)/step <= xMax + 0.01)  // держим в пределах окна, дальше — за горизонт
+          .filter(o => o.ts > nowSec && o.ts <= to)  // держим в пределах окна, дальше — за горизонт
           .map(o => ({ x:(o.ts - from)/step, y:convertUnit(Number(o.val), g, unitId) }));
       }
       const pts = factPts.concat(fcstPts).sort((a,b)=>a.x-b.x);
@@ -370,9 +368,8 @@ async function renderParam(key) {
       plugins:{ legend:{
         onClick:(e,item,leg)=>handleLineLegendClick(leg.chart,item.datasetIndex),
         labels:{ color:tickColor, usePointStyle:true, pointStyle:"line", boxWidth:28 } } },
-      scales:{ x:{ type:"linear", min:0, max:xMax, grid:{ color:gridColor },
-          afterBuildTicks: axis => { axis.ticks = []; for (let i=0;i<=ticks;i++) axis.ticks.push({ value:i }); },
-          ticks:{ color:tickColor, autoSkip:false, maxRotation:0, callback:v=>xLabels[v]??"" } },
+      scales:{ x:{ type:"linear", min:0, max:ticks, grid:{ color:gridColor },
+          ticks:{ color:tickColor, stepSize:1, autoSkip:false, maxRotation:0, callback:v=>xLabels[v]??"" } },
         y:{ grid:{ color:gridColor }, ticks:{ color:tickColor } } }
     },
     plugins:[paramWmPlugin]
