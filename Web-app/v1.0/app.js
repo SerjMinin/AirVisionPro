@@ -333,9 +333,10 @@ async function renderParam(key) {
       const factPts = rows.map(r => ({ x:(Date.parse(r.ts_utc)/1000 - from)/step, y:convertUnit(Number(r.val), g, unitId) }));
       let fcstPts = [];
       if (offsetSteps === 0) {                       // прогноз только на «сейчас», при перемотке назад — нет
-        const fRows = await loadWeatherForecast(ws.source, param);
+       const fRows = await loadWeatherForecast(ws.source, param);
+        const lastFactTs = rows.length ? Math.floor(Date.parse(rows[rows.length-1].ts_utc)/1000) : nowSec;
         fcstPts = fRows
-          .filter(o => o.ts > nowSec && o.ts <= to)  // держим в пределах окна, дальше — за горизонт
+          .filter(o => o.ts > lastFactTs && o.ts <= to)  // держим в пределах окна, дальше — за горизонт
           .map(o => ({ x:(o.ts - from)/step, y:convertUnit(Number(o.val), g, unitId) }));
       }
       let pts = factPts.concat(fcstPts).sort((a,b)=>a.x-b.x);
