@@ -471,13 +471,13 @@ async function refreshDeviceDots() {
   const thr = 3 * interval;
   const now = Math.floor(Date.now()/1000);
   const list = [
-    { sn:SETTINGS.sn_out, dot:"dot-out", on:SETTINGS.config_items.dev_out !== false },
-    { sn:SETTINGS.sn_in,  dot:"dot-in",  on:SETTINGS.config_items.dev_in  !== false }
+    { sn:SETTINGS.sn_out, key:SETTINGS.sn_out_key, dot:"dot-out", on:SETTINGS.config_items.dev_out === true },
+    { sn:SETTINGS.sn_in,  key:SETTINGS.sn_in_key,  dot:"dot-in",  on:SETTINGS.config_items.dev_in  === true }
   ];
   for (const d of list) {
     const el = document.getElementById(d.dot);
     if (!el) continue;
-    if (!d.on) { el.className = "dot dot-off"; continue; }
+    if (!d.on || !d.sn || !d.key) { el.className = "dot dot-off"; continue; }
     try {
       const { data } = await client.from("measurements").select("ts_device")
         .eq("serial", d.sn).order("ts_device", { ascending:false }).limit(1);

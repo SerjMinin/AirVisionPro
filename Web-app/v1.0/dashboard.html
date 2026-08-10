@@ -22,6 +22,7 @@
   <script src="openmeteo.js"></script>
   <script src="airquality.js"></script>
   <script src="owm.js"></script>
+  <script src="devices.js"></script>
   <style>body { visibility: hidden; }</style>
 </head>
 <body class="page-dash">
@@ -40,8 +41,8 @@
       <div class="brand">AirVisionPro</div>
     </div>
     <div class="status-group">
-      <div class="status-item"><span class="dot" id="dot-in"></span><span data-i18n="indoor">Дом</span>: <span id="sn-in">IN-0001</span></div>
-      <div class="status-item"><span class="dot" id="dot-out"></span><span data-i18n="outdoor">Улица</span>: <span id="sn-out">OUT-0001</span></div>
+      <div class="status-item"><span class="dot" id="dot-in"></span><span data-i18n="indoor">Дом</span><span id="sn-in" style="display:none"></span></div>
+      <div class="status-item"><span class="dot" id="dot-out"></span><span data-i18n="outdoor">Улица</span><span id="sn-out" style="display:none"></span></div>
     </div>
     <div class="spacer"></div>
     <div class="ver" id="ver">Версия v1.0</div>
@@ -179,6 +180,40 @@
         <div style="display:flex;gap:10px;">
           <button class="set-btn" onclick="closeSrcOwm()">Отмена</button>
           <button class="set-btn" onclick="saveSrcOwm()">Сохранить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- Окно: Уличное устройство -->
+  <div class="modal" id="src-dev-out-modal">
+    <div class="modal-card">
+      <div class="modal-head"><h2>Уличное устройство</h2>
+        <button class="icon-btn" onclick="closeSrcDevice('out')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body" id="src-dev-out-body"></div>
+      <div class="modal-foot" style="justify-content:space-between;align-items:center;">
+        <div id="src-dev-out-stats" style="display:flex;gap:16px;opacity:0.6;font-size:13px;"></div>
+        <div style="display:flex;gap:10px;">
+          <button class="set-btn" onclick="closeSrcDevice('out')">Отмена</button>
+          <button class="set-btn" onclick="saveSrcDevice('out')">Сохранить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Окно: Домашнее устройство -->
+  <div class="modal" id="src-dev-in-modal">
+    <div class="modal-card">
+      <div class="modal-head"><h2>Домашнее устройство</h2>
+        <button class="icon-btn" onclick="closeSrcDevice('in')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body" id="src-dev-in-body"></div>
+      <div class="modal-foot" style="justify-content:space-between;align-items:center;">
+        <div id="src-dev-in-stats" style="display:flex;gap:16px;opacity:0.6;font-size:13px;"></div>
+        <div style="display:flex;gap:10px;">
+          <button class="set-btn" onclick="closeSrcDevice('in')">Отмена</button>
+          <button class="set-btn" onclick="saveSrcDevice('in')">Сохранить</button>
         </div>
       </div>
     </div>

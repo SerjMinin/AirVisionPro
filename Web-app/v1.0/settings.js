@@ -47,8 +47,9 @@ const PARAM_INFO = {
 const PARAM_SET_NAME = { uv:"Ультрафиолетовый (УФ) индекс", aqi:"AQI - Индекс качества воздуха" };
 
 const DEFAULT_SETTINGS = {
-  config_items: { open_meteo:true, open_meteo_air:true, owm:true, dev_out:true, dev_in:true },
-  sn_out:"OUT-0001", sn_out_key:"", sn_in:"IN-0001", sn_in_key:"", send_interval_min:5,
+  config_items: { open_meteo:true, open_meteo_air:true, owm:true, dev_out:false, dev_in:false },
+  sn_out:"", sn_out_key:"", sn_in:"", sn_in_key:"", send_interval_min:5,
+  devices: { out:{ map:{}, corr:{} }, in:{ map:{}, corr:{} } },
   lat: 55.752793, lon: 37.622672, alt_sea: 150, alt_ground: 5,
   units: { temp:"C", pressure:"hPa", wind_spd:"ms", rad:"uSv", co2:"ppm", co:"ppm" },
   temp_round: 1,
@@ -119,10 +120,17 @@ function buildSettingsForm() {
     if (it.id === "open_meteo") onclickAttr = "openSrcOpenmeteo()";
     if (it.id === "open_meteo_air") onclickAttr = "openSrcAirquality()";
     if (it.id === "owm") onclickAttr = "openSrcOwm()";
+    if (it.id === "dev_out") onclickAttr = "openSrcDevice('out')";
+    if (it.id === "dev_in")  onclickAttr = "openSrcDevice('in')";
     const btn = `<button class="set-btn sm" onclick="${onclickAttr}">${t("api_config")}</button>`;
+    /* устройство нельзя включить, пока не введены серийный номер и ключ */
+    let dis = "";
+    if (it.id === "dev_out" && !(s.sn_out && s.sn_out_key)) dis = "disabled";
+    if (it.id === "dev_in"  && !(s.sn_in  && s.sn_in_key))  dis = "disabled";
+    const checkedAttr = (s.config_items[it.id] && !dis) ? "checked" : "";
     return `
     <div class="cfg-row">
-      <label class="set-check"><input type="checkbox" id="cfg_${it.id}" ${s.config_items[it.id]?"checked":""}> ${it.label}</label>
+      <label class="set-check"><input type="checkbox" id="cfg_${it.id}" ${checkedAttr} ${dis}> ${it.label}</label>
       ${btn}
     </div>`;
   }).join("");
@@ -134,15 +142,7 @@ function buildSettingsForm() {
 
   document.getElementById("settings-body").innerHTML = `
     <div class="set-section"><h3>${t("set_config")}</h3>${cfgRows}</div>
-    <div class="set-section"><h3>${t("set_devices")}</h3>
-      <div class="set-row"><label>${t("outdoor")} SN</label><input id="s_sn_out" class="set-input" value="${s.sn_out}"></div>
-      <div class="set-row"><label>${t("outdoor")} ${t("set_key")}</label><input id="s_sn_out_key" class="set-input" value="${s.sn_out_key||""}"></div>
-      <div class="set-row"><label></label><button class="set-btn sm" type="button" onclick="openDeviceSettings('out')">${t("settings")}</button></div>
-      <div class="set-row"><label>${t("indoor")} SN</label><input id="s_sn_in" class="set-input" value="${s.sn_in}"></div>
-      <div class="set-row"><label>${t("indoor")} ${t("set_key")}</label><input id="s_sn_in_key" class="set-input" value="${s.sn_in_key||""}"></div>
-      <div class="set-row"><label></label><button class="set-btn sm" type="button" onclick="openDeviceSettings('in')">${t("settings")}</button></div>
-    </div>
-    <div class="set-section"><h3>${t("set_location")}</h3>
+     <div class="set-section"><h3>${t("set_location")}</h3>
       <div class="set-row"><label>${t("set_lat")}</label><input id="s_lat" class="set-input" type="number" step="0.000001" value="${s.lat}"></div>
       <div class="set-row"><label>${t("set_lon")}</label><input id="s_lon" class="set-input" type="number" step="0.000001" value="${s.lon}"></div>
       <div class="set-row"><label>${t("set_alt_sea")}, м</label><input id="s_alt_sea" class="set-input" type="number" value="${s.alt_sea}"></div>
@@ -155,10 +155,6 @@ function buildSettingsForm() {
 function readSettingsForm() {
   const s = SETTINGS;
   CONFIG_ITEMS.forEach(it => { s.config_items[it.id] = document.getElementById("cfg_"+it.id).checked; });
-  s.sn_out = document.getElementById("s_sn_out").value.trim();
-  s.sn_out_key = document.getElementById("s_sn_out_key").value.trim();
-  s.sn_in  = document.getElementById("s_sn_in").value.trim();
-  s.sn_in_key = document.getElementById("s_sn_in_key").value.trim();
   
   s.lat = parseFloat(document.getElementById("s_lat").value);
   s.lon = parseFloat(document.getElementById("s_lon").value);
