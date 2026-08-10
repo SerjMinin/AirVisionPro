@@ -4,6 +4,12 @@
  */
 /* AirVisionPro — прогноз на 3 дня для интернет-источников (прямой запрос + кэш 1 ч). */
 
+// подрезаем прогноз до 3 дней (для всех пользователей, без настроек)
+function days3(u){
+  u = String(u).replace(/[?&]forecast_days=\d+/g, "");
+  return u + (u.includes("?") ? "&" : "?") + "forecast_days=3";
+}
+
 let wxFcstCache = {};   // source -> { time, data: { param:[{ts,val}] } }
 
 async function loadWeatherForecast(source, param){
