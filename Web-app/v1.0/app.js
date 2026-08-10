@@ -322,9 +322,13 @@ async function renderParam(key) {
       if (wmap[param] !== p.key) continue;
       const rows = await loadWeatherSeries(ws.source, param, from, to);
       const factPts = rows.map(r => ({ x:(Date.parse(r.ts_utc)/1000 - from)/step, y:convertUnit(Number(r.val), g, unitId) }));
-      const fRows = await loadWeatherForecast(ws.source, param);
-      const fcstPts = fRows.filter(o => o.ts > nowSec && o.ts <= nowSec + 3*86400)
-                           .map(o => ({ x:(o.ts - from)/step, y:convertUnit(Number(o.val), g, unitId) }));
+      let fcstPts = [];
+      if (offsetSteps === 0) {                       // прогноз только на «сейчас», при перемотке назад — нет
+        const fRows = await loadWeatherForecast(ws.source, param);
+        fcstPts = fRows
+          .filter(o => o.ts > nowSec && (o.ts - from)/step <= ticks + 0.5)   // держим в пределах окна, дальше — за горизонт
+          .map(o => ({ x:(o.ts - from)/step, y:convertUnit(Number(o.val), g, unitId) }));
+      }
       const pts = factPts.concat(fcstPts).sort((a,b)=>a.x-b.x);
       if (!pts.length) continue;
       const col = palette[ci % palette.length];
