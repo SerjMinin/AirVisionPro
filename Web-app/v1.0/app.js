@@ -357,12 +357,22 @@ async function renderParam(key) {
   for (let i=0;i<=ticks;i++) xLabels.push(tickLabel(i, from, step));
   if (myToken !== renderParamToken) { hideLoader(); return; }
 
+  const savedColors = (SETTINGS.line_colors && SETTINGS.line_colors[p.key]) || {};
+    datasets.forEach(ds => {
+      const c = savedColors[ds.label];
+      if (c){ ds.borderColor = c; ds.backgroundColor = c + "22";
+        if (ds.pointBackgroundColor) ds.pointBackgroundColor = c;
+        if (ds.pointBorderColor) ds.pointBorderColor = c; }
+    });
+
   if (chart) { chart.destroy(); chart = null; }
   chart = new Chart(document.getElementById("chart"), {
     type:"line", data:{ datasets },
     options:{ responsive:true, maintainAspectRatio:false, parsing:false,
       interaction:{ mode:"nearest", intersect:false },
-      plugins:{ legend:{ labels:{ color:tickColor, usePointStyle:true, pointStyle:"line", boxWidth:28 } } },
+      plugins:{ legend:{
+        onClick:(e,item,leg)=>handleLineLegendClick(leg.chart,item.datasetIndex),
+        labels:{ color:tickColor, usePointStyle:true, pointStyle:"line", boxWidth:28 } } },
       scales:{ x:{ type:"linear", min:0, max:ticks, grid:{ color:gridColor },
           ticks:{ color:tickColor, stepSize:1, autoSkip:false, maxRotation:0, callback:v=>xLabels[v]??"" } },
         y:{ grid:{ color:gridColor }, ticks:{ color:tickColor } } }
@@ -475,6 +485,67 @@ async function refreshDeviceDots() {
       el.className = "dot " + (fresh ? "dot-ok" : "dot-bad");
     } catch(e) { el.className = "dot dot-bad"; }
   }
+}
+
+/* ===== цвет линии графика ===== */
+let lcIdx = -1, lcTimer = null, lcLastIdx = -1, lcLastTime = 0;
+
+function handleLineLegendClick(ch, idx){
+  const now = Date.now();
+  if (idx === lcLastIdx && now - lcLastTime < 300){   // двойной клик → спрятать/показать
+    clearTimeout(lcTimer); lcLastTime = 0; lcLastIdx = -1;
+    ch.setDatasetVisibility(idx, !ch.isDatasetVisible(idx)); ch.update();
+    return;
+  }
+  lcLastIdx = idx; lcLastTime = now;                  // одиночный клик → палитра
+  lcTimer = setTimeout(() => { lcLastTime = 0; lcLastIdx = -1; openLineColor(idx); }, 300);
+}
+
+function normHex(c){
+  if (typeof c !== "string") return null;
+  c = c.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(c)) return c.toLowerCase();
+  const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  return m ? rgbToHex(+m[1],+m[2],+m[3]) : null;
+}
+function rgbToHex(r,g,b){ return "#"+[r,g,b].map(x=>Math.max(0,Math.min(255,x|0)).toString(16).padStart(2,"0")).join(""); }
+function hexToRgb(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
+function setLineColorPreview(hex){
+  document.getElementById("linecolor-preview").style.background = hex;
+  const [r,g,b] = hexToRgb(hex);
+  document.getElementById("lc_r").value = r;
+  document.getElementById("lc_g").value = g;
+  document.getElementById("lc_b").value = b;
+}
+function lcCurrentHex(){ return rgbToHex(+document.getElementById("lc_r").value,+document.getElementById("lc_g").value,+document.getElementById("lc_b").value); }
+function lcOnRgbInput(){ document.getElementById("linecolor-preview").style.background = lcCurrentHex(); }
+function buildLineSwatches(){
+  const cols = ["#4db2ff","#ff9d4d","#a0ff6b","#ff6bce","#ffe14d","#b98cff","#6bd2ff","#ff6b6b",
+                "#37d67a","#f78888","#8ac6ff","#c0f060","#ffb347","#d17bff","#5ad1c9","#e0e0e0"];
+  document.getElementById("linecolor-swatches").innerHTML = cols.map(c =>
+    `<button type="button" onclick="setLineColorPreview('${c}')" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,0.25);background:${c};cursor:pointer;"></button>`
+  ).join("");
+}
+function openLineColor(idx){
+  if (!chart || !chart.data.datasets[idx]) return;
+  lcIdx = idx;
+  const ds = chart.data.datasets[idx];
+  document.getElementById("linecolor-title").textContent = ds.label;
+  setLineColorPreview(normHex(ds.borderColor) || "#4db2ff");
+  buildLineSwatches();
+  document.getElementById("linecolor-modal").classList.add("open");
+}
+function closeLineColor(){ document.getElementById("linecolor-modal").classList.remove("open"); }
+async function saveLineColor(){
+  if (lcIdx < 0) return;
+  const hex = lcCurrentHex();
+  const label = chart.data.datasets[lcIdx].label;
+  if (!SETTINGS.line_colors) SETTINGS.line_colors = {};
+  if (!SETTINGS.line_colors[currentKey]) SETTINGS.line_colors[currentKey] = {};
+  SETTINGS.line_colors[currentKey][label] = hex;
+  await saveSettings();
+  closeLineColor();
+  renderParam(currentKey);
 }
 
 async function startDashboard() {

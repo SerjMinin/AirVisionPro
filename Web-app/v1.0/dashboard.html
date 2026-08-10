@@ -184,6 +184,31 @@
     </div>
   </div>
 
+  <!-- Окно: цвет линии графика -->
+  <div class="modal" id="linecolor-modal">
+    <div class="modal-card" style="max-width:360px;">
+      <div class="modal-head"><h2 id="linecolor-title">Цвет линии</h2>
+        <button class="icon-btn" onclick="closeLineColor()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div id="linecolor-swatches" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:16px;">
+          <div id="linecolor-preview" style="width:52px;height:52px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);flex:none;"></div>
+          <label style="display:flex;flex-direction:column;font-size:12px;opacity:.7;">R
+            <input id="lc_r" class="set-input" type="number" min="0" max="255" style="width:70px;" oninput="lcOnRgbInput()"></label>
+          <label style="display:flex;flex-direction:column;font-size:12px;opacity:.7;">G
+            <input id="lc_g" class="set-input" type="number" min="0" max="255" style="width:70px;" oninput="lcOnRgbInput()"></label>
+          <label style="display:flex;flex-direction:column;font-size:12px;opacity:.7;">B
+            <input id="lc_b" class="set-input" type="number" min="0" max="255" style="width:70px;" oninput="lcOnRgbInput()"></label>
+        </div>
+      </div>
+      <div class="modal-foot" style="justify-content:flex-end;gap:10px;">
+        <button class="set-btn" onclick="closeLineColor()">Отмена</button>
+        <button class="set-btn" onclick="saveLineColor()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Настройки Магнитных бурь -->
    <!-- Окно: настройка источника «Магнитные бури» -->
   <div class="modal" id="src-geomag-modal">
