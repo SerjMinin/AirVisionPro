@@ -432,6 +432,39 @@ async function renderCompass(p) {
   hideLoader();
 }
 
+/* ===== клики по легенде компаса ===== */
+let compassSeries = [], compassLegendRects = [], compassHidden = {}, compassClickBound = false;
+let cmpLastLabel = null, cmpLastTime = 0, cmpTimer = null;
+
+function bindCompassLegend(){
+  if (compassClickBound) return;
+  compassClickBound = true;
+  const cv = document.getElementById("compass");
+  cv.addEventListener("click", e => {
+    const rect = cv.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const hit = compassLegendRects.find(r => x>=r.x0 && x<=r.x1 && y>=r.y0 && y<=r.y1);
+    if (!hit) return;
+    const now = Date.now();
+    if (hit.label === cmpLastLabel && now - cmpLastTime < 300){   // двойной → скрыть/показать
+      clearTimeout(cmpTimer); cmpLastTime = 0; cmpLastLabel = null;
+      compassHidden[hit.label] = !compassHidden[hit.label];
+      renderParam(currentKey);
+      return;
+    }
+    cmpLastLabel = hit.label; cmpLastTime = now;               // одиночный → палитра
+    cmpTimer = setTimeout(() => { cmpLastTime = 0; cmpLastLabel = null; openLineColorCompass(hit.label, hit.color); }, 300);
+  });
+}
+
+function openLineColorCompass(label, colorHex){
+  lcIdx = -1; lcLabel = label;
+  document.getElementById("linecolor-title").textContent = label;
+  setLineColorPreview(normHex(colorHex) || "#4db2ff");
+  buildLineSwatches();
+  document.getElementById("linecolor-modal").classList.add("open");
+}
+
 function smoothClosed(ctx, pts){
   const n = pts.length;
   ctx.beginPath();
@@ -488,7 +521,9 @@ function drawCompass(series) {
   // звезда-подложка
   drawWindStar(ctx, cx, cy, R, isLight, line);
   // ===== линии источников поверх =====
+  compassSeries = series || [];
   (series||[]).forEach(s => {
+    if (compassHidden[s.label]) return;
     const bins = new Array(8).fill(0);
     s.vals.forEach(v => { let deg=((v.val%360)+360)%360; bins[Math.round(deg/45)%8]++; });
     const maxF = Math.max(...bins, 1);
@@ -508,12 +543,22 @@ function drawCompass(series) {
   let lx = cx - totalW/2;
   const ly = 12;
   ctx.textAlign="left";
+  compassLegendRects = [];
   items.forEach(it => {
+    const hidden = compassHidden[it.label];
+    ctx.globalAlpha = hidden ? 0.4 : 1;
     ctx.strokeStyle=it.color; ctx.lineWidth=3;
     ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx+swatch, ly); ctx.stroke();
     ctx.fillStyle=txt; ctx.fillText(it.label, lx+swatch+lineGap, ly);
+    if (hidden){
+      ctx.strokeStyle=txt; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(lx+swatch+lineGap, ly); ctx.lineTo(lx+swatch+lineGap+it.w, ly); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    compassLegendRects.push({ label:it.label, color:it.color, x0:lx, x1:lx+swatch+lineGap+it.w, y0:ly-9, y1:ly+9 });
     lx += swatch + lineGap + it.w + itemGap;
   });
+  bindCompassLegend();
 }
 
 async function refreshStatus() {
@@ -545,7 +590,7 @@ async function refreshDeviceDots() {
 }
 
 /* ===== цвет линии графика ===== */
-let lcIdx = -1, lcTimer = null, lcLastIdx = -1, lcLastTime = 0;
+let lcIdx = -1, lcTimer = null, lcLastIdx = -1, lcLastTime = 0, lcLabel = null;
 
 function handleLineLegendClick(ch, idx){
   const now = Date.now();
@@ -591,6 +636,7 @@ function openLineColor(idx){
   if (!chart || !chart.data.datasets[idx]) return;
   lcIdx = idx;
   const ds = chart.data.datasets[idx];
+  lcLabel = ds.label;
   document.getElementById("linecolor-title").textContent = ds.label;
   setLineColorPreview(normHex(ds.borderColor) || "#4db2ff");
   buildLineSwatches();
@@ -598,9 +644,9 @@ function openLineColor(idx){
 }
 function closeLineColor(){ document.getElementById("linecolor-modal").classList.remove("open"); }
 async function saveLineColor(){
-  if (lcIdx < 0) return;
+  if (!lcLabel) return;
   const hex = lcCurrentHex();
-  const label = chart.data.datasets[lcIdx].label;
+  const label = lcLabel;
   if (!SETTINGS.line_colors) SETTINGS.line_colors = {};
   if (!SETTINGS.line_colors[currentKey]) SETTINGS.line_colors[currentKey] = {};
   SETTINGS.line_colors[currentKey][label] = hex;
