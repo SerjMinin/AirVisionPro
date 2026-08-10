@@ -520,10 +520,14 @@ function setLineColorPreview(hex){
 function lcCurrentHex(){ return rgbToHex(+document.getElementById("lc_r").value,+document.getElementById("lc_g").value,+document.getElementById("lc_b").value); }
 function lcOnRgbInput(){ document.getElementById("linecolor-preview").style.background = lcCurrentHex(); }
 function buildLineSwatches(){
-  const cols = ["#4db2ff","#ff9d4d","#a0ff6b","#ff6bce","#ffe14d","#b98cff","#6bd2ff","#ff6b6b",
-                "#37d67a","#f78888","#8ac6ff","#c0f060","#ffb347","#d17bff","#5ad1c9","#e0e0e0"];
-  document.getElementById("linecolor-swatches").innerHTML = cols.map(c =>
-    `<button type="button" onclick="setLineColorPreview('${c}')" style="width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,0.25);background:${c};cursor:pointer;"></button>`
+  const cols = ["#d41a1a","#c45e5e","#d80aab","#bd53af","#da6d00","#db922b","#d3bb8e","#d3c89a",
+                "#0c19d4","#4c54c4","#8384ce","#03d3c8","#4bd6d6","#8bdad2","#0adf11","#63ca5f"];
+  const box = document.getElementById("linecolor-swatches");
+  box.style.display = "grid";
+  box.style.gridTemplateColumns = "repeat(8, 1fr)";
+  box.style.gap = "8px";
+  box.innerHTML = cols.map(c =>
+    `<button type="button" onclick="setLineColorPreview('${c}')" style="width:100%;aspect-ratio:1;border-radius:6px;border:1px solid rgba(255,255,255,0.25);background:${c};cursor:pointer;"></button>`
   ).join("");
 }
 function openLineColor(idx){
