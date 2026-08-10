@@ -472,7 +472,10 @@ function drawCompass(series) {
   const isLight=getTheme()==="light";
   const dim=isLight?"rgba(20,60,110,0.25)":"rgba(120,190,255,0.25)", txt=isLight?"#0d2a4a":"#eaf4ff";
   const line=isLight?"#1e7fff":"#4db2ff";
-  const cx=size/2, cy=size/2, R=size/2-30;
+  const topPad = 34;
+  const cx = size/2;
+  const cy = topPad + (size - topPad)/2;
+  const R = (size - topPad)/2 - 30;
   ctx.clearRect(0,0,size,size); ctx.font="14px 'Exo 2',sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
   // кольца
   ctx.strokeStyle=dim; ctx.lineWidth=1;
