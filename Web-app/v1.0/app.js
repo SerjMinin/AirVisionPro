@@ -329,8 +329,15 @@ async function renderParam(key) {
           .filter(o => o.ts > nowSec && o.ts <= to)  // держим в пределах окна, дальше — за горизонт
           .map(o => ({ x:(o.ts - from)/step, y:convertUnit(Number(o.val), g, unitId) }));
       }
-      const pts = factPts.concat(fcstPts).sort((a,b)=>a.x-b.x);
+      let pts = factPts.concat(fcstPts).sort((a,b)=>a.x-b.x);
       if (!pts.length) continue;
+      const gapX = (6*3600)/step;                 // дыра в данных > 6 часов → разрыв линии
+      const withGaps = [];
+      for (let i=0;i<pts.length;i++){
+        if (i>0 && pts[i].x - pts[i-1].x > gapX) withGaps.push({ x:(pts[i-1].x+pts[i].x)/2, y:null });
+        withGaps.push(pts[i]);
+      }
+      pts = withGaps;
       const col = palette[ci % palette.length];
       const nm = (param in ws.names ? ws.names[param] : param);
       const nowXw = (nowSec - from)/step;
