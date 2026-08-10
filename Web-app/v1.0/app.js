@@ -385,10 +385,20 @@ async function renderCompass(p) {
   document.getElementById("advice").textContent = t("advice_default");
   const { from, to } = windowRange();
   const ci_ = SETTINGS.config_items;
+  const palette = ["#4db2ff","#ff9d4d","#a0ff6b","#ff6bce","#ffe14d","#b98cff","#6bd2ff"];
+  const saved = (SETTINGS.line_colors && SETTINGS.line_colors[p.key]) || {};
+  const series = [];
+  let ci = 0;
+  const pushSeries = (label, rows, getTs, getVal) => {
+    if (!rows || !rows.length) return;
+    const vals = rows.map(r => ({ ts:getTs(r), val:Number(getVal(r)) })).filter(v => !isNaN(v.val));
+    if (!vals.length) return;
+    vals.sort((a,b) => a.ts - b.ts);
+    series.push({ label, color: saved[label] || palette[ci % palette.length], vals });
+    ci++;
+  };
 
-  let allVals = [];   // {ts, val} — направление ветра со всех источников
-
-  // реальные устройства (по карте «параметр → вкладка»)
+  // реальные устройства (по карте)
   for (const which of ["out","in"]) {
     if (ci_["dev_"+which] !== true) continue;
     const sn = which === "out" ? SETTINGS.sn_out : SETTINGS.sn_in;
@@ -397,15 +407,14 @@ async function renderCompass(p) {
     for (const dk in dmap) {
       if (dmap[dk] !== p.key) continue;
       const rows = await loadSeries(sn, dk, from, to);
-      rows.forEach(r => allVals.push({ ts:Number(r.ts_device), val:Number(r.val) }));
+      pushSeries(dk, rows, r => Number(r.ts_device), r => r.val);
     }
   }
-
-  // интернет-источники (таблица weather, по карте)
+  // интернет-источники (по карте)
   const WSRC = [
-    { source:"open-meteo",     cfg:"open_meteo",     defMap:(typeof OPENMETEO_DEFAULT_MAP!=="undefined"?OPENMETEO_DEFAULT_MAP:{}) },
-    { source:"open-meteo-air", cfg:"open_meteo_air", defMap:(typeof AIRQUALITY_DEFAULT_MAP!=="undefined"?AIRQUALITY_DEFAULT_MAP:{}) },
-    { source:"owm",            cfg:"owm",            defMap:(typeof OWM_DEFAULT_MAP!=="undefined"?OWM_DEFAULT_MAP:{}) }
+    { source:"open-meteo",     cfg:"open_meteo",     prefix:"iOM_",  names:(typeof OPENMETEO_NAMES!=="undefined"?OPENMETEO_NAMES:{}),   defMap:(typeof OPENMETEO_DEFAULT_MAP!=="undefined"?OPENMETEO_DEFAULT_MAP:{}) },
+    { source:"open-meteo-air", cfg:"open_meteo_air", prefix:"iOA_",  names:(typeof AIRQUALITY_NAMES!=="undefined"?AIRQUALITY_NAMES:{}),  defMap:(typeof AIRQUALITY_DEFAULT_MAP!=="undefined"?AIRQUALITY_DEFAULT_MAP:{}) },
+    { source:"owm",            cfg:"owm",            prefix:"iOWM_", names:(typeof OWM_NAMES!=="undefined"?OWM_NAMES:{}),         defMap:(typeof OWM_DEFAULT_MAP!=="undefined"?OWM_DEFAULT_MAP:{}) }
   ];
   for (const ws of WSRC) {
     if (ci_[ws.cfg] === false) continue;
@@ -414,19 +423,45 @@ async function renderCompass(p) {
     for (const param in wmap) {
       if (wmap[param] !== p.key) continue;
       const rows = await loadWeatherSeries(ws.source, param, from, to);
-      rows.forEach(r => allVals.push({ ts:Date.parse(r.ts_utc)/1000, val:Number(r.val) }));
+      const nm = (param in ws.names ? ws.names[param] : param);
+      pushSeries(ws.prefix + nm, rows, r => Date.parse(r.ts_utc)/1000, r => r.val);
     }
   }
 
-  allVals.sort((a,b) => a.ts - b.ts);
-  const bins = new Array(8).fill(0);
-  allVals.forEach(v => { let deg=((v.val%360)+360)%360; bins[Math.round(deg/45)%8]++; });
-  const total = allVals.length || 1;
-  drawCompass(bins.map(b => b/total), allVals.length ? allVals[allVals.length-1].val : null);
+  drawCompass(series);
   hideLoader();
 }
 
-function drawCompass(freq, currentDeg) {
+function smoothClosed(ctx, pts){
+  const n = pts.length;
+  ctx.beginPath();
+  ctx.moveTo((pts[n-1].x+pts[0].x)/2, (pts[n-1].y+pts[0].y)/2);
+  for (let i=0;i<n;i++){
+    const p1=pts[i], p2=pts[(i+1)%n];
+    ctx.quadraticCurveTo(p1.x, p1.y, (p1.x+p2.x)/2, (p1.y+p2.y)/2);
+  }
+  ctx.closePath();
+}
+
+function drawWindStar(ctx, cx, cy, R, isLight, line){
+  const light = isLight ? "#dbe9ff" : "#cfe6ff";
+  const dark  = isLight ? "#0d2a4a" : "#12406e";
+  const baseR = R*0.13;
+  const drawPoint = (i, tipR) => {
+    const at=(i*45-90)*Math.PI/180, aL=((i*45-45)-90)*Math.PI/180, aR=((i*45+45)-90)*Math.PI/180;
+    const tx=cx+Math.cos(at)*tipR, ty=cy+Math.sin(at)*tipR;
+    const lx=cx+Math.cos(aL)*baseR, ly=cy+Math.sin(aL)*baseR;
+    const rx=cx+Math.cos(aR)*baseR, ry=cy+Math.sin(aR)*baseR;
+    ctx.strokeStyle=line; ctx.lineWidth=1;
+    ctx.fillStyle=light; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(lx,ly); ctx.lineTo(tx,ty); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle=dark;  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(tx,ty); ctx.lineTo(rx,ry); ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+  for(let i=1;i<8;i+=2) drawPoint(i, R*0.55);
+  for(let i=0;i<8;i+=2) drawPoint(i, R);
+  ctx.lineWidth=1;
+}
+
+function drawCompass(series) {
   const cv = document.getElementById("compass");
   const box = cv.parentElement;
   const dpr = window.devicePixelRatio||1;
@@ -435,46 +470,45 @@ function drawCompass(freq, currentDeg) {
   cv.width=size*dpr; cv.height=size*dpr; cv.style.width=size+"px"; cv.style.height=size+"px";
   const ctx = cv.getContext("2d"); ctx.setTransform(1,0,0,1,0,0); ctx.scale(dpr,dpr);
   const isLight=getTheme()==="light";
-  const line=isLight?"#1e7fff":"#4db2ff", dim=isLight?"rgba(20,60,110,0.25)":"rgba(120,190,255,0.25)", txt=isLight?"#0d2a4a":"#eaf4ff";
+  const dim=isLight?"rgba(20,60,110,0.25)":"rgba(120,190,255,0.25)", txt=isLight?"#0d2a4a":"#eaf4ff";
+  const line=isLight?"#1e7fff":"#4db2ff";
   const cx=size/2, cy=size/2, R=size/2-30;
   ctx.clearRect(0,0,size,size); ctx.font="14px 'Exo 2',sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  // кольца
   ctx.strokeStyle=dim; ctx.lineWidth=1;
   for(let k=1;k<=4;k++){ ctx.beginPath(); ctx.arc(cx,cy,R*k/4,0,Math.PI*2); ctx.stroke(); }
+  // стороны света + спицы
   const labels=t("COMPASS");
   for(let i=0;i<8;i++){ const ang=(i*45-90)*Math.PI/180; const x=cx+Math.cos(ang)*R,y=cy+Math.sin(ang)*R;
     ctx.strokeStyle=dim; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke();
     ctx.fillStyle=txt; ctx.fillText(labels[i], cx+Math.cos(ang)*(R+16), cy+Math.sin(ang)*(R+16)); }
-  const maxF=Math.max(...freq,0.0001);
-  ctx.fillStyle=line+"55"; ctx.strokeStyle=line; ctx.lineWidth=2; ctx.beginPath();
-  for(let i=0;i<=8;i++){ const idx=i%8; const ang=(idx*45-90)*Math.PI/180; const r=(freq[idx]/maxF)*R;
-    const x=cx+Math.cos(ang)*r,y=cy+Math.sin(ang)*r; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-  if(currentDeg!==null && !isNaN(currentDeg)){ const ang=(currentDeg-90)*Math.PI/180;
-    const x=cx+Math.cos(ang)*(R-6),y=cy+Math.sin(ang)*(R-6);
-    ctx.strokeStyle=isLight?"#d02020":"#ff6b6b"; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke();
-    ctx.fillStyle=txt; ctx.fillText(Math.round(currentDeg)+"°",cx,cy-10); ctx.fillText(t("wind_now"),cx,cy+10); }
-
-  // ===== Роза ветров (звезда) из центра поверх диаграммы =====
-  const light = isLight ? "#dbe9ff" : "#cfe6ff";   // светлая грань луча
-  const dark  = isLight ? "#0d2a4a" : "#12406e";   // тёмная грань луча
-  const baseR = R*0.13;                            // «толщина» лучей у центра
-  const drawPoint = (i, tipR) => {
-    const at=(i*45-90)*Math.PI/180;
-    const aL=((i*45-45)-90)*Math.PI/180;
-    const aR=((i*45+45)-90)*Math.PI/180;
-    const tx=cx+Math.cos(at)*tipR,  ty=cy+Math.sin(at)*tipR;
-    const lx=cx+Math.cos(aL)*baseR, ly=cy+Math.sin(aL)*baseR;
-    const rx=cx+Math.cos(aR)*baseR, ry=cy+Math.sin(aR)*baseR;
-    ctx.strokeStyle=line; ctx.lineWidth=1;
-    ctx.fillStyle=light;                            // левая грань (свет)
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(lx,ly); ctx.lineTo(tx,ty); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle=dark;                             // правая грань (тень)
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(tx,ty); ctx.lineTo(rx,ry); ctx.closePath(); ctx.fill(); ctx.stroke();
-  };
-  // сначала диагональные (короткие), потом главные (длинные) — поверх
-  for(let i=1;i<8;i+=2) drawPoint(i, R*0.55);
-  for(let i=0;i<8;i+=2) drawPoint(i, R);
-  ctx.lineWidth=1;
+  // звезда-подложка
+  drawWindStar(ctx, cx, cy, R, isLight, line);
+  // ===== линии источников поверх =====
+  (series||[]).forEach(s => {
+    const bins = new Array(8).fill(0);
+    s.vals.forEach(v => { let deg=((v.val%360)+360)%360; bins[Math.round(deg/45)%8]++; });
+    const maxF = Math.max(...bins, 1);
+    const pts = [];
+    for(let i=0;i<8;i++){ const ang=(i*45-90)*Math.PI/180; const r=(bins[i]/maxF)*R;
+      pts.push({ x:cx+Math.cos(ang)*r, y:cy+Math.sin(ang)*r }); }
+    smoothClosed(ctx, pts);
+    ctx.fillStyle=s.color+"22"; ctx.fill();
+    ctx.strokeStyle=s.color; ctx.lineWidth=2.5; ctx.stroke();
+    // текущий (последний) луч тем же цветом
+    const last = s.vals[s.vals.length-1].val;
+    if(!isNaN(last)){ const ang=(((last%360)+360)%360 -90)*Math.PI/180;
+      ctx.strokeStyle=s.color; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(ang)*(R-6), cy+Math.sin(ang)*(R-6)); ctx.stroke(); }
+  });
+  // ===== легенда источников (сверху слева) =====
+  ctx.textAlign="left"; ctx.textBaseline="middle"; ctx.font="13px 'Exo 2',sans-serif";
+  let ly = 14;
+  (series||[]).forEach(s => {
+    ctx.strokeStyle=s.color; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(8, ly); ctx.lineTo(30, ly); ctx.stroke();
+    ctx.fillStyle=txt; ctx.fillText(s.label, 36, ly);
+    ly += 20;
+  });
 }
 
 async function refreshStatus() {
