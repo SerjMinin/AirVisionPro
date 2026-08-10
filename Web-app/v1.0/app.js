@@ -270,6 +270,7 @@ async function renderParam(key) {
   const ticks = RANGES[currentRange].ticks;
   const step = span / ticks;
   const to = from + span;
+  const nowSec = Math.floor(Date.now()/1000);
 
   const g = PARAM_UNIT_GROUP[p.key];
   const unitId = g ? SETTINGS.units[g] : null;
@@ -320,13 +321,19 @@ async function renderParam(key) {
       if (wmap[param] === "no") continue;
       if (wmap[param] !== p.key) continue;
       const rows = await loadWeatherSeries(ws.source, param, from, to);
-      if (!rows.length) continue;
-      const pts = rows.map(r => ({ x:(Date.parse(r.ts_utc)/1000 - from)/step, y:convertUnit(Number(r.val), g, unitId) }));
+      const factPts = rows.map(r => ({ x:(Date.parse(r.ts_utc)/1000 - from)/step, y:convertUnit(Number(r.val), g, unitId) }));
+      const fRows = await loadWeatherForecast(ws.source, param);
+      const fcstPts = fRows.filter(o => o.ts > nowSec && o.ts <= nowSec + 3*86400)
+                           .map(o => ({ x:(o.ts - from)/step, y:convertUnit(Number(o.val), g, unitId) }));
+      const pts = factPts.concat(fcstPts).sort((a,b)=>a.x-b.x);
+      if (!pts.length) continue;
       const col = palette[ci % palette.length];
       const nm = (param in ws.names ? ws.names[param] : param);
+      const nowXw = (nowSec - from)/step;
       datasets.push({ label: ws.prefix + nm, data: pts,
         borderColor: col, backgroundColor: col+"22", fill:false, tension:0.3,
-        pointRadius:2, spanGaps:false });
+        pointRadius:2, spanGaps:false,
+        segment:{ borderDash: c => (c.p1.parsed.x > nowXw ? [6,4] : undefined) } });
       ci++;
     }
   }
