@@ -495,19 +495,21 @@ function drawCompass(series) {
     smoothClosed(ctx, pts);
     ctx.fillStyle=s.color+"22"; ctx.fill();
     ctx.strokeStyle=s.color; ctx.lineWidth=2.5; ctx.stroke();
-    // текущий (последний) луч тем же цветом
-    const last = s.vals[s.vals.length-1].val;
-    if(!isNaN(last)){ const ang=(((last%360)+360)%360 -90)*Math.PI/180;
-      ctx.strokeStyle=s.color; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(ang)*(R-6), cy+Math.sin(ang)*(R-6)); ctx.stroke(); }
   });
-  // ===== легенда источников (сверху слева) =====
-  ctx.textAlign="left"; ctx.textBaseline="middle"; ctx.font="13px 'Exo 2',sans-serif";
-  let ly = 14;
-  (series||[]).forEach(s => {
-    ctx.strokeStyle=s.color; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(8, ly); ctx.lineTo(30, ly); ctx.stroke();
-    ctx.fillStyle=txt; ctx.fillText(s.label, 36, ly);
-    ly += 20;
+
+  // ===== легенда источников (по центру сверху, в ряд) =====
+  ctx.textBaseline="middle"; ctx.font="13px 'Exo 2',sans-serif";
+  const items = (series||[]).map(s => ({ label:s.label, color:s.color, w: ctx.measureText(s.label).width }));
+  const lineGap = 8, swatch = 22, itemGap = 22;
+  const totalW = items.reduce((a,it) => a + swatch + lineGap + it.w + itemGap, 0) - itemGap;
+  let lx = cx - totalW/2;
+  const ly = 12;
+  ctx.textAlign="left";
+  items.forEach(it => {
+    ctx.strokeStyle=it.color; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx+swatch, ly); ctx.stroke();
+    ctx.fillStyle=txt; ctx.fillText(it.label, lx+swatch+lineGap, ly);
+    lx += swatch + lineGap + it.w + itemGap;
   });
 }
 
