@@ -144,7 +144,13 @@ function normalizeKp(raw){
 
 function geomagTickLabel(unix){
   const d = locDate(unix); const p = n => String(n).padStart(2,"0");
-  if (currentRange==="24h")  return p(d.getUTCDate())+" "+p(d.getUTCHours())+":00"; // «18 14:00»
+  if (currentRange==="24h") {
+    if (geomagWindow && unix >= geomagWindow.to) {           // самая правая подпись
+      const dPrev = locDate(unix - 3600);                     // берём день, который заканчивается
+      return p(dPrev.getUTCDate())+" 24:00";
+    }
+    return p(d.getUTCDate())+" "+p(d.getUTCHours())+":00";   // «18 14:00»
+  }
   if (currentRange==="year") return d.getUTCFullYear()+"."+p(d.getUTCMonth()+1);   // «2026.07»
   return p(d.getUTCDate())+"."+p(d.getUTCMonth()+1);                                // «18.07»
 }
