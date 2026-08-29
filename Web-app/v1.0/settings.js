@@ -47,7 +47,7 @@ const PARAM_INFO = {
 const PARAM_SET_NAME = { uv:"Ультрафиолетовый (УФ) индекс", aqi:"AQI - Индекс качества воздуха" };
 
 const DEFAULT_SETTINGS = {
-  config_items: { open_meteo:true, open_meteo_air:true, owm:true, dev_out:false, dev_in:false },
+  config_items: { open_meteo:true, open_meteo_air:true, owm:true, dev_out:false, dev_in:false, aurora:true },
   sn_out:"", sn_out_key:"", sn_in:"", sn_in_key:"", send_interval_min:5,
   devices: { out:{ map:{}, corr:{} }, in:{ map:{}, corr:{} } },
   lat: 55.752793, lon: 37.622672, alt_sea: 150, alt_ground: 5,

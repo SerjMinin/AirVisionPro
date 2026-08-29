@@ -356,28 +356,80 @@ const GEOMAG_DEFAULT_URL = "https://services.swpc.noaa.gov/products/noaa-planeta
 
 const GEOMAG_FACT_HOURS = 180/60;   // факт пишется в БД раз в 3 ч (крон)
 const GEOMAG_FCST_HOURS = 60/60;    // прогноз обновляется раз в 1 ч (кэш)
+const AURORA_DEFAULT_URL = "https://services.swpc.noaa.gov/json/ovation_aurora_latest.json";
+
+/* сколько часов в сутки солнце ниже -6° (в среднем за год) */
+function auroraNightHours(lat){
+  const rad = Math.PI/180;
+  let sum = 0;
+  for(let m=0;m<12;m++){
+    const dec = 23.44*rad*Math.sin(2*Math.PI*(m*30.4+284)/365);
+    const c = (Math.sin(-6*rad) - Math.sin(lat*rad)*Math.sin(dec)) /
+              (Math.cos(lat*rad)*Math.cos(dec));
+    if(c >= 1)      sum += 24;                 // полярная ночь
+    else if(c <= -1) sum += 0;                 // полярный день
+    else sum += 24 - (Math.acos(c)/rad)*2/15;
+  }
+  return sum/12;
+}
 
 async function openSrcGeomag(){
-  const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources.geomag) || {};
+  const ws = SETTINGS.weather_sources || {};
+  const gs = ws.geomag || {};
+  const as = ws.aurora || {};
   const saved = gs.url || "";
   const url = saved.includes("forecast") ? saved : GEOMAG_DEFAULT_URL;
+  const aurUrl = as.url || AURORA_DEFAULT_URL;
+  const on = !(SETTINGS.config_items && SETTINGS.config_items.aurora === false);
+
+  const lat = Number(SETTINGS.lat) || 0;
+  const night = auroraNightHours(lat);
+  const perDay = Math.round(night*60/20);
+  const gb = (perDay*1.2*30/1024).toFixed(1);
+  const mlat = Math.abs(geomagLat(lat, Number(SETTINGS.lon)||0));
+  const kpNeed = Math.max(0, Math.ceil((66 - mlat)/2));
+
   document.getElementById("src-geomag-body").innerHTML =
-    `<div class="set-hint" style="text-align:left;margin:0 0 8px;">Один запрос отдаёт и факт, и прогноз (NOAA).</div>
-     <textarea id="src_geomag_url" class="set-input" style="width:100%;height:160px;resize:vertical;">${url}</textarea>`;
+    `<div class="set-hint" style="text-align:left;margin:0 0 6px;">Один запрос отдаёт и факт, и прогноз (NOAA).</div>
+     <textarea id="src_geomag_url" class="set-input" style="width:100%;height:64px;resize:vertical;">${url}</textarea>
+
+     <div style="margin:14px 0 6px;font-weight:600;">Сила полярного сияния</div>
+     <textarea id="src_aurora_url" class="set-input" style="width:100%;height:64px;resize:vertical;">${aurUrl}</textarea>
+     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px;">
+       <input type="checkbox" id="src_aurora_on" ${on?"checked":""} style="margin-top:3px;">
+       <span class="set-hint" style="text-align:left;">Собирать данные о сиянии.
+       В вашем месте сияние возможно от Kp ${kpNeed} и выше.
+       Если широта мала, вероятность почти всегда нулевая — опрос лучше выключить,
+       чтобы не нагружать сервер.</span>
+     </label>
+     <div class="set-hint" style="text-align:left;margin-top:8px;">
+       Расчёт нагрузки: тёмное время ~${night.toFixed(1)} ч в сутки,
+       ${perDay} запросов в сутки, около ${gb} ГБ в месяц.
+       ${Number(gb) > 4 ? "⚠ Близко к пределу сервера (5 ГБ) — стоит опрашивать реже." : "Предел сервера 5 ГБ в месяц — укладываемся."}
+     </div>`;
+
   const statsEl = document.getElementById("src-geomag-stats");
   statsEl.innerHTML = `<span>Факт в базе: считаю…</span>`;
   document.getElementById("src-geomag-modal").classList.add("open");
   const step = await geomagStepMin();
   statsEl.innerHTML =
     (step ? `<span>Факт в базе: ${fmtStep(step)}</span>` : `<span>Факт в базе: нет данных</span>`) +
-    `<span>Прогноз: раз в 1 ч</span>`;
+    `<span>Прогноз: раз в 1 ч</span>` +
+    `<span>Сияние: раз в 20 мин, при сиянии раз в 5 мин</span>`;
 }
 function closeSrcGeomag(){ document.getElementById("src-geomag-modal").classList.remove("open"); }
 async function saveSrcGeomag(){
   const val = document.getElementById("src_geomag_url").value.trim();
+  const aur = document.getElementById("src_aurora_url").value.trim();
+  const on  = document.getElementById("src_aurora_on").checked;
   if(!SETTINGS.weather_sources) SETTINGS.weather_sources = {};
   if(!SETTINGS.weather_sources.geomag) SETTINGS.weather_sources.geomag = {};
+  if(!SETTINGS.weather_sources.aurora) SETTINGS.weather_sources.aurora = {};
+  if(!SETTINGS.config_items) SETTINGS.config_items = {};
   SETTINGS.weather_sources.geomag.url = val || GEOMAG_DEFAULT_URL;
+  SETTINGS.weather_sources.aurora.url = aur || AURORA_DEFAULT_URL;
+  SETTINGS.weather_sources.aurora.enabled = on;
+  SETTINGS.config_items.aurora = on;
   await saveSettings();
   closeSrcGeomag();
 }
