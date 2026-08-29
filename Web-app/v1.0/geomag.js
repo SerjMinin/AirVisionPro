@@ -174,7 +174,9 @@ function drawGeomagChart(fact, fcst, errText){
     let n = 0;
     for (let d = 1; d <= 10; d++)
       if (fcst.some(p => p.ts >= mid + d*day && p.ts < mid + (d+1)*day)) n = d;
+    const wasFwd = fwdSteps;
     fwdSteps = n;
+    if (wasFwd !== n) setTimeout(buildRangeBar, 0);
   }
 
   const mlat = geomagLat(SETTINGS.lat, SETTINGS.lon);
