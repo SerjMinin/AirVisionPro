@@ -57,18 +57,38 @@ const auroraPlugin = {
     ctx.restore();
   }
 };
+
 const wmPlugin = {
   id:"geowm",
   afterDraw(chart){
     const { ctx, chartArea } = chart;
+    const on = !!(SETTINGS.config_items && SETTINGS.config_items.aurora);
     ctx.save();
     ctx.fillStyle="rgba(150,170,200,0.4)";
     ctx.textAlign="right"; ctx.textBaseline="top";
     ctx.font="12px 'Exo 2',sans-serif";
-    ctx.fillText("Источник: NOAA SWPC · планетарный Kp", chartArea.right-8, chartArea.top+6);
+    let y = chartArea.top+6;
+    ctx.fillText("Источник: NOAA SWPC · планетарный Kp", chartArea.right-8, y);
+    if(on){
+      y += 16;
+      ctx.fillText("Сила полярного сияния: NOAA SWPC · модель OVATION", chartArea.right-8, y);
+    }
     if(chart.$bgLabel){
       ctx.font="600 34px 'Exo 2',sans-serif";
-      ctx.fillText(chart.$bgLabel, chartArea.right-8, chartArea.top+26);
+      ctx.fillText(chart.$bgLabel, chartArea.right-8, y+20);
+      y += 20+40;
+    }
+    if(on){
+      ctx.font="12px 'Exo 2',sans-serif";
+      const side = (Number(SETTINGS.lat)>=0) ? "северного" : "южного";
+      const tips = [
+        "Сияние видно ночью, когда нет",
+        "облаков и засветки неба городом.",
+        "Если вероятность увидеть мала,",
+        "смотрите в сторону "+side+" полюса."
+      ];
+      y += 6;
+      for(const s of tips){ ctx.fillText(s, chartArea.right-8, y); y += 15; }
     }
     ctx.restore();
   }
