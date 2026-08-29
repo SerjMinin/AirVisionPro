@@ -11,6 +11,7 @@ const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentKey = PARAMS[0].key;
 let currentRange = "24h";
 let offsetSteps = 0;
+let fwdSteps = 0;   // на сколько суток вперёд реально есть прогноз
 let chart = null;
 let currentView = "param";
 let TZ_OFFSET = 0;   // смещение часового пояса координат локации (сек)
@@ -136,10 +137,11 @@ function buildRangeBar() {
   left.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6l-6 6 6 6"/></svg>';
   left.onclick = () => { offsetSteps++; rerender(); };
   const right = document.createElement("button");
-  right.className = "range-btn arrow" + (offsetSteps === 0 ? " disabled" : "");
+  const fwd = (currentRange === "24h" && currentView !== "param") ? fwdSteps : 0;
+  right.className = "range-btn arrow" + (offsetSteps <= -fwd ? " disabled" : "");
   right.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 6l6 6-6 6"/></svg>';
   right.title = t("to_now");
-  right.onclick = () => { if (offsetSteps > 0) { offsetSteps--; rerender(); } };
+  right.onclick = () => { if (offsetSteps > -fwd) { offsetSteps--; rerender(); } };
   bar.appendChild(left);
   ["24h","week","month","year"].forEach(code => {
     const b = document.createElement("button");

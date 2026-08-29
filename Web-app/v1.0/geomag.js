@@ -166,6 +166,17 @@ function drawGeomagChart(fact, fcst, errText){
   const toX  = (to - from)/3600;
   geomagWindow = { from, to };
   const X = ts => (ts - from)/3600;
+
+// считаем, на сколько суток вперёд у NOAA есть прогноз
+  {
+    const day = 86400;
+    const mid = Math.floor((now + TZ_OFFSET)/day)*day - TZ_OFFSET;
+    let n = 0;
+    for (let d = 1; d <= 10; d++)
+      if (fcst.some(p => p.ts >= mid + d*day && p.ts < mid + (d+1)*day)) n = d;
+    fwdSteps = n;
+  }
+
   const mlat = geomagLat(SETTINGS.lat, SETTINGS.lon);
 
   const fF = fact.filter(p=>p.ts>=from && p.ts<=Math.min(now,to)).sort((a,b)=>a.ts-b.ts);
