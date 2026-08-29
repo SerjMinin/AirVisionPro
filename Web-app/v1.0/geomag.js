@@ -74,6 +74,8 @@ const wmPlugin = {
   }
 };
 
+let geomagAurora = [];   // сила полярного сияния, проценты
+
 /* факт — из накопленной таблицы geomag; прогноз — прямой из NOAA (кэш 1 час) */
 let geomagFcstCache = { time: 0, data: null };
 
@@ -97,6 +99,13 @@ async function fetchGeomag(from, to){
     .lte("ts_utc", new Date(to*1000).toISOString())
     .order("ts_utc", { ascending:true });
 
+   const aurP = client.from("geomag")
+    .select("ts_utc, kp")
+    .eq("source", "aurora")
+    .gte("ts_utc", new Date(from*1000).toISOString())
+    .lte("ts_utc", new Date(to*1000).toISOString())
+    .order("ts_utc", { ascending:true });
+
   const fcstP = getForecastJson();
 
   const [factRes, cJson] = await Promise.all([factP, fcstP]);
@@ -110,6 +119,12 @@ async function fetchGeomag(from, to){
                                  .map(o => ({ ts:o.ts, kp:o.kp }))
                                  .filter(x=>!isNaN(x.kp)&&!isNaN(x.ts));
 
+   const aurRes = await aurP;
+  geomagAurora = (aurRes.data || []).map(o => ({
+    ts: Math.floor(Date.parse(o.ts_utc)/1000),
+    pct: Number(o.kp)
+  })).filter(x=>!isNaN(x.pct)&&!isNaN(x.ts));
+                              
   console.log("[geomag] факт(БД):", fact.length, "прогноз:", fcst.length);
   return { fact, fcst };
 }
@@ -217,11 +232,19 @@ function drawGeomagChart(fact, fcst, errText){
   const gridColor=isLight?"rgba(20,60,110,0.14)":"rgba(120,190,255,0.18)";
   const tickColor=isLight?"#0d2a4a":"#eaf4ff";
 
+  // сила полярного сияния: 10 % → строка «Кр 0», 100 % → «Кр 9»
+  const AUR_COL = "rgb(8,232,222)";
+  const aurOn = !!(SETTINGS.config_items && SETTINGS.config_items.aurora);
+  const aurPts = !aurOn ? [] : geomagAurora
+    .filter(p => p.ts >= from && p.ts <= to)
+    .map(p => ({ x: X(p.ts), y: Math.max(0, Math.min(9, p.pct/10 - 1)) }));
+
   const legendItems = [
     { text:t("geomag_fact"), color:COL.fact, dash:false },
     { text:t("geomag_d1"),   color:COL.d1,   dash:true  },
     { text:t("geomag_d2"),   color:COL.d2,   dash:true  },
-    { text:t("geomag_d3"),   color:COL.d3,   dash:true  }
+    { text:t("geomag_d3"),   color:COL.d3,   dash:true  },
+    ...(aurPts.length ? [{ text:"Сила полярного сияния", color:AUR_COL, dash:false }] : [])
   ];
 
   if(chart){ chart.destroy(); chart=null; }
@@ -237,7 +260,18 @@ function drawGeomagChart(fact, fcst, errText){
       tension:0.4,
       fill:false,
       segment:{ borderColor:segColor, borderDash:segDash }
-    }]},
+    },
+    ...(aurPts.length ? [{
+      label:"Сила полярного сияния",
+      data:aurPts,
+      borderColor:AUR_COL,
+      pointBackgroundColor:AUR_COL,
+      pointBorderColor:AUR_COL,
+      pointRadius:2,
+      tension:0.4,
+      fill:false
+    }] : [])
+    ]},
     options:{ responsive:true, maintainAspectRatio:false, parsing:true,
       interaction:{ mode:"nearest", intersect:false },
       plugins:{ legend:{ labels:{
