@@ -169,7 +169,8 @@ function drawGeomagChart(fact, fcst, errText){
   const mlat = geomagLat(SETTINGS.lat, SETTINGS.lon);
 
   const fF = fact.filter(p=>p.ts>=from && p.ts<=Math.min(now,to)).sort((a,b)=>a.ts-b.ts);
-  const fC = fcst.filter(p=>p.ts>now && p.ts<=to).sort((a,b)=>a.ts-b.ts);
+  const factEnd = fF.length ? fF[fF.length-1].ts : (from - 1);
+  const fC = fcst.filter(p=>p.ts>factEnd && p.ts<=to).sort((a,b)=>a.ts-b.ts);
 
   const all = fF.concat(fC);
   const pts = all.map(p=>({ x:X(p.ts), y:p.kp, ts:p.ts }));
@@ -181,13 +182,13 @@ function drawGeomagChart(fact, fcst, errText){
     d3:"rgba(90,100,114,0.34)"
   };
   const colorForTs = ts => {
-    if(ts <= now)         return COL.fact;
+    if(ts <= factEnd)     return COL.fact;
     if(ts <= now+1*86400) return COL.d1;
     if(ts <= now+2*86400) return COL.d2;
     return COL.d3;
   };
   const segColor = ctx => colorForTs(from + ctx.p1.parsed.x*3600);
-  const segDash  = ctx => (from + ctx.p1.parsed.x*3600) > now ? [6,4] : undefined;
+  const segDash  = ctx => (from + ctx.p1.parsed.x*3600) > factEnd ? [6,4] : undefined;
   const pointColors = pts.map(p=>colorForTs(p.ts));
 
   const auroraPts = pts.map(p=>({x:p.x,visible:auroraVisible(p.y,mlat)}));
