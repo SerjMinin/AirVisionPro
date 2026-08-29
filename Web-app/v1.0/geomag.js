@@ -92,6 +92,7 @@ async function getForecastJson(){
 async function fetchGeomag(from, to){
   const factP = client.from("geomag")
     .select("ts_utc, kp")
+    .eq("source", "noaa")
     .gte("ts_utc", new Date(from*1000).toISOString())
     .lte("ts_utc", new Date(to*1000).toISOString())
     .order("ts_utc", { ascending:true });
