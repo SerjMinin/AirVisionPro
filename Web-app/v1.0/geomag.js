@@ -77,6 +77,8 @@ const wmPlugin = {
       ctx.font="600 34px 'Exo 2',sans-serif";
       ctx.fillText(chart.$bgLabel, chartArea.right-8, y+20);
       y += 20+40;
+    } else {
+      y += 18;
     }
     if(on){
       ctx.font="12px 'Exo 2',sans-serif";
