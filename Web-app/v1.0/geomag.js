@@ -112,6 +112,9 @@ async function getForecastJson(){
 }
 
 async function fetchGeomag(from, to){
+  const pad = 6*3600;
+  from = from - pad;
+  to   = to + pad;
   const factP = client.from("geomag")
     .select("ts_utc, kp")
     .eq("source", "noaa")
@@ -204,18 +207,24 @@ function geomagTickLabel(unix){
 
 function drawGeomagChart(fact, fcst, errText){
   const now = Math.floor(Date.now()/1000);
-  const pastSpan = RANGES[currentRange].sec;
-  // окно сдвигается ЦЕЛИКОМ при листании — масштаб не меняется
-  let from, to;
-  if (currentRange === "24h") {
-    const day = 86400;
-    const midnight = Math.floor((now + TZ_OFFSET)/day)*day - TZ_OFFSET;
-    from = midnight - offsetSteps*day;   // сегодня 0:00
-    to   = from + day;                    // сегодня 24:00
-  } else {
-    from = now - pastSpan - offsetSteps*pastSpan;
-    to   = now + 3*24*3600 - offsetSteps*pastSpan;
+  // окно сдвигается ЦЕЛИКОМ при листании — ширина не меняется
+  const day = 86400;
+  const midnight = Math.floor((now + TZ_OFFSET)/day)*day - TZ_OFFSET;
+  let from, to, span;
+  if (currentRange === "24h") {                 // сутки 0:00–24:00
+    span = day;
+    to   = midnight + day - offsetSteps*day;
+  } else if (currentRange === "week") {         // 7 суток: 4 факт + 3 прогноз
+    span = 7*day;
+    to   = midnight + 3*day - offsetSteps*span;
+  } else if (currentRange === "month") {        // 4 недели по 7 суток
+    span = 28*day;
+    to   = midnight + 3*day - offsetSteps*span;
+  } else {                                      // год: 12 месяцев, прогноза нет
+    span = 365*day;
+    to   = midnight + day - offsetSteps*span;
   }
+  from = to - span;
   const toX  = (to - from)/3600;
   geomagWindow = { from, to };
   const X = ts => (ts - from)/3600;
@@ -234,9 +243,12 @@ function drawGeomagChart(fact, fcst, errText){
 
   const mlat = geomagLat(SETTINGS.lat, SETTINGS.lon);
 
-  const fF = fact.filter(p=>p.ts>=from && p.ts<=Math.min(now,to)).sort((a,b)=>a.ts-b.ts);
+  const pad = 6*3600;   // запас за края экрана, чтобы линия не ломалась на стыке
+  const fF = fact.filter(p=>p.ts>=from-pad && p.ts<=Math.min(now,to+pad)).sort((a,b)=>a.ts-b.ts);
   const factEnd = fF.length ? fF[fF.length-1].ts : (from - 1);
-  const fC = fcst.filter(p=>p.ts>factEnd && p.ts<=to).sort((a,b)=>a.ts-b.ts);
+  const fC = (currentRange === "year")
+           ? []
+           : fcst.filter(p=>p.ts>factEnd && p.ts<=to+pad).sort((a,b)=>a.ts-b.ts);
 
   const all = fF.concat(fC);
   const pts = all.map(p=>({ x:X(p.ts), y:p.kp, ts:p.ts }));
