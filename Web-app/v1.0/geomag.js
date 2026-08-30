@@ -281,7 +281,7 @@ function drawGeomagChart(fact, fcst, errText){
   const AUR_COL = "rgb(8,232,222)";
   const aurOn = !!(SETTINGS.config_items && SETTINGS.config_items.aurora);
   const aurPts = !aurOn ? [] : geomagAurora
-    .filter(p => p.ts >= from && p.ts <= to)
+    .filter(p => p.ts >= from && p.ts <= to && p.pct >= 10)
     .map(p => ({ x: X(p.ts), y: Math.max(0, Math.min(9, p.pct/10 - 1)) }));
 
   const legendItems = [
