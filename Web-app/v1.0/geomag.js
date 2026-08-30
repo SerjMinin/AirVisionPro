@@ -148,10 +148,9 @@ async function fetchGeomag(from, to){
          .forEach(o => fact.push({ ts:o.ts, kp:o.kp }));
   fact.sort((a,b)=>a.ts-b.ts);
 
-  const fcst = noaaAll.filter(o => !isMeasured(o))
-                      .map(o => ({ ts:o.ts, kp:o.kp }));
-
-   const aurRes = await aurP;
+  const fcst = noaaAll.map(o => ({ ts:o.ts, kp:o.kp }));
+  
+  const aurRes = await aurP;
   geomagAurora = (aurRes.data || []).map(o => ({
     ts: Math.floor(Date.parse(o.ts_utc)/1000),
     pct: Number(o.kp)
