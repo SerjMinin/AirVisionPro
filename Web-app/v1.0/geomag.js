@@ -424,6 +424,7 @@ async function openSrcGeomag(){
        <input type="checkbox" id="src_aurora_on" ${on?"checked":""} style="margin-top:3px;">
        <span class="set-hint" style="text-align:left;">Собирать данные о сиянии.
        В вашем месте сияние возможно от Kp ${kpNeed} и выше.
+       Значения ниже 10 % не записываются — это фоновый шум модели.
        Если широта мала, вероятность почти всегда нулевая — опрос лучше выключить,
        чтобы не нагружать сервер.</span>
      </label>
@@ -440,7 +441,7 @@ async function openSrcGeomag(){
   statsEl.innerHTML =
     (step ? `<span>Факт в базе: ${fmtStep(step)}</span>` : `<span>Факт в базе: нет данных</span>`) +
     `<span>Прогноз: раз в 1 ч</span>` +
-    `<span>Сияние: раз в 20 мин, при сиянии раз в 5 мин</span>`;
+    `<span>Сияние: раз в 20 мин, при слабом раз в 15 мин, при сильном раз в 5 мин</span>`;
 }
 function closeSrcGeomag(){ document.getElementById("src-geomag-modal").classList.remove("open"); }
 async function saveSrcGeomag(){
