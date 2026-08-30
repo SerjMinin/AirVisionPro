@@ -135,9 +135,21 @@ async function fetchGeomag(from, to){
     kp: Number(o.kp)
   })).filter(x=>!isNaN(x.kp)&&!isNaN(x.ts));
 
-  const fcst = normalizeKp(cJson).filter(o => o.obs !== "observed")
-                                 .map(o => ({ ts:o.ts, kp:o.kp }))
-                                 .filter(x=>!isNaN(x.kp)&&!isNaN(x.ts));
+  const nowTs = Math.floor(Date.now()/1000);
+  const noaaAll = normalizeKp(cJson).filter(x=>!isNaN(x.kp)&&!isNaN(x.ts));
+  const isMeasured = o => {
+    const s = String(o.obs||"").toLowerCase();
+    return s.includes("observ") || s.includes("estim");
+  };
+
+  // NOAA уже измерил то, чего ещё нет в нашей базе — добираем, чтобы факт не обрывался
+  const dbLast = fact.length ? fact[fact.length-1].ts : 0;
+  noaaAll.filter(o => isMeasured(o) && o.ts > dbLast && o.ts <= nowTs)
+         .forEach(o => fact.push({ ts:o.ts, kp:o.kp }));
+  fact.sort((a,b)=>a.ts-b.ts);
+
+  const fcst = noaaAll.filter(o => !isMeasured(o))
+                      .map(o => ({ ts:o.ts, kp:o.kp }));
 
    const aurRes = await aurP;
   geomagAurora = (aurRes.data || []).map(o => ({
