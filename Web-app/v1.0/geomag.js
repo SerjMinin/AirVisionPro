@@ -418,15 +418,15 @@ async function openSrcGeomag(){
     `<div class="set-hint" style="text-align:left;margin:0 0 6px;">Один запрос отдаёт и факт, и прогноз (NOAA).</div>
      <textarea id="src_geomag_url" class="set-input" style="width:100%;height:64px;resize:vertical;">${url}</textarea>
 
-     <div style="margin:14px 0 6px;font-weight:600;">Сила полярного сияния</div>
+     <div class="set-hint" style="text-align:left;margin:0 0 6px;">Сила полярного сияния (NOAA).</div>
      <textarea id="src_aurora_url" class="set-input" style="width:100%;height:64px;resize:vertical;">${aurUrl}</textarea>
      <label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px;">
        <input type="checkbox" id="src_aurora_on" ${on?"checked":""} style="margin-top:3px;">
        <span class="set-hint" style="text-align:left;">Собирать данные о сиянии.
        В вашем месте сияние возможно от Kp ${kpNeed} и выше.
-       Значения ниже 10 % не записываются — это фоновый шум модели.
-       Если широта мала, вероятность почти всегда нулевая — опрос лучше выключить,
-       чтобы не нагружать сервер.</span>
+       Если широта мала, вероятность увидеть почти всегда нулевая — опрос лучше выключить,
+       чтобы не нагружать сервер.
+       Вероятность увидеть ниже 10 % не записываются — это фоновый шум модели.</span>
      </label>
      <div class="set-hint" style="text-align:left;margin-top:8px;">
        Расчёт нагрузки: тёмное время ~${night.toFixed(1)} ч в сутки,
