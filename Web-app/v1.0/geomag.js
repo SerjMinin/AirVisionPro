@@ -292,6 +292,26 @@ function drawGeomagChart(fact, fcst, errText){
       });
   }
 
+// подписи шкалы: «Kp N» цветом факта, «/NN%» цветом сияния
+  const kpTicksPlugin = {
+    id:"kpTicks",
+    afterDraw(c){
+      const ys = c.scales.y; if(!ys) return;
+      const g = c.ctx;
+      g.save();
+      g.font = Chart.defaults.font.size+"px "+Chart.defaults.font.family;
+      g.textAlign = "right"; g.textBaseline = "middle";
+      const xr = ys.right - 11;
+      for(let v=0; v<=9; v++){
+        const y = ys.getPixelForValue(v);
+        const p2 = "/"+((v+1)*10)+"%";
+        g.fillStyle = AUR_COL; g.fillText(p2, xr, y);
+        g.fillStyle = COL.fact; g.fillText("Kp "+v, xr - g.measureText(p2).width, y);
+      }
+      g.restore();
+    }
+  };
+
   const legendItems = [
     { text:t("geomag_fact"), color:COL.fact, dash:false },
     { text:t("geomag_d1"),   color:COL.d1,   dash:true  },
@@ -345,10 +365,10 @@ function drawGeomagChart(fact, fcst, errText){
           ticks:{ color:tickColor, autoSkip:false, maxRotation:0,
             callback:v=>geomagTickLabel(from + v*3600) } },
         y:{ min:0, max:9, grid:{ color:gridColor },
-          ticks:{ color:tickColor, stepSize:1, callback:v=>"Kp "+v+"/"+((v+1)*10)+"%" } }
+          ticks:{ color:"transparent", stepSize:1, callback:v=>"Kp "+v+"/"+((v+1)*10)+"%" } }
       }
     },
-    plugins:[auroraPlugin, wmPlugin]
+    plugins:[auroraPlugin, wmPlugin, kpTicksPlugin]
   });
   chart.$auroraPts = auroraPts;
   chart.$nowX = X(now);
