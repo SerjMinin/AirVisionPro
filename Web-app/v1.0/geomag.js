@@ -280,9 +280,17 @@ function drawGeomagChart(fact, fcst, errText){
   // сила полярного сияния: 10 % → строка «Кр 0», 100 % → «Кр 9»
   const AUR_COL = "rgb(8,232,222)";
   const aurOn = !!(SETTINGS.config_items && SETTINGS.config_items.aurora);
-  const aurPts = !aurOn ? [] : geomagAurora
-    .filter(p => p.ts >= from && p.ts <= to && p.pct >= 10)
-    .map(p => ({ x: X(p.ts), y: Math.max(0, Math.min(9, p.pct/10 - 1)) }));
+  const aurPts = [];
+  if (aurOn) {
+    let prevTs = 0;
+    geomagAurora
+      .filter(p => p.ts >= from && p.ts <= to && p.pct >= 10)
+      .forEach(p => {
+        if (prevTs && p.ts - prevTs > 25*60) aurPts.push({ x: X(prevTs + 60), y: null });   // разрыв линии
+        aurPts.push({ x: X(p.ts), y: Math.max(0, Math.min(9, p.pct/10 - 1)) });
+        prevTs = p.ts;
+      });
+  }
 
   const legendItems = [
     { text:t("geomag_fact"), color:COL.fact, dash:false },
