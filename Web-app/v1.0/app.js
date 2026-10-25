@@ -367,6 +367,7 @@ async function renderParam(key) {
   const isLight = getTheme() === "light";
   const gridColor = isLight ? "rgba(20,60,110,0.12)" : "rgba(120,190,255,0.15)";
   const tickColor = isLight ? "#0d2a4a" : "#eaf4ff";
+  await addFeelsLike(p, datasets, from, to, step, g, unitId, nowSec);
   const xLabels = [];
   for (let i=0;i<=ticks;i++) xLabels.push(tickLabel(i, from, step));
   if (myToken !== renderParamToken) { hideLoader(); return; }
@@ -721,3 +722,100 @@ async function startDashboard() {
   setInterval(refreshDeviceDots, 60000);
   window.addEventListener("resize", () => { if (currentView==="param") renderParam(currentKey); });
 }
+/* ===== Температура: линия «AV_Ощущается как» ===== */
+function feelsLikeC(T, rh, windMs) {
+  let dWC = 0, dHI = 0;
+  if (windMs != null) {
+    const V = windMs * 3.6;
+    if (V > 4.8) {
+      const v = Math.pow(V, 0.16);
+      dWC = Math.min(0, 13.12 + 0.6215*T - 11.37*v + 0.3965*T*v - T);
+    }
+  }
+  if (rh != null) {
+    const F = T*9/5 + 32;
+    let hi = (0.5*(F + 61 + (F-68)*1.2 + rh*0.094) + F) / 2;
+    if (hi >= 80) {
+      hi = -42.379 + 2.04901523*F + 10.14333127*rh - 0.22475541*F*rh - 0.00683783*F*F
+         - 0.05481717*rh*rh + 0.00122874*F*F*rh + 0.00085282*F*rh*rh - 0.00000199*F*F*rh*rh;
+    }
+    dHI = Math.max(0, (hi - 32)*5/9 - T);
+  }
+  const w = Math.min(1, Math.max(0, (T - 10) / 17));
+  return T + (1 - w)*dWC + w*dHI;
+}
+function tdWebParam(source, kind) {
+  const defs = { "open-meteo": (typeof OPENMETEO_DEFAULT_MAP !== "undefined" ? OPENMETEO_DEFAULT_MAP : {}),
+                 "owm": (typeof OWM_DEFAULT_MAP !== "undefined" ? OWM_DEFAULT_MAP : {}) };
+  const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources[source]) || {};
+  const map = (gs.map && Object.keys(gs.map).length) ? gs.map : (defs[source] || {});
+  for (const k in map) if (map[k] === kind) return k;
+  return null;
+}
+async function tdWeb(source, kind, from, to) {
+  const cfgId = source === "owm" ? "owm" : "open_meteo";
+  if (SETTINGS.config_items[cfgId] === false) return [];
+  const param = tdWebParam(source, kind);
+  if (!param) return [];
+  const rows = await loadWeatherSeries(source, param, from, to);
+  const out = rows.map(r => ({ ts: Date.parse(r.ts_utc)/1000, val: Number(r.val) }));
+  if (offsetSteps === 0 && typeof loadWeatherForecast === "function") {
+    const last = out.length ? out[out.length-1].ts : Math.floor(Date.now()/1000);
+    const f = await loadWeatherForecast(source, param);
+    (f || []).forEach(o => { if (o.ts > last && o.ts <= to) out.push({ ts: o.ts, val: Number(o.val) }); });
+  }
+  return out;
+}
+async function tdDev(kind, from, to) {
+  if (SETTINGS.config_items.dev_out !== true || !SETTINGS.sn_out) return [];
+  const dmap = (SETTINGS.devices && SETTINGS.devices.out && SETTINGS.devices.out.map) || {};
+  for (const dk in dmap) if (dmap[dk] === kind) {
+    const rows = await loadSeries(SETTINGS.sn_out, dk, from, to);
+    return rows.map(r => ({ ts: Number(r.ts_device), val: Number(r.val) }));
+  }
+  return [];
+}
+async function tdSeries(kind, src, from, to) {
+  if (src === "dev") return tdDev(kind, from, to);
+  if (src === "open-meteo" || src === "owm") return tdWeb(src, kind, from, to);
+  const dev = await tdDev(kind, from, to);
+  const om  = await tdWeb("open-meteo", kind, from, to);
+  if (!dev.length) return om;
+  const last = dev[dev.length-1].ts;
+  return dev.concat(om.filter(o => o.ts > last));
+}
+function tdNear(arr, ts) {
+  if (!arr.length) return null;
+  let lo = 0, hi = arr.length - 1;
+  while (lo < hi) { const m = Math.floor((lo + hi) / 2); if (arr[m].ts < ts) lo = m + 1; else hi = m; }
+  let best = arr[lo];
+  if (lo > 0 && Math.abs(arr[lo-1].ts - ts) < Math.abs(best.ts - ts)) best = arr[lo-1];
+  return Math.abs(best.ts - ts) <= 5400 ? best.val : null;
+}
+async function addFeelsLike(p, datasets, from, to, step, g, unitId, nowSec) {
+  if (g !== "temp") return;
+  const cfg = SETTINGS.temp_danger || {};
+  if (cfg.on === false) return;
+  const clean = a => a.filter(o => !isNaN(o.val)).sort((x, y) => x.ts - y.ts);
+  const T = clean(await tdSeries("temp", cfg.temp || "auto", from, to));
+  if (!T.length) return;
+  const RH = clean(await tdSeries("rh", cfg.rh || "auto", from, to));
+  const W  = clean(await tdSeries("wind_spd", cfg.wind || "auto", from, to));
+  const gapX = (6*3600) / step;
+  const pts = [];
+  T.forEach(o => {
+    const x = (o.ts - from) / step;
+    if (pts.length && x - pts[pts.length-1].x > gapX) pts.push({ x: (pts[pts.length-1].x + x) / 2, y: null });
+    pts.push({ x, y: convertUnit(feelsLikeC(o.val, tdNear(RH, o.ts), tdNear(W, o.ts)), "temp", unitId) });
+  });
+  const nowX = (nowSec - from) / step;
+  const col = "#ff4d4d";
+  datasets.push({ label: "AV_" + t("td_feels"), data: pts, borderColor: col, backgroundColor: col + "22",
+    fill: false, tension: 0.3, pointRadius: 0, spanGaps: false,
+    segment: { borderDash: c => (c.p1.parsed.x > nowX ? [6,4] : undefined) } });
+}
+/* надпись линии «AV_Ощущается как» на 11 языках */
+const I18N_FEELS = { en:"Feels like", ru:"Ощущается как", "zh-CN":"体感温度", "zh-TW":"體感溫度",
+  es:"Sensación térmica", ar:"درجة الحرارة المحسوسة", hi:"महसूस होता है", "pt-BR":"Sensação térmica",
+  fr:"Ressenti", de:"Gefühlt", ja:"体感温度" };
+for (const l in I18N_FEELS) I18N[l].td_feels = I18N_FEELS[l];
