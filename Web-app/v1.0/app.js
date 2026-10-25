@@ -391,11 +391,36 @@ async function renderParam(key) {
           ticks:{ color:tickColor, stepSize:1, autoSkip:false, maxRotation:0, callback:v=>xLabels[v]??"" } },
         y:{ grid:{ color:gridColor }, ticks:{ color:tickColor } } }
     },
-    plugins:[paramWmPlugin]
+    plugins:[paramWmPlugin, zeroLinePlugin]
   });
   chart.$bgLabel = bgDateLabel(from);
+  chart.$zeroY = (g === "temp") ? convertUnit(0, g, unitId) : null;
+  chart.$zeroText = (g === "temp") ? (Math.round(convertUnit(0, g, unitId)) + (uLabel ? " " + uLabel : "")) : "";
   hideLoader();
 }
+
+/* линия 0 °C (точка замерзания): рисуется, только если 0 попадает в видимую шкалу */
+const zeroLinePlugin = {
+  id:"zeroline",
+  beforeDatasetsDraw(chart){
+    if (chart.$zeroY === null || chart.$zeroY === undefined) return;
+    const y = chart.scales.y;
+    if (!y || chart.$zeroY < y.min || chart.$zeroY > y.max) return;
+    const { ctx, chartArea } = chart;
+    const py = y.getPixelForValue(chart.$zeroY);
+    const isLight = getTheme() === "light";
+    const col = isLight ? "rgba(30,110,200,0.85)" : "rgba(140,210,255,0.85)";
+    ctx.save();
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+    ctx.setLineDash([10,4,2,4]);
+    ctx.beginPath(); ctx.moveTo(chartArea.left, py); ctx.lineTo(chartArea.right, py); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = col; ctx.font = "11px 'Exo 2',sans-serif";
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+    ctx.fillText(chart.$zeroText, chartArea.right - 4, py - 2);
+    ctx.restore();
+  }
+};
 
 function fmtTick(unix, range) {
   const d = locDate(unix); const p = n => String(n).padStart(2,"0");
