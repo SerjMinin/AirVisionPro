@@ -749,10 +749,34 @@ function tdWebParam(source, kind) {
                  "owm": (typeof OWM_DEFAULT_MAP !== "undefined" ? OWM_DEFAULT_MAP : {}) };
   const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources[source]) || {};
   const map = (gs.map && Object.keys(gs.map).length) ? gs.map : (defs[source] || {});
-  for (const k in map) if (map[k] === kind) return k;
+  const skip = /apparent|feels|dew|gust/i;
+  for (const k in map) if (map[k] === kind && !skip.test(k)) return k;
   return null;
 }
 async function tdWeb(source, kind, from, to) {
+  const cfgId = source === "owm" ? "owm" : "open_meteo";
+  if (SETTINGS.config_items[cfgId] === false) return [];
+  const param = tdWebParam(source, kind);
+  if (!param) return [];
+  const k = (source === "open-meteo" && kind === "wind_spd") ? 1/3.6 : 1;
+  const rows = await loadWeatherSeries(source, param, from, to);
+  const out = rows.map(r => ({ ts: Date.parse(r.ts_utc)/1000, val: Number(r.val)*k }));
+  if (offsetSteps === 0 && typeof loadWeatherForecast === "function") {
+    const last = out.length ? out[out.length-1].ts : Math.floor(Date.now()/1000);
+    const f = await loadWeatherForecast(source, param);
+    (f || []).forEach(o => { if (o.ts > last && o.ts <= to) out.push({ ts: o.ts, val: Number(o.val)*k }); });
+  }
+  return out;
+}
+function tdWebParam0(source, kind) {
+  const defs = { "open-meteo": (typeof OPENMETEO_DEFAULT_MAP !== "undefined" ? OPENMETEO_DEFAULT_MAP : {}),
+                 "owm": (typeof OWM_DEFAULT_MAP !== "undefined" ? OWM_DEFAULT_MAP : {}) };
+  const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources[source]) || {};
+  const map = (gs.map && Object.keys(gs.map).length) ? gs.map : (defs[source] || {});
+  for (const k in map) if (map[k] === kind) return k;
+  return null;
+}
+async function tdWeb0(source, kind, from, to) {
   const cfgId = source === "owm" ? "owm" : "open_meteo";
   if (SETTINGS.config_items[cfgId] === false) return [];
   const param = tdWebParam(source, kind);
