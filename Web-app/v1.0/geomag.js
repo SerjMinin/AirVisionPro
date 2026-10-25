@@ -337,7 +337,7 @@ function drawGeomagChart(fact, fcst, errText){
           ticks:{ color:tickColor, autoSkip:false, maxRotation:0,
             callback:v=>geomagTickLabel(from + v*3600) } },
         y:{ min:0, max:9, grid:{ color:gridColor },
-          ticks:{ color:tickColor, stepSize:1, callback:v=>"Kp "+v } }
+          ticks:{ color:tickColor, stepSize:1, callback:v=>"Kp "+v+"/"+((v+1)*10)+"%" } }
       }
     },
     plugins:[auroraPlugin, wmPlugin]
