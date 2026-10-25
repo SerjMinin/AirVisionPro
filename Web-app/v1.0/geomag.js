@@ -304,9 +304,12 @@ function drawGeomagChart(fact, fcst, errText){
       const xr = ys.right - 11;
       for(let v=0; v<=9; v++){
         const y = ys.getPixelForValue(v);
-        const p2 = "/"+((v+1)*10)+"%";
-        g.fillStyle = AUR_COL; g.fillText(p2, xr, y);
-        g.fillStyle = COL.fact; g.fillText("Kp "+v, xr - g.measureText(p2).width, y);
+        const pc = ((v+1)*10)+"%";
+        const wPc = g.measureText(pc).width;
+        const wSl = g.measureText("/").width;
+        g.fillStyle = AUR_COL;   g.fillText(pc, xr, y);
+        g.fillStyle = tickColor; g.fillText("/", xr - wPc, y);
+        g.fillStyle = COL.fact;  g.fillText("Kp "+v, xr - wPc - wSl, y);
       }
       g.restore();
     }
