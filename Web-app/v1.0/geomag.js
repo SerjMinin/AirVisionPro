@@ -284,10 +284,13 @@ function drawGeomagChart(fact, fcst, errText){
   if (aurOn) {
     let prevTs = 0;
     geomagAurora
-      .filter(p => p.ts >= from && p.ts <= to && p.pct >= 10)
+      .filter(p => p.ts >= from - pad && p.ts <= to + pad && p.pct >= 10)
       .forEach(p => {
-        if (prevTs && p.ts - prevTs > 25*60) aurPts.push({ x: X(prevTs + 60), y: null });   // разрыв линии
-        aurPts.push({ x: X(p.ts), y: Math.max(0, Math.min(9, p.pct/10 - 1)) });
+        const y = Math.max(0, Math.min(9, p.pct/10 - 1));
+        const isStart = !prevTs || (p.ts - prevTs > 25*60);
+        if (prevTs && isStart) aurPts.push({ x: X(prevTs + 60), y: null });   // разрыв линии
+        if (isStart && y > 0)  aurPts.push({ x: X(p.ts - 600), y: 0 });       // старт от Kp 0/10%
+        aurPts.push({ x: X(p.ts), y: y });
         prevTs = p.ts;
       });
   }
