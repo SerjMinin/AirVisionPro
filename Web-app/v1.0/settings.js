@@ -200,7 +200,40 @@ function renderThresholdsInputs() {
 
 function paramSetName(p) { return PARAM_SET_NAME[p.key] || t(p.i18n); }
 
+/* «AV_Анализ опасности» — блок в окне настроек вкладки «Температура» */
 function buildParamSettings() {
+  buildParamSettings0();
+  addTempDangerBlock();
+}
+function addTempDangerBlock() {
+  const p = PARAMS.find(x => x.key === currentKey);
+  if (!p || PARAM_UNIT_GROUP[p.key] !== "temp") return;
+  const d = SETTINGS.temp_danger || {};
+  const srcOpts = [
+    { id:"auto",       label:t("td_auto") },
+    { id:"dev",        label:t("td_dev") },
+    { id:"open-meteo", label:"Open-Meteo" },
+    { id:"owm",        label:"OpenWeatherMap" }
+  ];
+  const html = `<div class="set-section"><h3>${t("td_title")}</h3>
+    <label class="set-check"><input type="checkbox" id="td_on" ${d.on!==false?"checked":""}> ${t("api_enable")}</label>
+    <div class="set-row"><label>${t("p_temp")}</label>${selHtml("td_temp", srcOpts, d.temp||"auto")}</div>
+    <div class="set-row"><label>${t("p_rh")}</label>${selHtml("td_rh", srcOpts, d.rh||"auto")}</div>
+    <div class="set-row"><label>${t("p_wind_spd")}</label>${selHtml("td_wind", srcOpts, d.wind||"auto")}</div>
+  </div>`;
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+}
+function readTempDangerBlock() {
+  const on = document.getElementById("td_on");
+  if (!on) return;
+  SETTINGS.temp_danger = {
+    on:   on.checked,
+    temp: document.getElementById("td_temp").value,
+    rh:   document.getElementById("td_rh").value,
+    wind: document.getElementById("td_wind").value
+  };
+}
+function buildParamSettings0() {
   const p = PARAMS.find(x => x.key === currentKey);
   const s = SETTINGS;
   const g = PARAM_UNIT_GROUP[p.key];
@@ -233,6 +266,10 @@ function buildParamSettings() {
 function openParamSettings() { buildParamSettings(); document.getElementById("param-modal").classList.add("open"); }
 function closeParamSettings() { document.getElementById("param-modal").classList.remove("open"); }
 async function applyParamSettings() {
+  readTempDangerBlock();
+  return applyParamSettings0();
+}
+async function applyParamSettings0() {
   const p = PARAMS.find(x => x.key === currentKey);
   const s = SETTINGS;
   const g = PARAM_UNIT_GROUP[p.key];

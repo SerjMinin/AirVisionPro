@@ -197,6 +197,22 @@ const I18N = {
     p_hcho:"CH₂O", p_ch4:"CH₄", p_co:"CO", p_co2:"CO₂", p_nh3:"NH₃", p_no:"NO", p_no2:"NO₂", p_o3:"O₃", p_so2:"SO₂", p_aqi:"AQI" }
 };
 
+/* надписи блока «AV_Анализ опасности» (вкладка «Температура») */
+const I18N_TD = {
+  en:{ td_title:"AV_Danger analysis", td_auto:"Auto", td_dev:"Outdoor device" },
+  ru:{ td_title:"AV_Анализ опасности", td_auto:"Авто", td_dev:"Уличное устройство" },
+  "zh-CN":{ td_title:"AV_危险分析", td_auto:"自动", td_dev:"室外设备" },
+  "zh-TW":{ td_title:"AV_危險分析", td_auto:"自動", td_dev:"室外設備" },
+  es:{ td_title:"AV_Análisis de peligro", td_auto:"Auto", td_dev:"Dispositivo exterior" },
+  ar:{ td_title:"AV_تحليل الخطر", td_auto:"تلقائي", td_dev:"الجهاز الخارجي" },
+  hi:{ td_title:"AV_खतरा विश्लेषण", td_auto:"स्वचालित", td_dev:"बाहरी डिवाइस" },
+  "pt-BR":{ td_title:"AV_Análise de perigo", td_auto:"Auto", td_dev:"Dispositivo externo" },
+  fr:{ td_title:"AV_Analyse de danger", td_auto:"Auto", td_dev:"Appareil extérieur" },
+  de:{ td_title:"AV_Gefahrenanalyse", td_auto:"Auto", td_dev:"Außengerät" },
+  ja:{ td_title:"AV_危険分析", td_auto:"自動", td_dev:"屋外デバイス" }
+};
+for (const l in I18N_TD) Object.assign(I18N[l], I18N_TD[l]);
+
 const LANG_LIST = ["en","ru","zh-CN","zh-TW","es","ar","hi","pt-BR","fr","de","ja"];
 const RTL_LANGS = ["ar"];
 
