@@ -260,3 +260,18 @@ function initUI() {
   }
 }
 document.addEventListener("DOMContentLoaded", initUI);
+/* ===== Температура: AV_Анализ опасности ===== */
+const I18N_TD = {
+  en:{ td_title:"Danger analysis", td_src:"Data sources", td_auto:"Auto (device, otherwise Open-Meteo)", td_dev:"Outdoor device" },
+  ru:{ td_title:"Анализ опасности", td_src:"Источники данных", td_auto:"Авто (устройство, иначе Open-Meteo)", td_dev:"Уличное устройство" },
+  "zh-CN":{ td_title:"危险分析", td_src:"数据来源", td_auto:"自动（设备，否则 Open-Meteo）", td_dev:"室外设备" },
+  "zh-TW":{ td_title:"危險分析", td_src:"資料來源", td_auto:"自動（裝置，否則 Open-Meteo）", td_dev:"室外裝置" },
+  es:{ td_title:"Análisis de peligro", td_src:"Fuentes de datos", td_auto:"Auto (dispositivo, si no Open-Meteo)", td_dev:"Dispositivo exterior" },
+  ar:{ td_title:"تحليل الخطر", td_src:"مصادر البيانات", td_auto:"تلقائي (الجهاز، وإلا Open-Meteo)", td_dev:"الجهاز الخارجي" },
+  hi:{ td_title:"खतरा विश्लेषण", td_src:"डेटा स्रोत", td_auto:"स्वचालित (डिवाइस, अन्यथा Open-Meteo)", td_dev:"बाहरी डिवाइस" },
+  "pt-BR":{ td_title:"Análise de perigo", td_src:"Fontes de dados", td_auto:"Auto (dispositivo, senão Open-Meteo)", td_dev:"Dispositivo externo" },
+  fr:{ td_title:"Analyse du danger", td_src:"Sources de données", td_auto:"Auto (appareil, sinon Open-Meteo)", td_dev:"Appareil extérieur" },
+  de:{ td_title:"Gefahrenanalyse", td_src:"Datenquellen", td_auto:"Auto (Gerät, sonst Open-Meteo)", td_dev:"Außengerät" },
+  ja:{ td_title:"危険分析", td_src:"データソース", td_auto:"自動（デバイス、なければ Open-Meteo）", td_dev:"屋外デバイス" }
+};
+for (const k in I18N_TD) Object.assign(I18N[k], I18N_TD[k]);
