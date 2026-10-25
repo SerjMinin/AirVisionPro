@@ -282,17 +282,22 @@ function drawGeomagChart(fact, fcst, errText){
   const aurOn = !!(SETTINGS.config_items && SETTINGS.config_items.aurora);
   const aurPts = [];
   if (aurOn) {
-    let prevTs = 0;
+    let prevTs = 0, prevY = 0;
+    const endSeg = () => {
+      if (prevY > 0) aurPts.push({ x: X(prevTs + 600), y: 0 });       // спуск к Kp 0/10%
+      aurPts.push({ x: X(prevTs + 660), y: null });                    // разрыв линии
+    };
     geomagAurora
       .filter(p => p.ts >= from - pad && p.ts <= to + pad && p.pct >= 10)
       .forEach(p => {
         const y = Math.max(0, Math.min(9, p.pct/10 - 1));
         const isStart = !prevTs || (p.ts - prevTs > 25*60);
-        if (prevTs && isStart) aurPts.push({ x: X(prevTs + 60), y: null });   // разрыв линии
-        if (isStart && y > 0)  aurPts.push({ x: X(p.ts - 600), y: 0 });       // старт от Kp 0/10%
+        if (prevTs && isStart) endSeg();
+        if (isStart && y > 0)  aurPts.push({ x: X(p.ts - 600), y: 0 }); // старт от Kp 0/10%
         aurPts.push({ x: X(p.ts), y: y });
-        prevTs = p.ts;
+        prevTs = p.ts; prevY = y;
       });
+    if (prevTs && prevTs < now) endSeg();                              // сбор закончился
   }
 
 // подписи шкалы: «Kp N» цветом факта, «/NN%» цветом сияния
