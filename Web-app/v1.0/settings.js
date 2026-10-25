@@ -210,8 +210,6 @@ function buildParamSettings() {
     html += `<div class="set-section">${PARAM_INFO[p.key]}</div>`;
   } else if (g) {
     html += `<div class="set-section"><div class="set-row"><label>${t("set_unit")}</label>${selHtml("pu_unit", UNITS[g].opts, s.units[g])}</div>`;
-    if (p.key === "temp")
-      html += `<div class="set-row"><label>${t("set_rounding")}</label>${selHtml("pu_round", [{id:"0",label:t("round_int")},{id:"1",label:t("round_1")}], String(s.temp_round))}</div>`;
     html += `</div>`;
   } else {
     html += `<div class="set-section"><div class="set-row"><label>${t("set_unit")}</label><span>${paramUnitDisplay(p) || t("unit_none")} — ${t("unit_fixed")}</span></div></div>`;
@@ -239,7 +237,6 @@ async function applyParamSettings() {
   const s = SETTINGS;
   const g = PARAM_UNIT_GROUP[p.key];
   if (g) s.units[g] = document.getElementById("pu_unit").value;
-  if (p.key === "temp") s.temp_round = parseInt(document.getElementById("pu_round").value);
   if (p.key === "pressure") {
     s.pressure_auto = document.getElementById("thr_auto").checked;
     if (!s.pressure_auto) {
