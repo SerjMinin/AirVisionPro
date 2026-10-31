@@ -419,6 +419,10 @@ function prT(key, ru) {
   return (!v || v === key) ? ru : v;
 }
 function addPrecipBlock() {
+  if (currentKey === "precip") document.getElementById("param-body").innerHTML = "";
+  addPrecipBlock0();
+}
+function addPrecipBlock0() {
   if (currentKey !== "precip") return;
   const html = `<div class="set-section"><h3>${prT("pr_title", "Осадки (% / мм)")}</h3>
     <div class="param-desc">${prT("pr_cloud", "Облачность в 0-100%")}</div>
