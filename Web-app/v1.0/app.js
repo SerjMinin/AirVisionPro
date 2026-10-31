@@ -866,3 +866,20 @@ function feelsLikeC(T, rh, windMs) {
   const w = Math.min(1, Math.max(0, (T - 10) / 17));
   return T + (1 - w)*dWC + w*dHI;
 }
+// Пыльца: шкала снизу всегда от нуля, без отрицательных значений
+if (typeof Chart !== "undefined") {
+  Chart.register({
+    id: "pollenZeroBase",
+    beforeUpdate: function (chart) {
+      if (typeof currentKey === "undefined" || currentKey !== "pollen") return;
+      var sc = chart.options && chart.options.scales;
+      if (!sc) return;
+      Object.keys(sc).forEach(function (id) {
+        if (id.charAt(0) === "x" || (sc[id] && sc[id].axis === "x")) return;
+        sc[id].min = 0;
+        sc[id].beginAtZero = true;
+        if (sc[id].suggestedMax === undefined) sc[id].suggestedMax = 1;
+      });
+    }
+  });
+}
