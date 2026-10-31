@@ -413,3 +413,18 @@ const _buildParamSettingsPrev = buildParamSettings;
 buildParamSettings = function () { _buildParamSettingsPrev(); addVisBlock(); };
 const _applyParamSettingsPrev = applyParamSettings;
 applyParamSettings = async function () { readVisBlock(); return _applyParamSettingsPrev(); };
+/* ===== Вкладка «Осадки»: пояснение единиц в настройках ===== */
+function prT(key, ru) {
+  const v = t(key);
+  return (!v || v === key) ? ru : v;
+}
+function addPrecipBlock() {
+  if (currentKey !== "precip") return;
+  const html = `<div class="set-section"><h3>${prT("pr_title", "Осадки (% / мм)")}</h3>
+    <div class="param-desc">${prT("pr_cloud", "Облачность в 0-100%")}</div>
+    <div class="param-desc">${prT("pr_rain", "Осадки в мм")}</div>
+  </div>`;
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+}
+const _buildParamSettingsPrevPrecip = buildParamSettings;
+buildParamSettings = function () { _buildParamSettingsPrevPrecip(); addPrecipBlock(); };
