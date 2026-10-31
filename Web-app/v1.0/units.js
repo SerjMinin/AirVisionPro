@@ -70,3 +70,18 @@ function effectivePressureThresholds(s) {
     anom_high: pressureAtAltitude(base.anom_high, H)
   };
 }
+/* CO: база в базе данных = мкг/м³ (так отдают источники). ppm считается при 25 °C. */
+UNITS.co = {
+  def: "ug",
+  opts: [ {id:"ug",label:"мкг/м³"}, {id:"mg",label:"мг/м³"}, {id:"ppmv",label:"ppm"} ]
+};
+const _convertUnitBase = convertUnit;
+convertUnit = function(value, group, toUnit) {
+  if (group === "co") {
+    if (value == null || isNaN(value)) return value;
+    if (toUnit === "mg")   return value / 1000;
+    if (toUnit === "ppmv") return value / 1145;
+    return value;
+  }
+  return _convertUnitBase(value, group, toUnit);
+};

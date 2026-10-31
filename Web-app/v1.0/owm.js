@@ -111,3 +111,30 @@ async function saveSrcOwm(){
   await saveSettings();
   closeSrcOwm();
 }
+/* Давление «на месте»: grnd_level от OWM, а если его нет — считаем по высоте */
+function owmGroundPressure(resp){
+  const g = resp.main && resp.main.grnd_level;
+  if (g != null) return g;
+  const p = resp.main && resp.main.pressure;
+  if (p == null) return null;
+  const H = (Number(SETTINGS.alt_sea)||0) + (Number(SETTINGS.alt_ground)||0);
+  return Math.round(p * Math.pow(1 - 0.0065*H/288.15, 5.255) * 10) / 10;
+}
+function owmFlatten(resp){
+  return {
+    temp:       resp.main?.temp,
+    feels_like: resp.main?.feels_like,
+    humidity:   resp.main?.humidity,
+    pressure:   resp.main?.pressure,
+    grnd_level: owmGroundPressure(resp),
+    clouds:     resp.clouds?.all,
+    wind_speed: resp.wind?.speed,
+    wind_gust:  resp.wind?.gust,
+    wind_deg:   resp.wind?.deg,
+    visibility: resp.visibility
+  };
+}
+OWM_NAMES.pressure = "Давление у моря";
+OWM_NAMES.grnd_level = "Давление";
+OWM_DEFAULT_MAP.pressure = "no";
+OWM_DEFAULT_MAP.grnd_level = "pressure";

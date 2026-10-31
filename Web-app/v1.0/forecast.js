@@ -74,7 +74,7 @@ async function fetchOWMForecast(){
   const out = { temp:[], feels_like:[], humidity:[], pressure:[], clouds:[],
                 wind_speed:[], wind_gust:[], wind_deg:[], visibility:[] };
   out.grnd_level = [];
-  list.forEach(it => {
+    list.forEach(it => {
     const ts = Number(it.dt);
     if (ts < nowH || ts > lim3) return;
     const f = owmFlatten(it);
