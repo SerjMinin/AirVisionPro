@@ -42,7 +42,7 @@ async function fetchOMForecast(baseUrl, source, defMap){
   const fields = Object.keys(wmap).filter(k => wmap[k] !== "no");
   if (!fields.length) return {};
   const url = `${baseUrl}?latitude=${SETTINGS.lat}&longitude=${SETTINGS.lon}`
-            + `&hourly=${fields.join(",")}&forecast_days=4&timezone=UTC`;
+            + `&hourly=${fields.join(",")}&forecast_days=4&timezone=UTC${baseUrl.includes("api.open-meteo.com") ? "&wind_speed_unit=ms" : ""}`;
   const r = await fetch(url, {cache:"no-store"});
   const j = await r.json();
   const time = (j.hourly && j.hourly.time) || [];

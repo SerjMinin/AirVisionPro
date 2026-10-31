@@ -758,7 +758,7 @@ async function tdWeb(source, kind, from, to) {
   if (SETTINGS.config_items[cfgId] === false) return [];
   const param = tdWebParam(source, kind);
   if (!param) return [];
-  const k = (source === "open-meteo" && kind === "wind_spd") ? 1/3.6 : 1;
+  const k = (source === "open-meteo" && kind === "wind_spd") ? 1 : 1;
   const rows = await loadWeatherSeries(source, param, from, to);
   const out = rows.map(r => ({ ts: Date.parse(r.ts_utc)/1000, val: Number(r.val)*k }));
   if (offsetSteps === 0 && typeof loadWeatherForecast === "function") {
