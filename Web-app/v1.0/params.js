@@ -67,7 +67,7 @@ function commentFor(param, value) {
 /* новые вкладки: Осадки, Видимость (после «Направление ветра») и Пыльца (перед CH₂O) */
 (function(){
   const precip = { key:"precip", i18n:"p_precip", unit:"% · мм",       loc:"out", round:1, color:"#4da6ff" };
-  const vis    = { key:"vis",    i18n:"p_vis",    unit:"м · мкг/м³",   loc:"out", round:1, color:"#b0c4de" };
+  const vis    = { key:"vis",    i18n:"p_vis",    unit:"м",   loc:"out", round:1, color:"#b0c4de" };
   const pollen = { key:"pollen", i18n:"p_pollen", unit:"зёрен/м³",     loc:"out", round:0, color:"#9be564" };
   const i = PARAMS.findIndex(p => p.key === "wind_dir");
   PARAMS.splice(i + 1, 0, precip, vis);

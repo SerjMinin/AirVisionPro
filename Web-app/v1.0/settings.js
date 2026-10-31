@@ -384,3 +384,32 @@ document.addEventListener('click', ()=>{
   document.querySelectorAll('.avp-select-list.open').forEach(l=>l.classList.remove('open'));
 });
 new MutationObserver(()=>initCustomSelects(document)).observe(document.documentElement,{childList:true,subtree:true});
+/* ===== Вкладка «Видимость»: множители для пыли и AOD ===== */
+function addVisBlock() {
+  if (currentKey !== "vis") return;
+  const k = SETTINGS.vis_k || {};
+  const kd = k.dust > 0 ? k.dust : 100;
+  const ka = k.aod > 0 ? k.aod : 1000;
+  const html = `<div class="set-section"><h3>${t("vis_title")}</h3>
+    <div class="set-row"><label>${t("vis_dust")} (${t("vis_ug")}) ×</label>
+      <input id="vis_k_dust" class="set-input" type="number" min="0" step="any" value="${kd}"></div>
+    <div class="param-desc">${t("vis_dust_d")}</div>
+    <div class="set-row"><label>${t("vis_aod")} ×</label>
+      <input id="vis_k_aod" class="set-input" type="number" min="0" step="any" value="${ka}"></div>
+    <div class="param-desc">${t("vis_aod_d")}</div>
+  </div>`;
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+}
+function readVisBlock() {
+  const d = document.getElementById("vis_k_dust");
+  const a = document.getElementById("vis_k_aod");
+  if (!d || !a) return;
+  const kd = parseFloat(d.value), ka = parseFloat(a.value);
+  SETTINGS.vis_k = { dust: kd > 0 ? kd : 100, aod: ka > 0 ? ka : 1000 };
+}
+const _buildParamSettingsPrev = buildParamSettings;
+buildParamSettings = function () { _buildParamSettingsPrev(); addVisBlock(); };
+const _applyParamSettingsPrev = applyParamSettings;
+applyParamSettings = async function () { readVisBlock(); return _applyParamSettingsPrev(); };

@@ -368,6 +368,7 @@ async function renderParam(key) {
   const gridColor = isLight ? "rgba(20,60,110,0.12)" : "rgba(120,190,255,0.15)";
   const tickColor = isLight ? "#0d2a4a" : "#eaf4ff";
   await addFeelsLike(p, datasets, from, to, step, g, unitId, nowSec);
+  visApply(p, datasets);
   const xLabels = [];
   for (let i=0;i<=ticks;i++) xLabels.push(tickLabel(i, from, step));
   if (myToken !== renderParamToken) { hideLoader(); return; }
@@ -883,3 +884,79 @@ if (typeof Chart !== "undefined") {
     }
   });
 }
+/* ===== Видимость: пыль и AOD умножаются, чтобы лежать рядом с видимостью (м) ===== */
+function visKs() {
+  const k = SETTINGS.vis_k || {};
+  return { dust: (k.dust > 0 ? k.dust : 100), aod: (k.aod > 0 ? k.aod : 1000) };
+}
+function visApply(p, datasets) {
+  if (!p || p.key !== "vis") return;
+  const k = visKs();
+  datasets.forEach(ds => {
+    let m = 1;
+    if (/depth|aod|оптич|плотн|толщ/i.test(ds.label)) m = k.aod;
+    else if (/dust|пыль/i.test(ds.label)) m = k.dust;
+    if (m === 1) return;
+    ds.$k = m;
+    ds.data = ds.data.map(pt => pt.y == null ? pt : { x: pt.x, y: pt.y * m });
+  });
+}
+/* подсказка при наведении: настоящее значение (без множителя) */
+if (typeof Chart !== "undefined") {
+  Chart.defaults.plugins.tooltip.callbacks.label = function (ctx) {
+    let l = ctx.dataset.label || "";
+    if (l) l += ": ";
+    let y = ctx.parsed.y;
+    if (y != null) {
+      if (ctx.dataset.$k) l += Math.round(y / ctx.dataset.$k * 100) / 100;
+      else l += ctx.formattedValue;
+    }
+    return l;
+  };
+}
+/* заголовок вкладки «Видимость» */
+const _renderParamBase = renderParam;
+renderParam = async function (key) {
+  await _renderParamBase(key);
+  if (key === "vis" && currentView === "param" && currentKey === "vis") {
+    const k = visKs();
+    const el = document.getElementById("chart-title");
+    if (el) el.textContent = t("p_vis") + " (" + t("vis_m") + ") / " + t("vis_dust") + " × " + k.dust +
+      " (" + t("vis_ug") + ") / AOD × " + k.aod;
+  }
+};
+/* переводы (11 языков) */
+const I18N_VIS = {
+  vis_title: { en:"Chart scale", ru:"Масштаб на графике", "zh-CN":"图表比例", "zh-TW":"圖表比例", es:"Escala en el gráfico", ar:"مقياس الرسم", hi:"ग्राफ़ का स्केल", "pt-BR":"Escala no gráfico", fr:"Échelle du graphique", de:"Maßstab im Diagramm", ja:"グラフの倍率" },
+  vis_dust:  { en:"Dust", ru:"Пыль", "zh-CN":"沙尘", "zh-TW":"沙塵", es:"Polvo", ar:"الغبار", hi:"धूल", "pt-BR":"Poeira", fr:"Poussière", de:"Staub", ja:"ダスト" },
+  vis_aod:   { en:"Aerosol optical depth (AOD)", ru:"Оптическая плотность (AOD)", "zh-CN":"气溶胶光学厚度 (AOD)", "zh-TW":"氣溶膠光學厚度 (AOD)", es:"Profundidad óptica de aerosoles (AOD)", ar:"العمق البصري للهباء الجوي (AOD)", hi:"एरोसोल ऑप्टिकल डेप्थ (AOD)", "pt-BR":"Profundidade óptica de aerossóis (AOD)", fr:"Épaisseur optique des aérosols (AOD)", de:"Aerosol-Optische-Dicke (AOD)", ja:"エアロゾル光学的厚さ (AOD)" },
+  vis_m:     { en:"m", ru:"м", "zh-CN":"米", "zh-TW":"公尺", es:"m", ar:"م", hi:"मी", "pt-BR":"m", fr:"m", de:"m", ja:"m" },
+  vis_ug:    { en:"µg/m³", ru:"мкг/м³", "zh-CN":"微克/立方米", "zh-TW":"微克/立方公尺", es:"µg/m³", ar:"µg/m³", hi:"µg/m³", "pt-BR":"µg/m³", fr:"µg/m³", de:"µg/m³", ja:"µg/m³" },
+  vis_dust_d: {
+    en:"Near-ground dust: sandstorms, desert dust. Usually 0–50 µg/m³, hundreds in a dust storm. The line is drawn multiplied by this factor so it is visible next to visibility in metres. The real value is shown in the tooltip on hover.",
+    ru:"Пыль у земли: песчаные бури, пыль из пустынь. Обычно 0–50 мкг/м³, при пылевой буре — сотни. Линия рисуется умноженной на этот множитель, чтобы быть видной рядом с видимостью в метрах. Настоящее значение — в подсказке при наведении.",
+    "zh-CN":"近地面沙尘：沙尘暴、沙漠扬尘。通常为 0–50 µg/m³，沙尘暴时可达数百。曲线按此倍数放大显示，以便与以米为单位的能见度对照。鼠标悬停时提示框显示真实数值。",
+    "zh-TW":"近地面沙塵：沙塵暴、沙漠揚塵。通常為 0–50 µg/m³，沙塵暴時可達數百。曲線依此倍數放大顯示，以便與以公尺為單位的能見度對照。滑鼠懸停時提示框顯示真實數值。",
+    es:"Polvo cerca del suelo: tormentas de arena, polvo del desierto. Normalmente 0–50 µg/m³; en una tormenta de polvo, cientos. La línea se dibuja multiplicada por este factor para que se vea junto a la visibilidad en metros. El valor real aparece al pasar el cursor.",
+    ar:"الغبار قرب سطح الأرض: العواصف الرملية وغبار الصحراء. عادةً 0–50 µg/m³ وتصل إلى مئات أثناء العاصفة الغبارية. يُرسم الخط مضروبًا في هذا المعامل ليظهر بجانب الرؤية بالأمتار. تظهر القيمة الحقيقية في التلميح عند تمرير المؤشر.",
+    hi:"ज़मीन के पास की धूल: रेतीले तूफ़ान, रेगिस्तानी धूल। आमतौर पर 0–50 µg/m³, धूल भरी आँधी में सैकड़ों। रेखा को इस गुणक से गुणा करके दिखाया जाता है ताकि वह मीटर में दृश्यता के पास दिखे। असली मान कर्सर ले जाने पर दिखता है।",
+    "pt-BR":"Poeira perto do solo: tempestades de areia, poeira do deserto. Normalmente 0–50 µg/m³; em tempestade de poeira, centenas. A linha é desenhada multiplicada por este fator para aparecer junto da visibilidade em metros. O valor real aparece ao passar o cursor.",
+    fr:"Poussière près du sol : tempêtes de sable, poussière du désert. Généralement 0–50 µg/m³, des centaines lors d'une tempête de poussière. La courbe est tracée multipliée par ce facteur pour être visible à côté de la visibilité en mètres. La valeur réelle s'affiche au survol.",
+    de:"Staub in Bodennähe: Sandstürme, Wüstenstaub. Meist 0–50 µg/m³, bei Staubsturm Hunderte. Die Linie wird mit diesem Faktor multipliziert gezeichnet, damit sie neben der Sichtweite in Metern sichtbar ist. Der echte Wert steht im Tooltip beim Darüberfahren.",
+    ja:"地表付近のダスト：砂嵐や砂漠の砂塵。通常は 0–50 µg/m³、砂嵐では数百になります。メートル単位の視程と並べて見えるよう、線はこの倍率を掛けて描かれます。実際の値はカーソルを合わせたときのヒントに表示されます。"
+  },
+  vis_aod_d: {
+    en:"Shows how much haze, smoke and dust weaken sunlight. No units. Up to 0.1 — clean air; 0.1–0.4 — light haze; 0.4–1 — heavy haze or smog; above 1 — wildfire smoke or dust storm. The line is drawn multiplied by the factor; the real value is in the tooltip on hover.",
+    ru:"Показывает, насколько дымка, дым и пыль ослабляют солнечный свет. Единиц нет. До 0,1 — чистый воздух; 0,1–0,4 — лёгкая дымка; 0,4–1 — сильная дымка или смог; выше 1 — дым пожаров или пылевая буря. Линия рисуется умноженной на множитель; настоящее значение — в подсказке при наведении.",
+    "zh-CN":"表示霾、烟和沙尘对阳光的削弱程度，无单位。0.1 以下：空气洁净；0.1–0.4：轻度霾；0.4–1：重度霾或烟雾；1 以上：山火烟尘或沙尘暴。曲线按倍数放大显示，鼠标悬停时提示框显示真实数值。",
+    "zh-TW":"表示霾、煙與沙塵對陽光的削弱程度，無單位。0.1 以下：空氣潔淨；0.1–0.4：輕度霾；0.4–1：重度霾或煙霧；1 以上：山火煙塵或沙塵暴。曲線依倍數放大顯示，滑鼠懸停時提示框顯示真實數值。",
+    es:"Indica cuánto debilitan la luz solar la bruma, el humo y el polvo. Sin unidades. Hasta 0,1: aire limpio; 0,1–0,4: bruma ligera; 0,4–1: bruma intensa o smog; más de 1: humo de incendios o tormenta de polvo. La línea se dibuja multiplicada por el factor; el valor real aparece al pasar el cursor.",
+    ar:"يبيّن مقدار إضعاف الضباب الدخاني والدخان والغبار لضوء الشمس. بلا وحدات. حتى 0.1: هواء نظيف؛ 0.1–0.4: ضباب خفيف؛ 0.4–1: ضباب كثيف أو سموغ؛ فوق 1: دخان حرائق أو عاصفة غبار. يُرسم الخط مضروبًا في المعامل، وتظهر القيمة الحقيقية في التلميح عند تمرير المؤشر.",
+    hi:"बताता है कि धुंध, धुआँ और धूल सूरज की रोशनी को कितना कम करते हैं। इकाई नहीं। 0.1 तक: साफ़ हवा; 0.1–0.4: हल्की धुंध; 0.4–1: घनी धुंध या स्मॉग; 1 से ऊपर: जंगल की आग का धुआँ या धूल भरी आँधी। रेखा गुणक से गुणा करके दिखाई जाती है; असली मान कर्सर ले जाने पर दिखता है।",
+    "pt-BR":"Mostra quanto a névoa, a fumaça e a poeira enfraquecem a luz solar. Sem unidade. Até 0,1: ar limpo; 0,1–0,4: névoa leve; 0,4–1: névoa forte ou smog; acima de 1: fumaça de incêndios ou tempestade de poeira. A linha é desenhada multiplicada pelo fator; o valor real aparece ao passar o cursor.",
+    fr:"Indique à quel point la brume, la fumée et la poussière atténuent la lumière du soleil. Sans unité. Jusqu'à 0,1 : air pur ; 0,1–0,4 : brume légère ; 0,4–1 : forte brume ou smog ; au-delà de 1 : fumée d'incendies ou tempête de poussière. La courbe est multipliée par le facteur ; la valeur réelle s'affiche au survol.",
+    de:"Zeigt, wie stark Dunst, Rauch und Staub das Sonnenlicht abschwächen. Ohne Einheit. Bis 0,1: saubere Luft; 0,1–0,4: leichter Dunst; 0,4–1: starker Dunst oder Smog; über 1: Waldbrandrauch oder Staubsturm. Die Linie wird mit dem Faktor multipliziert gezeichnet; der echte Wert steht im Tooltip.",
+    ja:"もや・煙・ダストが太陽光をどれだけ弱めるかを示します。単位はありません。0.1 まで：きれいな空気、0.1–0.4：軽いもや、0.4–1：濃いもややスモッグ、1 超：山火事の煙や砂嵐。線は倍率を掛けて描かれ、実際の値はカーソルを合わせたときのヒントに表示されます。"
+  }
+};
+for (const k in I18N_VIS) for (const l in I18N_VIS[k]) if (I18N[l]) I18N[l][k] = I18N_VIS[k][l];
