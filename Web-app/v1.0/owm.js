@@ -4,12 +4,12 @@ const OWM_INTERVAL_MIN = 120; // раз в 120 минут
 /* человеческие подписи (после префикса iOWM_) */
 const OWM_NAMES = {
   temp:"Температура", feels_like:"Ощущается как", humidity:"Влажность",
-  pressure:"Давление", clouds:"Облачность", wind_speed:"Скорость ветра",
+  pressure:"Давление у моря", grnd_level:"Давление", clouds:"Облачность", wind_speed:"Скорость ветра",
   wind_gust:"Порывы ветра", wind_deg:"Направление ветра", visibility:"Видимость"
 };
 /* распределение по умолчанию (по твоей таблице) */
 const OWM_DEFAULT_MAP = {
-  temp:"temp", feels_like:"temp", humidity:"rh", pressure:"pressure",
+  temp:"temp", feels_like:"temp", humidity:"rh", pressure:"no", grnd_level:"pressure",
   clouds:"no", wind_speed:"wind_spd", wind_gust:"no", wind_deg:"wind_dir",
   visibility:"no"
 };
@@ -30,7 +30,8 @@ function owmFlatten(resp){
     wind_speed: resp.wind?.speed,
     wind_gust:  resp.wind?.gust,
     wind_deg:   resp.wind?.deg,
-    visibility: resp.visibility
+    visibility: resp.visibility,
+    grnd_level: resp.main && resp.main.grnd_level
   };
 }
 

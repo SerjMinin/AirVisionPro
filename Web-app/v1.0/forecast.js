@@ -73,6 +73,7 @@ async function fetchOWMForecast(){
   const list = j.list || [];
   const out = { temp:[], feels_like:[], humidity:[], pressure:[], clouds:[],
                 wind_speed:[], wind_gust:[], wind_deg:[], visibility:[] };
+  out.grnd_level = [];
   list.forEach(it => {
     const ts = Number(it.dt);
     if (ts < nowH || ts > lim3) return;
