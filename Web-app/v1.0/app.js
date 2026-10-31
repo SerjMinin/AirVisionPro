@@ -723,7 +723,7 @@ async function startDashboard() {
   window.addEventListener("resize", () => { if (currentView==="param") renderParam(currentKey); });
 }
 /* ===== Температура: линия «AV_Ощущается как» ===== */
-function feelsLikeC(T, rh, windMs) {
+function feelsLikeC0(T, rh, windMs) {
   let dWC = 0, dHI = 0;
   if (windMs != null) {
     const V = windMs * 3.6;
@@ -843,3 +843,26 @@ const I18N_FEELS = { en:"Feels like", ru:"Ощущается как", "zh-CN":"�
   es:"Sensación térmica", ar:"درجة الحرارة المحسوسة", hi:"महसूस होता है", "pt-BR":"Sensação térmica",
   fr:"Ressenti", de:"Gefühlt", ja:"体感温度" };
 for (const l in I18N_FEELS) I18N[l].td_feels = I18N_FEELS[l];
+/* «Ощущается как»: поправка на ветер включается плавно, без ступеньки */
+function feelsLikeC(T, rh, windMs) {
+  let dWC = 0, dHI = 0;
+  if (windMs != null) {
+    const V = windMs * 3.6;
+    if (V > 0) {
+      const v = Math.pow(Math.max(V, 4.8), 0.16);
+      const wc = 13.12 + 0.6215*T - 11.37*v + 0.3965*T*v - T;
+      dWC = Math.min(0, wc) * Math.min(1, V / 4.8);
+    }
+  }
+  if (rh != null) {
+    const F = T*9/5 + 32;
+    let hi = (0.5*(F + 61 + (F-68)*1.2 + rh*0.094) + F) / 2;
+    if (hi >= 80) {
+      hi = -42.379 + 2.04901523*F + 10.14333127*rh - 0.22475541*F*rh - 0.00683783*F*F
+         - 0.05481717*rh*rh + 0.00122874*F*F*rh + 0.00085282*F*rh*rh - 0.00000199*F*F*rh*rh;
+    }
+    dHI = Math.max(0, (hi - 32)*5/9 - T);
+  }
+  const w = Math.min(1, Math.max(0, (T - 10) / 17));
+  return T + (1 - w)*dWC + w*dHI;
+}

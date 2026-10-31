@@ -5,7 +5,7 @@ const OPENMETEO_INTERVAL_MIN = 15; // раз в 15 минут (совпадае�
 const OPENMETEO_NAMES = {
   temperature_2m:"Температура", apparent_temperature:"Ощущается как",
   relative_humidity_2m:"Влажность", dew_point_2m:"Точка росы",
-  pressure_msl:"Давление", cloud_cover:"Облачность",
+  pressure_msl:"Давление у моря", surface_pressure:"Давление", cloud_cover:"Облачность",
   wind_speed_10m:"Скорость ветра", wind_gusts_10m:"Порывы ветра",
   wind_direction_10m:"Направление ветра", precipitation:"Осадки",
   uv_index:"УФ-индекс", visibility:"Видимость"
@@ -13,7 +13,7 @@ const OPENMETEO_NAMES = {
 /* распределение по умолчанию (по твоей таблице) */
 const OPENMETEO_DEFAULT_MAP = {
   temperature_2m:"temp", apparent_temperature:"temp", relative_humidity_2m:"rh",
-  dew_point_2m:"temp", pressure_msl:"pressure", cloud_cover:"no",
+  dew_point_2m:"temp", pressure_msl:"no", surface_pressure:"pressure", cloud_cover:"no",
   wind_speed_10m:"wind_spd", wind_gusts_10m:"no", wind_direction_10m:"wind_dir",
   precipitation:"no", uv_index:"uv", visibility:"no"
 };
@@ -39,7 +39,7 @@ const OPENMETEO_DEFAULT_URL =
   "https://api.open-meteo.com/v1/forecast" +
   "?latitude={lat}&longitude={lon}" +
   "&current=temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m," +
-  "pressure_msl,wind_speed_10m,wind_direction_10m,uv_index," +
+  "surface_pressure,wind_speed_10m,wind_direction_10m,uv_index," +
   "cloud_cover,wind_gusts_10m,precipitation,visibility" +
   "&timezone=GMT";
 
