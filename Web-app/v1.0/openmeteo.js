@@ -92,3 +92,6 @@ async function saveSrcOpenmeteo(){
   await saveSettings();
   closeSrcOpenmeteo();
 }
+OPENMETEO_DEFAULT_MAP.visibility = "vis";
+OPENMETEO_DEFAULT_MAP.cloud_cover = "precip";
+OPENMETEO_DEFAULT_MAP.precipitation = "precip";

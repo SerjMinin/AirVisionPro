@@ -96,3 +96,7 @@ async function saveSrcAirquality(){
   await saveSettings();
   closeSrcAirquality();
 }
+AIRQUALITY_DEFAULT_MAP.dust = "vis";
+AIRQUALITY_DEFAULT_MAP.aerosol_optical_depth = "vis";
+["alder_pollen","birch_pollen","grass_pollen","mugwort_pollen","olive_pollen","ragweed_pollen"]
+  .forEach(k => { AIRQUALITY_DEFAULT_MAP[k] = "pollen"; });

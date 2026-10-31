@@ -138,3 +138,5 @@ OWM_NAMES.pressure = "Давление у моря";
 OWM_NAMES.grnd_level = "Давление";
 OWM_DEFAULT_MAP.pressure = "no";
 OWM_DEFAULT_MAP.grnd_level = "pressure";
+OWM_DEFAULT_MAP.visibility = "vis";
+OWM_DEFAULT_MAP.clouds = "precip";

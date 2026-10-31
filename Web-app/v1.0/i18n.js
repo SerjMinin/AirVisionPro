@@ -260,3 +260,18 @@ function initUI() {
   }
 }
 document.addEventListener("DOMContentLoaded", initUI);
+/* названия новых вкладок */
+const I18N_TABS3 = {
+  en:{ p_precip:"Precipitation", p_vis:"Visibility", p_pollen:"Pollen" },
+  ru:{ p_precip:"Осадки", p_vis:"Видимость", p_pollen:"Пыльца" },
+  "zh-CN":{ p_precip:"降水", p_vis:"能见度", p_pollen:"花粉" },
+  "zh-TW":{ p_precip:"降水", p_vis:"能見度", p_pollen:"花粉" },
+  es:{ p_precip:"Precipitación", p_vis:"Visibilidad", p_pollen:"Polen" },
+  ar:{ p_precip:"الهطول", p_vis:"الرؤية", p_pollen:"حبوب اللقاح" },
+  hi:{ p_precip:"वर्षा", p_vis:"दृश्यता", p_pollen:"पराग" },
+  "pt-BR":{ p_precip:"Precipitação", p_vis:"Visibilidade", p_pollen:"Pólen" },
+  fr:{ p_precip:"Précipitations", p_vis:"Visibilité", p_pollen:"Pollen" },
+  de:{ p_precip:"Niederschlag", p_vis:"Sicht", p_pollen:"Pollen" },
+  ja:{ p_precip:"降水", p_vis:"視程", p_pollen:"花粉" }
+};
+for (const l in I18N_TABS3) Object.assign(I18N[l], I18N_TABS3[l]);
