@@ -596,3 +596,12 @@ applyParamSettings = async function () {
   if (PARAM_UNIT_GROUP[currentKey] === "temp") ttReadBlock();
   return _applyParamSettingsPrevTT();
 };
+/* Раздел «AV_Анализ опасности» переименован в «AV_Ощущается как» */
+const _buildParamSettingsPrevRename = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevRename();
+  const old = t("td_title").trim();
+  document.querySelectorAll("#param-body h3").forEach(h => {
+    if (h.textContent.trim() === old) h.textContent = "AV_" + t("td_feels");
+  });
+};
