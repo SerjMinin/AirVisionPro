@@ -502,3 +502,19 @@ applyParamSettings = async function () {
   }
   return _applyParamSettingsPrevThr();
 };
+/* Давление: порядок порогов в настройках — как на графике, сверху вниз */
+const _renderThrPrevOrder = renderThresholdsInputs;
+renderThresholdsInputs = function () {
+  _renderThrPrevOrder();
+  const box = document.getElementById("thr-box");
+  if (!box) return;
+  const order = ["thr_anom_high", "thr_high", "thr_normal", "thr_low", "thr_anom_low"].map(k => t(k));
+  const rank = r => {
+    const l = r.querySelector("label");
+    const i = l ? order.indexOf(l.textContent.trim()) : -1;
+    return i < 0 ? 99 : i;
+  };
+  Array.from(box.querySelectorAll(".set-row"))
+    .sort((a, b) => rank(a) - rank(b))
+    .forEach(r => box.appendChild(r));
+};

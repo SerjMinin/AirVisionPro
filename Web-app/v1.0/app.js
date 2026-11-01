@@ -1000,7 +1000,7 @@ Chart.register({
       ctx.font = "10px sans-serif";
       ctx.textAlign = "right";
       ctx.textBaseline = "bottom";
-      ctx.fillText(v.toFixed(dec), ca.right - 4, y - 2);
+      ctx.fillText(t("thr_" + it.k), ca.right - 4, y - 2);
       ctx.restore();
     });
   }
