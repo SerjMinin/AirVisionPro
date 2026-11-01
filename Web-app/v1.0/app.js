@@ -960,3 +960,40 @@ const I18N_VIS = {
   }
 };
 for (const k in I18N_VIS) for (const l in I18N_VIS[k]) if (I18N[l]) I18N[l][k] = I18N_VIS[k][l];
+/* Давление: красные пунктирные линии порогов (считаются по высоте из настроек) */
+Chart.register({
+  id: "pressureThrLines",
+  beforeDatasetsDraw(chart) {
+    if (typeof currentKey === "undefined" || currentKey !== "pressure") return;
+    const ys = Object.values(chart.scales).find(s => s.axis === "y");
+    if (!ys) return;
+    const ca = chart.chartArea;
+    const u = SETTINGS.units.pressure;
+    const thr = effectivePressureThresholds(SETTINGS);
+    const dec = (u === "inHg") ? 2 : 0;
+    const ctx = chart.ctx;
+    ["anom_low", "low", "normal", "high"].forEach(k => {
+      const v = convertUnit(thr[k], "pressure", u);
+      if (v == null || isNaN(v) || v < ys.min || v > ys.max) return;
+      const y = ys.getPixelForValue(v);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(ca.left, ca.top, ca.right - ca.left, ca.bottom - ca.top);
+      ctx.clip();
+      ctx.strokeStyle = "rgba(255,77,77,0.85)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([10, 4, 2, 4]);
+      ctx.beginPath();
+      ctx.moveTo(ca.left, y);
+      ctx.lineTo(ca.right, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(255,77,77,0.95)";
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(v.toFixed(dec), ca.right - 4, y - 2);
+      ctx.restore();
+    });
+  }
+});
