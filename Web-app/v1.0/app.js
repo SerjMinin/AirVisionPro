@@ -872,7 +872,7 @@ if (typeof Chart !== "undefined") {
   Chart.register({
     id: "pollenZeroBase",
     beforeUpdate: function (chart) {
-      if (typeof currentKey === "undefined" || currentKey !== "pollen") return;
+      if (typeof currentKey === "undefined" || (currentKey !== "pollen" && currentKey !== "precip")) return;
       var sc = chart.options && chart.options.scales;
       if (!sc) return;
       Object.keys(sc).forEach(function (id) {
