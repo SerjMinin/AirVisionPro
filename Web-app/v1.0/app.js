@@ -960,9 +960,9 @@ const I18N_VIS = {
   }
 };
 for (const k in I18N_VIS) for (const l in I18N_VIS[k]) if (I18N[l]) I18N[l][k] = I18N_VIS[k][l];
-/* Давление: красные пунктирные линии порогов (считаются по высоте из настроек) */
+/* Давление: пять пунктирных линий порогов (по высоте из настроек) */
 Chart.register({
-  id: "pressureThrLines",
+  id: "pressureThrLines5",
   beforeDatasetsDraw(chart) {
     if (typeof currentKey === "undefined" || currentKey !== "pressure") return;
     const ys = Object.values(chart.scales).find(s => s.axis === "y");
@@ -971,16 +971,24 @@ Chart.register({
     const u = SETTINGS.units.pressure;
     const thr = effectivePressureThresholds(SETTINGS);
     const dec = (u === "inHg") ? 2 : 0;
+    const RED = "255,77,77", ORANGE = "255,159,28", GREEN = "61,220,110";
+    const list = [
+      { k: "anom_high", c: RED },
+      { k: "high",      c: ORANGE },
+      { k: "normal",    c: GREEN },
+      { k: "low",       c: ORANGE },
+      { k: "anom_low",  c: RED }
+    ];
     const ctx = chart.ctx;
-    ["anom_low", "low", "normal", "high"].forEach(k => {
-      const v = convertUnit(thr[k], "pressure", u);
+    list.forEach(it => {
+      const v = convertUnit(thr[it.k], "pressure", u);
       if (v == null || isNaN(v) || v < ys.min || v > ys.max) return;
       const y = ys.getPixelForValue(v);
       ctx.save();
       ctx.beginPath();
       ctx.rect(ca.left, ca.top, ca.right - ca.left, ca.bottom - ca.top);
       ctx.clip();
-      ctx.strokeStyle = "rgba(255,77,77,0.85)";
+      ctx.strokeStyle = "rgba(" + it.c + ",0.85)";
       ctx.lineWidth = 1;
       ctx.setLineDash([10, 4, 2, 4]);
       ctx.beginPath();
@@ -988,7 +996,7 @@ Chart.register({
       ctx.lineTo(ca.right, y);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = "rgba(255,77,77,0.95)";
+      ctx.fillStyle = "rgba(" + it.c + ",0.95)";
       ctx.font = "10px sans-serif";
       ctx.textAlign = "right";
       ctx.textBaseline = "bottom";
