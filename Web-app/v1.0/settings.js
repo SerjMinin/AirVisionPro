@@ -432,3 +432,12 @@ function addPrecipBlock0() {
 }
 const _buildParamSettingsPrevPrecip = buildParamSettings;
 buildParamSettings = function () { _buildParamSettingsPrevPrecip(); addPrecipBlock(); };
+/* Вкладка «Видимость»: убираем лишнюю строку «Единица — фиксированная» */
+const _buildParamSettingsPrevVis2 = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevVis2();
+  if (currentKey === "vis") {
+    const first = document.querySelector("#param-body .set-section");
+    if (first) first.remove();
+  }
+};
