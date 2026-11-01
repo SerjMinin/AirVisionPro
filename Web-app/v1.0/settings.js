@@ -518,3 +518,81 @@ renderThresholdsInputs = function () {
     .sort((a, b) => rank(a) - rank(b))
     .forEach(r => box.appendChild(r));
 };
+/* ===== Температура: пороги опасности в окне шестерёнки (авто / свои) ===== */
+const TT_STD = { cold: [-28, -40, -48], heat: [27, 32, 41, 54] };
+const TT_IDS = ["tt_h4", "tt_h3", "tt_h2", "tt_h1", "tt_c1", "tt_c2", "tt_c3"];
+const TT_NAMES = ["Жара — уровень 4", "Жара — уровень 3", "Жара — уровень 2", "Жара — уровень 1",
+                  "Холод — уровень 1", "Холод — уровень 2", "Холод — уровень 3"];
+function ttStdList() {
+  return [TT_STD.heat[3], TT_STD.heat[2], TT_STD.heat[1], TT_STD.heat[0],
+          TT_STD.cold[0], TT_STD.cold[1], TT_STD.cold[2]];
+}
+function ttValid(l) {
+  return l.length === 7 && l.every(v => isFinite(v) && v !== 0) && l.every((v, i) => i === 0 || l[i - 1] > v);
+}
+function ttManualList() {
+  const t = SETTINGS.temp_thr;
+  if (t && t.heat && t.cold) {
+    const l = [t.heat[3], t.heat[2], t.heat[1], t.heat[0], t.cold[0], t.cold[1], t.cold[2]].map(Number);
+    if (ttValid(l)) return l;
+  }
+  return ttStdList();
+}
+function ttToC(v, u) { return u === "F" ? (v - 32) * 5 / 9 : v; }
+function ttShow(v, u) { return Math.round(convertUnit(v, "temp", u) * 10) / 10; }
+
+function addTempThrBlock() {
+  if (PARAM_UNIT_GROUP[currentKey] !== "temp") return;
+  let shown = SETTINGS.units.temp;
+  const auto = SETTINGS.temp_thr_auto !== false;
+  const list = auto ? ttStdList() : ttManualList();
+  const rows = TT_IDS.map((id, i) =>
+    `<div class="set-row"><label>${prT(id, TT_NAMES[i])}</label>
+     <input id="${id}" class="set-input" type="number" step="1" value="${ttShow(list[i], shown)}" ${auto ? "disabled" : ""}></div>`
+  ).join("");
+  document.getElementById("param-body").insertAdjacentHTML("beforeend",
+    `<div class="set-section"><h3>${prT("tt_title", "Пороги опасности")}</h3>
+     <label class="set-check"><input type="checkbox" id="tt_auto" ${auto ? "checked" : ""}> ${prT("tt_auto", "Авторасчёт")}</label>
+     ${rows}</div>`);
+  document.getElementById("tt_auto").addEventListener("change", e => {
+    const on = e.target.checked;
+    const l = on ? ttStdList() : ttManualList();
+    TT_IDS.forEach((id, i) => {
+      const el = document.getElementById(id);
+      el.disabled = on;
+      el.value = ttShow(l[i], shown);
+    });
+  });
+  const uSel = document.getElementById("pu_unit");
+  if (uSel) uSel.addEventListener("change", () => {
+    const nu = uSel.value;
+    TT_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      const v = parseFloat(el.value);
+      if (isFinite(v)) el.value = ttShow(ttToC(v, shown), nu);
+    });
+    shown = nu;
+  });
+}
+function ttReadBlock() {
+  const autoEl = document.getElementById("tt_auto");
+  if (!autoEl) return;
+  SETTINGS.temp_thr_auto = autoEl.checked;
+  if (autoEl.checked) return;
+  const uEl = document.getElementById("pu_unit");
+  const u = uEl ? uEl.value : SETTINGS.units.temp;
+  const std = ttStdList();
+  let list = TT_IDS.map((id, i) => {
+    const v = parseFloat(document.getElementById(id).value);
+    return (isFinite(v) && v !== 0) ? Math.round(ttToC(v, u) * 100) / 100 : std[i];
+  });
+  if (!ttValid(list)) list = std;
+  SETTINGS.temp_thr = { heat: [list[3], list[2], list[1], list[0]], cold: [list[4], list[5], list[6]] };
+}
+const _buildParamSettingsPrevTT = buildParamSettings;
+buildParamSettings = function () { _buildParamSettingsPrevTT(); addTempThrBlock(); };
+const _applyParamSettingsPrevTT = applyParamSettings;
+applyParamSettings = async function () {
+  if (PARAM_UNIT_GROUP[currentKey] === "temp") ttReadBlock();
+  return _applyParamSettingsPrevTT();
+};
