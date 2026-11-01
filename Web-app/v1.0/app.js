@@ -1005,3 +1005,56 @@ Chart.register({
     });
   }
 });
+/* Температура: пунктирные линии порогов опасности (оранжевый и красный) */
+const TEMP_THR_STD = { cold: [-28, -40, -48], heat: [27, 32, 41, 54] };
+function tempThrNow() {
+  if (SETTINGS.temp_thr_auto === false && SETTINGS.temp_thr) {
+    const c = (SETTINGS.temp_thr.cold || []).map(Number);
+    const h = (SETTINGS.temp_thr.heat || []).map(Number);
+    const ok = c.length === 3 && h.length === 4 &&
+      c.every(v => isFinite(v) && v !== 0) && h.every(v => isFinite(v) && v !== 0) &&
+      c[0] > c[1] && c[1] > c[2] && h[0] < h[1] && h[1] < h[2] && h[2] < h[3];
+    if (ok) return { cold: c, heat: h };
+  }
+  return TEMP_THR_STD;
+}
+Chart.register({
+  id: "tempThrLines",
+  beforeDatasetsDraw(chart) {
+    if (typeof currentKey === "undefined" || currentKey !== "temp") return;
+    if (SETTINGS.temp_danger && SETTINGS.temp_danger.on === false) return;
+    const ys = Object.values(chart.scales).find(s => s.axis === "y");
+    if (!ys) return;
+    const ca = chart.chartArea;
+    const u = SETTINGS.units.temp;
+    const thr = tempThrNow();
+    const ORANGE = "255,159,28", RED = "255,77,77";
+    const list = [];
+    thr.cold.forEach((v, i) => list.push({ v, c: i === 0 ? ORANGE : RED }));
+    thr.heat.forEach((v, i) => list.push({ v, c: i < 2 ? ORANGE : RED }));
+    const ctx = chart.ctx;
+    list.forEach(it => {
+      const v = convertUnit(it.v, "temp", u);
+      if (v == null || isNaN(v) || v < ys.min || v > ys.max) return;
+      const y = ys.getPixelForValue(v);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(ca.left, ca.top, ca.right - ca.left, ca.bottom - ca.top);
+      ctx.clip();
+      ctx.strokeStyle = "rgba(" + it.c + ",0.85)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([10, 4, 2, 4]);
+      ctx.beginPath();
+      ctx.moveTo(ca.left, y);
+      ctx.lineTo(ca.right, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(" + it.c + ",0.95)";
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(Math.round(v) + "°", ca.right - 4, y - 2);
+      ctx.restore();
+    });
+  }
+});
