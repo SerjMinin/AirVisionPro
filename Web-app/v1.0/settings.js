@@ -441,3 +441,64 @@ buildParamSettings = function () {
     if (first) first.remove();
   }
 };
+/* Давление: пороги в окне настроек — сверху вниз, как на графике */
+const _renderThresholdsInputsPrev = renderThresholdsInputs;
+renderThresholdsInputs = function () {
+  _renderThresholdsInputsPrev();
+  const box = document.getElementById("thr-box");
+  if (!box) return;
+  const rows = Array.from(box.querySelectorAll(".set-row")).reverse();
+  rows.forEach(r => box.appendChild(r));
+};
+/* ===== Давление: защита порогов (авто / ручной ввод) ===== */
+function pressureSea() { return DEFAULT_SETTINGS.pressure_thr; }
+function pressureSeaCopy() { return JSON.parse(JSON.stringify(DEFAULT_SETTINGS.pressure_thr)); }
+function pressureThrBroken(thr) {
+  if (!thr) return true;
+  return Object.keys(pressureSea()).some(k => !isFinite(parseFloat(thr[k])));
+}
+function pressureThrIsSea(thr) {
+  const d = pressureSea();
+  return !!thr && Object.keys(d).every(k => Number(thr[k]) === d[k]);
+}
+/* расчётные пороги для места пользователя */
+function pressureThrForPlace() {
+  return effectivePressureThresholds({ ...SETTINGS, pressure_auto: true, pressure_thr: pressureSea() });
+}
+
+/* 1) Что показывать в окне настроек давления */
+const _renderThrPrevSafe = renderThresholdsInputs;
+renderThresholdsInputs = function () {
+  const s = SETTINGS;
+  if (pressureThrBroken(s.pressure_thr)) s.pressure_thr = pressureSeaCopy();
+  const orig = s.pressure_thr;
+  if (s.pressure_auto !== false) {
+    s.pressure_thr = pressureSea();
+  } else if (pressureThrIsSea(orig)) {
+    s.pressure_thr = pressureThrForPlace();
+  }
+  try { _renderThrPrevSafe(); } finally { s.pressure_thr = orig; }
+};
+
+/* 2) При сохранении: пустые поля заполняются расчётом, при «авто» базой остаются уровни моря */
+const _applyParamSettingsPrevThr = applyParamSettings;
+applyParamSettings = async function () {
+  if (currentKey === "pressure") {
+    const auto = document.getElementById("thr_auto");
+    if (auto && auto.checked) {
+      SETTINGS.pressure_thr = pressureSeaCopy();
+    } else if (auto) {
+      const u = SETTINGS.units.pressure;
+      const eff = pressureThrForPlace();
+      const ids = { thr_al: "anom_low", thr_l: "low", thr_n: "normal", thr_h: "high", thr_ah: "anom_high" };
+      Object.keys(ids).forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!isFinite(parseFloat(el.value))) {
+          el.value = convertUnit(eff[ids[id]], "pressure", u).toFixed(u === "inHg" ? 2 : 0);
+        }
+      });
+    }
+  }
+  return _applyParamSettingsPrevThr();
+};
