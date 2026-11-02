@@ -1005,8 +1005,15 @@ Chart.register({
     });
   }
 });
-/* Температура: пунктирные линии порогов опасности (оранжевый и красный) */
+/* Температура: пороги опасности. Авто — кривые по влажности и ветру точки, свои — прямые линии */
+let tdDanger = null;      // кривые порогов текущего графика
+let tdDangerLast = null;  // последние известные влажность и ветер (для окна настроек)
 const TEMP_THR_STD = { cold: [-28, -40, -48], heat: [27, 32, 41, 54] };
+const TD_LEVELS = [
+  { v: 54, c: "255,77,77" }, { v: 41, c: "255,77,77" },
+  { v: 32, c: "255,159,28" }, { v: 27, c: "255,159,28" },
+  { v: -28, c: "255,159,28" }, { v: -40, c: "255,77,77" }, { v: -48, c: "255,77,77" }
+];
 function tempThrNow() {
   if (SETTINGS.temp_thr_auto === false && SETTINGS.temp_thr) {
     const c = (SETTINGS.temp_thr.cold || []).map(Number);
@@ -1018,43 +1025,120 @@ function tempThrNow() {
   }
   return TEMP_THR_STD;
 }
+/* при какой температуре воздуха «ощущается как» достигнет уровня (при данных влажности и ветре) */
+function tdSolveAir(level, rh, wind) {
+  let lo = -90, hi = 70;
+  if (feelsLikeC(lo, rh, wind) > level) return null;
+  if (feelsLikeC(hi, rh, wind) < level) return null;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (feelsLikeC(mid, rh, wind) < level) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+/* текущие расчётные значения для окна настроек: жара 4,3,2,1, холод 1,2,3 */
+function tdDangerNowList() {
+  return TD_LEVELS.map(it => {
+    if (!tdDangerLast) return it.v;
+    const s = tdSolveAir(it.v, tdDangerLast.rh, tdDangerLast.w);
+    return s == null ? it.v : Math.round(s * 10) / 10;
+  });
+}
+async function addFeelsLike(p, datasets, from, to, step, g, unitId, nowSec) {
+  tdDanger = null;
+  if (g !== "temp") return;
+  const cfg = SETTINGS.temp_danger || {};
+  if (cfg.on === false) return;
+  const clean = a => a.filter(o => !isNaN(o.val)).sort((x, y) => x.ts - y.ts);
+  const T = clean(await tdSeries("temp", cfg.temp || "auto", from, to));
+  if (!T.length) return;
+  const RH = clean(await tdSeries("rh", cfg.rh || "auto", from, to));
+  const W  = clean(await tdSeries("wind_spd", cfg.wind || "auto", from, to));
+  const gapX = (6*3600) / step;
+  const pts = [];
+  const curves = TD_LEVELS.map(it => ({ v: it.v, c: it.c, pts: [] }));
+  T.forEach(o => {
+    const x = (o.ts - from) / step;
+    const rh = tdNear(RH, o.ts), w = tdNear(W, o.ts);
+    if (pts.length && x - pts[pts.length-1].x > gapX) {
+      const gx = (pts[pts.length-1].x + x) / 2;
+      pts.push({ x: gx, y: null });
+      curves.forEach(cv => cv.pts.push({ x: gx, y: null }));
+    }
+    pts.push({ x, y: convertUnit(feelsLikeC(o.val, rh, w), "temp", unitId) });
+    curves.forEach(cv => {
+      const s = tdSolveAir(cv.v, rh, w);
+      cv.pts.push({ x, y: s == null ? null : convertUnit(s, "temp", unitId) });
+    });
+  });
+  const rhNow = tdNear(RH, nowSec), wNow = tdNear(W, nowSec);
+  if (rhNow != null || wNow != null) tdDangerLast = { rh: rhNow, w: wNow };
+  tdDanger = { curves };
+  const nowX = (nowSec - from) / step;
+  const col = "#ff4d4d";
+  datasets.push({ label: "AV_" + t("td_feels"), data: pts, borderColor: col, backgroundColor: col + "22",
+    fill: false, tension: 0.3, pointRadius: 0, spanGaps: false,
+    segment: { borderDash: c => (c.p1.parsed.x > nowX ? [6,4] : undefined) } });
+}
 Chart.register({
   id: "tempThrLines",
   beforeDatasetsDraw(chart) {
     if (typeof currentKey === "undefined" || currentKey !== "temp") return;
     if (SETTINGS.temp_danger && SETTINGS.temp_danger.on === false) return;
     const ys = Object.values(chart.scales).find(s => s.axis === "y");
-    if (!ys) return;
+    const xs = Object.values(chart.scales).find(s => s.axis === "x");
+    if (!ys || !xs) return;
     const ca = chart.chartArea;
     const u = SETTINGS.units.temp;
-    const thr = tempThrNow();
-    const ORANGE = "255,159,28", RED = "255,77,77";
-    const list = [];
-    thr.cold.forEach((v, i) => list.push({ v, c: i === 0 ? ORANGE : RED }));
-    thr.heat.forEach((v, i) => list.push({ v, c: i < 2 ? ORANGE : RED }));
     const ctx = chart.ctx;
-    list.forEach(it => {
-      const v = convertUnit(it.v, "temp", u);
-      if (v == null || isNaN(v) || v < ys.min || v > ys.max) return;
-      const y = ys.getPixelForValue(v);
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(ca.left, ca.top, ca.right - ca.left, ca.bottom - ca.top);
-      ctx.clip();
-      ctx.strokeStyle = "rgba(" + it.c + ",0.85)";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([10, 4, 2, 4]);
-      ctx.beginPath();
-      ctx.moveTo(ca.left, y);
-      ctx.lineTo(ca.right, y);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = "rgba(" + it.c + ",0.95)";
-      ctx.font = "10px sans-serif";
-      ctx.textAlign = "right";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(Math.round(v) + "°", ca.right - 4, y - 2);
-      ctx.restore();
-    });
+    const dec = v => Math.round(v) + "°";
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ca.left, ca.top, ca.right - ca.left, ca.bottom - ca.top);
+    ctx.clip();
+    ctx.lineWidth = 1;
+    ctx.font = "10px sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "bottom";
+    if (SETTINGS.temp_thr_auto !== false) {
+      if (tdDanger) tdDanger.curves.forEach(cv => {
+        ctx.strokeStyle = "rgba(" + cv.c + ",0.85)";
+        ctx.setLineDash([10, 4, 2, 4]);
+        ctx.beginPath();
+        let pen = false, last = null;
+        cv.pts.forEach(pt => {
+          if (pt.y == null) { pen = false; return; }
+          const px = xs.getPixelForValue(pt.x), py = ys.getPixelForValue(pt.y);
+          if (pen) ctx.lineTo(px, py); else { ctx.moveTo(px, py); pen = true; }
+          if (pt.y >= ys.min && pt.y <= ys.max && pt.x >= xs.min && pt.x <= xs.max) last = { px, py };
+        });
+        ctx.stroke();
+        ctx.setLineDash([]);
+        if (last) {
+          ctx.fillStyle = "rgba(" + cv.c + ",0.95)";
+          ctx.fillText(dec(convertUnit(cv.v, "temp", u)), Math.min(last.px, ca.right - 4), last.py - 2);
+        }
+      });
+    } else {
+      const thr = tempThrNow();
+      const list = [];
+      thr.cold.forEach((v, i) => list.push({ v, c: i === 0 ? "255,159,28" : "255,77,77" }));
+      thr.heat.forEach((v, i) => list.push({ v, c: i < 2 ? "255,159,28" : "255,77,77" }));
+      list.forEach(it => {
+        const v = convertUnit(it.v, "temp", u);
+        if (v == null || isNaN(v) || v < ys.min || v > ys.max) return;
+        const y = ys.getPixelForValue(v);
+        ctx.strokeStyle = "rgba(" + it.c + ",0.85)";
+        ctx.setLineDash([10, 4, 2, 4]);
+        ctx.beginPath();
+        ctx.moveTo(ca.left, y);
+        ctx.lineTo(ca.right, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "rgba(" + it.c + ",0.95)";
+        ctx.fillText(dec(v), ca.right - 4, y - 2);
+      });
+    }
+    ctx.restore();
   }
 });

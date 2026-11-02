@@ -605,3 +605,7 @@ buildParamSettings = function () {
     if (h.textContent.trim() === old) h.textContent = "AV_" + t("td_feels");
   });
 };
+/* Температура: в окне настроек в режиме «авто» показываются текущие расчётные значения для этой точки */
+function ttStdList() {
+  return (typeof tdDangerNowList === "function") ? tdDangerNowList() : [54, 41, 32, 27, -28, -40, -48];
+}
