@@ -609,3 +609,144 @@ buildParamSettings = function () {
 function ttStdList() {
   return (typeof tdDangerNowList === "function") ? tdDangerNowList() : [54, 41, 32, 27, -28, -40, -48];
 }
+/* ===== Газы: автоиндикатор опасности в окне настроек вещества ===== */
+const GAS_INFO = {
+  co2:  { d: "ok",     w: "down" },
+  co:   { d: "ok",     w: "mix"  },
+  nh3:  { d: "ok",     w: "up"   },
+  so2:  { d: "danger", w: "down" },
+  no:   { d: "danger", w: "mix"  },
+  o3:   { d: "bad",    w: "down" },
+  hcho: { d: "bad",    w: "mix"  },
+  no2:  { d: "bad",    w: "down" }
+};
+/* пороги в мкг/м³ (CO₂ — ppm); s = СанПиН, w = ВОЗ (null = у ВОЗ нет значения) */
+const GAS_NORMS = {
+  co:   { home: { s: 3000, w: 4000 },  street: { s: 5000, w: 35000 } },
+  no2:  { home: { s: 100,  w: 25 },    street: { s: 200,  w: 200 } },
+  no:   { home: { s: 60,   w: null },  street: { s: 400,  w: null } },
+  so2:  { home: { s: 50,   w: 40 },    street: { s: 500,  w: 500 } },
+  o3:   { home: { s: 30,   w: 100 },   street: { s: 160,  w: null } },
+  nh3:  { home: { s: 40,   w: null },  street: { s: 200,  w: null } },
+  hcho: { home: { s: 10,   w: null },  street: { s: 50,   w: 100 } },
+  co2:  { home: { s: 1000, w: null },  street: { s: 1000, w: null } }
+};
+function gT(k, ru) { return prT("gas_" + k, ru); }
+function gasCfg() {
+  const g = SETTINGS.gas || {};
+  return { on: g.on !== false, norm: g.norm || "strict", mode: g.mode || "home", thr: g.thr || {} };
+}
+function gasDefault(key, norm, mode) {
+  const e = GAS_NORMS[key][mode];
+  if (norm === "sanpin") return e.s;
+  if (norm === "who") return e.w != null ? e.w : e.s;
+  return e.w != null ? Math.min(e.s, e.w) : e.s;
+}
+function gasFmt(v) { return String(+Number(v).toPrecision(4)); }
+function gasUnitId(key) {
+  const g = PARAM_UNIT_GROUP[key];
+  const el = document.getElementById("pu_unit");
+  return el ? el.value : (g ? SETTINGS.units[g] : "");
+}
+function gasFactor(key, unitId) {
+  const g = PARAM_UNIT_GROUP[key];
+  if (g) { const f = convertUnit(1, g, unitId); return (isFinite(f) && f > 0) ? f : 1; }
+  const p = PARAMS.find(x => x.key === key);
+  return /мг/.test(paramUnitDisplay(p) || "") ? 0.001 : 1;
+}
+function gasLabel(key) {
+  const g = PARAM_UNIT_GROUP[key];
+  if (g) return unitLabel(g, gasUnitId(key));
+  return paramUnitDisplay(PARAMS.find(x => x.key === key)) || "";
+}
+function gasRefresh(key, reset) {
+  const norm = document.getElementById("gas_norm").value;
+  const mode = document.querySelector('input[name="gas_mode"]:checked').value;
+  document.getElementById("gas_desc").textContent = mode === "home"
+    ? gT("m_home_d", "Люди рядом постоянно. Пороги строгие, по среднесуточным нормам.")
+    : gT("m_street_d", "Человек рядом недолго, 20–30 минут. Пороги мягче, по максимально разовым нормам.");
+  document.getElementById("gas_nowho").textContent =
+    (norm === "who" && GAS_NORMS[key][mode].w == null) ? gT("nowho", "нет в нормах ВОЗ") : "";
+  document.getElementById("gas_unit").textContent = gasLabel(key);
+  if (reset) document.getElementById("gas_thr").value =
+    gasFmt(gasDefault(key, norm, mode) * gasFactor(key, gasUnitId(key)));
+  const on = document.getElementById("gas_on").checked;
+  const ctl = document.getElementById("gas_ctl");
+  ctl.style.opacity = on ? "1" : "0.4";
+  ctl.style.pointerEvents = on ? "" : "none";
+  document.getElementById("gas_thr").disabled = !on;
+}
+function addGasBlock() {
+  const key = currentKey;
+  const info = GAS_INFO[key];
+  if (!info) return;
+  const c = gasCfg();
+  const normOpts = [
+    { id: "strict", label: gT("n_strict", "Самый строгий") },
+    { id: "sanpin", label: "СанПиН" },
+    { id: "who",    label: gT("n_who", "ВОЗ") }
+  ];
+  const dText = { ok: gT("d_ok", "Кратковременное превышение допустимо"),
+                  danger: gT("d_danger", "Кратковременное превышение опасно"),
+                  bad: gT("d_bad", "Кратковременное превышение не допустимо") }[info.d];
+  const dColor = { ok: "var(--warn)", danger: "#ff9d4d", bad: "var(--error)" }[info.d];
+  const wText = { down: gT("w_down", "Оседает вниз"),
+                  mix: gT("w_mix", "Растворяется в воздухе"),
+                  up: gT("w_up", "Улетучивается вверх") }[info.w];
+  const custom = Number(c.thr[key]);
+  const baseV = custom > 0 ? custom : gasDefault(key, c.norm, c.mode);
+  const html = `<div class="set-section"><h3>${gT("title", "Автоиндикатор опасности")}</h3>
+    <label class="set-check"><input type="checkbox" id="gas_on" ${c.on ? "checked" : ""}> ${gT("on", "Включить автоиндикатор")}</label>
+    <div id="gas_ctl">
+      <div class="set-row"><label>${gT("norm", "Норматив")}</label>${selHtml("gas_norm", normOpts, c.norm)}</div>
+      <div class="set-row"><label>${gT("mode", "Режим")}</label>
+        <div style="display:flex;gap:16px;">
+          <label class="set-check" style="margin:0"><input type="radio" name="gas_mode" id="gas_m_home" value="home" ${c.mode === "home" ? "checked" : ""}> ${gT("m_home", "Офис / Дом")}</label>
+          <label class="set-check" style="margin:0"><input type="radio" name="gas_mode" id="gas_m_street" value="street" ${c.mode === "street" ? "checked" : ""}> ${gT("m_street", "Улица")}</label>
+        </div></div>
+      <div class="param-desc" id="gas_desc" style="margin-bottom:8px;"></div>
+      <div class="set-row"><label>${gT("thr", "Порог")}, <span id="gas_unit"></span></label>
+        <input id="gas_thr" class="set-input" type="number" step="any" min="0"></div>
+      <div class="set-hint" id="gas_nowho" style="margin:0 0 6px;"></div>
+    </div>
+    <div class="param-desc" style="color:${dColor};font-weight:600;margin-top:6px;">${dText}</div>
+    <div class="param-desc" style="margin-top:6px;">${wText}</div>
+  </div>`;
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+  document.getElementById("gas_thr").value = gasFmt(baseV * gasFactor(key, gasUnitId(key)));
+  gasRefresh(key, false);
+  let shownU = gasUnitId(key);
+  document.getElementById("gas_on").addEventListener("change", () => gasRefresh(key, false));
+  document.getElementById("gas_norm").addEventListener("change", () => gasRefresh(key, true));
+  document.querySelectorAll('input[name="gas_mode"]').forEach(r =>
+    r.addEventListener("change", () => gasRefresh(key, true)));
+  const uSel = document.getElementById("pu_unit");
+  if (uSel) uSel.addEventListener("change", () => {
+    const nu = gasUnitId(key);
+    const el = document.getElementById("gas_thr");
+    const v = parseFloat(el.value);
+    if (isFinite(v)) el.value = gasFmt(v / gasFactor(key, shownU) * gasFactor(key, nu));
+    shownU = nu;
+    document.getElementById("gas_unit").textContent = gasLabel(key);
+  });
+}
+function gasRead() {
+  const key = currentKey;
+  const onEl = document.getElementById("gas_on");
+  if (!onEl || !GAS_INFO[key]) return;
+  const norm = document.getElementById("gas_norm").value;
+  const mode = document.querySelector('input[name="gas_mode"]:checked').value;
+  const def = gasDefault(key, norm, mode);
+  const v = parseFloat(document.getElementById("gas_thr").value);
+  let base = (isFinite(v) && v > 0) ? v / gasFactor(key, gasUnitId(key)) : def;
+  const old = (SETTINGS.gas && SETTINGS.gas.thr) ? SETTINGS.gas.thr : {};
+  const thr = Object.assign({}, old);
+  if (Math.abs(base - def) <= def * 0.01) delete thr[key]; else thr[key] = base;
+  SETTINGS.gas = { on: onEl.checked, norm: norm, mode: mode, thr: thr };
+}
+const _buildParamSettingsPrevGas = buildParamSettings;
+buildParamSettings = function () { _buildParamSettingsPrevGas(); addGasBlock(); };
+const _applyParamSettingsPrevGas = applyParamSettings;
+applyParamSettings = async function () { gasRead(); return _applyParamSettingsPrevGas(); };
