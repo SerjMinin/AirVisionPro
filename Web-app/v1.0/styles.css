@@ -500,3 +500,7 @@ input[type="number"]::-webkit-inner-spin-button{
 .avp-opt:last-child{ border-bottom:none; }
 .avp-opt:hover{ background:rgba(41,155,255,0.18); color:var(--accent-1); }
 .avp-opt.sel{ color:var(--accent-1); }
+/* Окно настроек параметра: выше по умолчанию, чтобы список единиц помещался */
+#param-modal .modal-card {
+  min-height: 50vh;
+}
