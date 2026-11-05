@@ -46,7 +46,7 @@ const PARAMS = [
   { key:"solar", i18n:"p_solar", unit:"Вт/м²", loc:"out",  round:0, color:"#ffb84d" },
   { key:"lux",   i18n:"p_lux",   unit:"лк",    loc:"both", round:0, color:"#ffe14d" },
 
-  { key:"hcho", i18n:"p_hcho", unit:"мг/м³",  loc:"in",   round:2, color:"#ff6bff" },
+  { key:"hcho", i18n:"p_hcho", unit:"мкг/м³", loc:"in",   round:1, color:"#ff6bff" },
   { key:"ch4",  i18n:"p_ch4",  unit:"мкг/м³", loc:"out",  round:0, color:"#7bffd2" },
   { key:"co",   i18n:"p_co",   unit:"мг/м³",  loc:"both", round:1, color:"#ff8c6b" },
   { key:"co2",  i18n:"p_co2",  unit:"ppm",    loc:"in",   round:0, color:"#6bffb0" },

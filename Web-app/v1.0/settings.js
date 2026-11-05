@@ -750,3 +750,11 @@ const _buildParamSettingsPrevGas = buildParamSettings;
 buildParamSettings = function () { _buildParamSettingsPrevGas(); addGasBlock(); };
 const _applyParamSettingsPrevGas = applyParamSettings;
 applyParamSettings = async function () { gasRead(); return _applyParamSettingsPrevGas(); };
+/* Газы: множитель порога строго по правилу «в базе мкг/м³, CO₂ — ppm» */
+gasFactor = function (key, unitId) {
+  const g = PARAM_UNIT_GROUP[key];
+  if (g) { const f = convertUnit(1, g, unitId); return (isFinite(f) && f > 0) ? f : 1; }
+  return 1;
+};
+/* ВОЗ: формальдегид 100 мкг/м³ за 30 минут — норма для помещений, годится для обоих режимов */
+GAS_NORMS.hcho.home.w = 100;

@@ -1142,3 +1142,36 @@ Chart.register({
     ctx.restore();
   }
 });
+/* ===== Газы: пунктирная линия порога опасности ===== */
+Chart.register({
+  id: "gasThrLine",
+  afterDatasetsDraw: function (chart) {
+    try {
+      const key = (typeof currentKey !== "undefined") ? currentKey : null;
+      if (!key || typeof GAS_INFO === "undefined" || !GAS_INFO[key]) return;
+      const g = SETTINGS.gas || {};
+      if (g.on === false) return;
+      const custom = g.thr ? Number(g.thr[key]) : NaN;
+      const base = custom > 0 ? custom : gasDefault(key, g.norm || "strict", g.mode || "home");
+      if (!(base > 0)) return;
+      const grp = PARAM_UNIT_GROUP[key];
+      const v = grp ? convertUnit(base, grp, SETTINGS.units[grp]) : base;
+      const y = chart.scales.y || Object.values(chart.scales).find(function (s) { return s.axis === "y"; });
+      if (!y || !isFinite(v) || v < y.min || v > y.max) return;
+      const a = chart.chartArea;
+      const py = y.getPixelForValue(v);
+      const col = { ok: "#ffcf4d", danger: "#ff9d4d", bad: "#ff4d4d" }[GAS_INFO[key].d];
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(a.left, a.top, a.right - a.left, a.bottom - a.top); ctx.clip();
+      ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash([10, 4, 2, 4]);
+      ctx.beginPath(); ctx.moveTo(a.left, py); ctx.lineTo(a.right, py); ctx.stroke();
+      ctx.restore();
+      ctx.save();
+      ctx.fillStyle = col; ctx.font = "11px 'Exo 2', sans-serif";
+      ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+      ctx.fillText(String(+v.toPrecision(3)), a.right - 4, py - 3);
+      ctx.restore();
+    } catch (e) {}
+  }
+});
