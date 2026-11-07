@@ -1175,3 +1175,238 @@ Chart.register({
     } catch (e) {}
   }
 });
+/* ===== AQI: линия «AV_AQI» — индекс качества воздуха по правилам US EPA ===== */
+let AQI_STATUS = null;   // для окна настроек: что используется и чего не хватает
+
+const AQI_KEYS = ["pm25", "pm10", "o3", "co", "so2", "no2"];
+const AQI_POLL = {
+  pm25: { dev: ["pm25", "pm2_5"], web: ["pm2_5", "pm25"] },
+  pm10: { dev: ["pm10"],          web: ["pm10"] },
+  o3:   { dev: ["o3"],            web: ["ozone", "o3"] },
+  co:   { dev: ["co"],            web: ["carbon_monoxide", "co"] },
+  so2:  { dev: ["so2"],           web: ["sulphur_dioxide", "so2"] },
+  no2:  { dev: ["no2"],           web: ["nitrogen_dioxide", "no2"] }
+};
+/* таблицы EPA (редакция 2024): [конц. от, конц. до, индекс от, индекс до]
+   PM — мкг/м³, CO — ppm, остальные газы — ppb */
+const AQI_BP = {
+  pm25: [[0,9.0,0,50],[9.1,35.4,51,100],[35.5,55.4,101,150],[55.5,125.4,151,200],[125.5,225.4,201,300],[225.5,325.4,301,500]],
+  pm10: [[0,54,0,50],[55,154,51,100],[155,254,101,150],[255,354,151,200],[355,424,201,300],[425,504,301,400],[505,604,401,500]],
+  co:   [[0,4.4,0,50],[4.5,9.4,51,100],[9.5,12.4,101,150],[12.5,15.4,151,200],[15.5,30.4,201,300],[30.5,40.4,301,400],[40.5,50.4,401,500]],
+  so2:  [[0,35,0,50],[36,75,51,100],[76,185,101,150],[186,304,151,200],[305,604,201,300],[605,804,301,400],[805,1004,401,500]],
+  no2:  [[0,53,0,50],[54,100,51,100],[101,360,101,150],[361,649,151,200],[650,1249,201,300],[1250,1649,301,400],[1650,2049,401,500]],
+  o3_8: [[0,54,0,50],[55,70,51,100],[71,85,101,150],[86,105,151,200],[106,200,201,300]],
+  o3_1: [[125,164,101,150],[165,204,151,200],[205,404,201,300],[405,504,301,400],[505,604,401,500]]
+};
+
+/* концентрация → частный индекс по таблице (null, если не применимо) */
+function aqiSub(tab, c) {
+  if (c == null || !isFinite(c) || c < tab[0][0]) return null;
+  for (const r of tab) {
+    if (c <= r[1]) {
+      if (c < r[0]) c = r[0];
+      return Math.round((r[3] - r[2]) / (r[1] - r[0]) * (c - r[0]) + r[2]);
+    }
+  }
+  return 500;
+}
+
+/* NowCast (EPA) для частиц: a[0] — текущий час, a[11] — 11 часов назад */
+function aqiNowCast(a) {
+  let have = 0;
+  for (let i = 0; i < 3; i++) if (a[i] != null) have++;
+  if (have < 2) return null;
+  let mn = Infinity, mx = -Infinity;
+  a.forEach(v => { if (v != null) { if (v < mn) mn = v; if (v > mx) mx = v; } });
+  let w = mx > 0 ? mn / mx : 1;
+  if (w < 0.5) w = 0.5;
+  let s = 0, d = 0;
+  a.forEach((v, i) => { if (v != null) { const k = Math.pow(w, i); s += v * k; d += k; } });
+  return d > 0 ? s / d : null;
+}
+
+/* среднее за n часов, если есть хотя бы need часов с данными */
+function aqiAvgN(map, h, n, need) {
+  let s = 0, c = 0;
+  for (let i = 0; i < n; i++) { const v = map.get(h - i); if (v != null) { s += v; c++; } }
+  return c >= need ? s / c : null;
+}
+
+/* почасовые средние: Map «номер часа → значение» */
+function aqiHourMap(arr) {
+  const sum = new Map(), cnt = new Map();
+  arr.forEach(o => {
+    if (!isFinite(o.val) || !isFinite(o.ts)) return;
+    const h = Math.floor(o.ts / 3600);
+    sum.set(h, (sum.get(h) || 0) + o.val);
+    cnt.set(h, (cnt.get(h) || 0) + 1);
+  });
+  const m = new Map();
+  sum.forEach((s, h) => m.set(h, s / cnt.get(h)));
+  return m;
+}
+
+/* ключ параметра у уличного устройства (по его карте) */
+function aqiDevKey(k) {
+  const dmap = (SETTINGS.devices && SETTINGS.devices.out && SETTINGS.devices.out.map) || {};
+  for (const dk of AQI_POLL[k].dev) if (dk in dmap && dmap[dk] !== "no") return dk;
+  return null;
+}
+/* имя параметра в источнике Air Quality (по его карте) */
+function aqiWebParam(k) {
+  const gs = (SETTINGS.weather_sources && SETTINGS.weather_sources["open-meteo-air"]) || {};
+  const def = (typeof AIRQUALITY_DEFAULT_MAP !== "undefined") ? AIRQUALITY_DEFAULT_MAP : {};
+  const map = (gs.map && Object.keys(gs.map).length) ? gs.map : def;
+  for (const pn of AQI_POLL[k].web) if (pn in map && map[pn] !== "no") return pn;
+  return null;
+}
+
+/* замеры устройства: постранично, от новых к старым (до 40 000 штук) */
+async function aqiLoadDev(sn, dk, from, to) {
+  const out = [];
+  for (let page = 0; page < 40; page++) {
+    const { data, error } = await client.from("measurements").select("val, ts_device")
+      .eq("serial", sn).eq("key", dk)
+      .gte("ts_device", from).lte("ts_device", to)
+      .order("ts_device", { ascending: false })
+      .range(page * 1000, page * 1000 + 999);
+    if (error || !data || !data.length) break;
+    data.forEach(r => out.push({ ts: Number(r.ts_device), val: Number(r.val) }));
+    if (data.length < 1000) break;
+  }
+  return out;
+}
+/* Air Quality: факт и (на «сейчас») прогноз */
+async function aqiLoadWeb(param, from, to, withFc) {
+  const rows = await loadWeatherSeries("open-meteo-air", param, from, to);
+  const fact = rows.map(r => ({ ts: Date.parse(r.ts_utc) / 1000, val: Number(r.val) }));
+  const fcst = [];
+  if (withFc && typeof loadWeatherForecast === "function") {
+    try {
+      const f = await loadWeatherForecast("open-meteo-air", param);
+      (f || []).forEach(o => { if (o.ts <= to) fcst.push({ ts: o.ts, val: Number(o.val) }); });
+    } catch (e) {}
+  }
+  return { fact, fcst };
+}
+
+/* индекс одного часа: наибольший из частных; нужен PM2.5 или PM10 */
+function aqiHourValue(M, h) {
+  const subs = [];
+  let hasPM = false;
+  const pm = (k, trunc) => {
+    const nc = aqiNowCast(Array.from({ length: 12 }, (_, i) => M[k].has(h - i) ? M[k].get(h - i) : null));
+    if (nc == null) return;
+    const s = aqiSub(AQI_BP[k], trunc(nc));
+    if (s != null) { subs.push(s); hasPM = true; }
+  };
+  pm("pm25", c => Math.floor(c * 10) / 10);
+  pm("pm10", c => Math.floor(c));
+  // озон: 8 часов (нужно ≥6 часов данных) и 1 час (с 125 ppb)
+  const c8 = aqiAvgN(M.o3, h, 8, 6);
+  if (c8 != null) {
+    const p8 = Math.floor(c8 / 1.96);
+    if (p8 <= 200) { const s = aqiSub(AQI_BP.o3_8, p8); if (s != null) subs.push(s); }
+  }
+  const c1 = M.o3.get(h);
+  if (c1 != null && c1 / 1.96 >= 125) { const s = aqiSub(AQI_BP.o3_1, Math.floor(c1 / 1.96)); if (s != null) subs.push(s); }
+  // угарный газ: 8 часов
+  const co8 = aqiAvgN(M.co, h, 8, 6);
+  if (co8 != null) { const s = aqiSub(AQI_BP.co, Math.floor(co8 / 1145 * 10) / 10); if (s != null) subs.push(s); }
+  // диоксид серы и азота: 1 час
+  const so = M.so2.get(h);
+  if (so != null) { const s = aqiSub(AQI_BP.so2, Math.floor(so / 2.62)); if (s != null) subs.push(s); }
+  const no = M.no2.get(h);
+  if (no != null) { const s = aqiSub(AQI_BP.no2, Math.floor(no / 1.88)); if (s != null) subs.push(s); }
+  if (!hasPM || !subs.length) return null;
+  return Math.max.apply(null, subs);
+}
+
+async function addAvAqi(p, datasets, from, to, step, nowSec) {
+  if (!p || p.key !== "aqi") return;
+  const cfg = SETTINGS.aqi || {};
+  if (cfg.on === false) { AQI_STATUS = null; return; }
+  const src = (cfg.src === "dev" || cfg.src === "open-meteo-air") ? cfg.src : "auto";
+  const ci_ = SETTINGS.config_items || {};
+  const loadFrom = from - 13 * 3600;
+  const withFc = offsetSteps === 0 && currentRange !== "year";
+  const status = { ok: false, src, items: {} };
+  const maps = {};
+
+  await Promise.all(AQI_KEYS.map(async k => {
+    const st = { dev: "ok", web: "ok" };
+    const dm = new Map(), wm = new Map();
+    // 1) реальное устройство
+    if (src === "open-meteo-air") st.dev = "not_chosen";
+    else if (ci_.dev_out !== true || !SETTINGS.sn_out) st.dev = "source_off";
+    else {
+      const dk = aqiDevKey(k);
+      if (!dk) st.dev = "no_param";
+      else {
+        const rows = await aqiLoadDev(SETTINGS.sn_out, dk, loadFrom, to);
+        aqiHourMap(rows).forEach((v, h) => dm.set(h, v));
+        if (!dm.size) st.dev = "no_data";
+      }
+    }
+    // 2) интернет (Air Quality)
+    if (src === "dev") st.web = "not_chosen";
+    else if (ci_.open_meteo_air === false) st.web = "source_off";
+    else {
+      const pn = aqiWebParam(k);
+      if (!pn) st.web = "no_param";
+      else {
+        const w = await aqiLoadWeb(pn, loadFrom, to, withFc);
+        const fm = aqiHourMap(w.fact);
+        aqiHourMap(w.fcst).forEach((v, h) => { if (!fm.has(h)) fm.set(h, v); });
+        fm.forEach((v, h) => wm.set(h, v));
+        if (!wm.size) st.web = "no_data";
+      }
+    }
+    // устройство главнее: если час есть у устройства — берём его, иначе интернет
+    const m = new Map(wm);
+    dm.forEach((v, h) => m.set(h, v));
+    maps[k] = m;
+    status.items[k] = st;
+  }));
+
+  // считаем по часам и собираем в столбцы нужной ширины
+  const bs = currentRange === "year" ? 86400 : (currentRange === "month" ? 10800 : 3600);
+  const buckets = new Map();
+  const hA = Math.floor(from / 3600) - 1, hB = Math.floor(to / 3600);
+  for (let h = hA; h <= hB; h++) {
+    const v = aqiHourValue(maps, h);
+    if (v == null) continue;
+    const k = Math.floor((h * 3600 - from) / bs);
+    if (k < -1) continue;
+    let b = buckets.get(k);
+    if (!b) { b = { s: 0, c: 0, t: (bs === 3600 ? h * 3600 : from + k * bs + bs / 2) }; buckets.set(k, b); }
+    b.s += v; b.c++;
+  }
+  const list = Array.from(buckets.entries()).sort((a, b) => a[0] - b[0]).map(e => e[1]);
+  if (!list.length) { AQI_STATUS = status; return; }
+  status.ok = true;
+  AQI_STATUS = status;
+
+  const gapX = Math.max(6 * 3600, 2 * bs) / step;
+  const pts = [];
+  list.forEach(b => {
+    const x = (b.t - from) / step;
+    if (pts.length && x - pts[pts.length - 1].x > gapX) pts.push({ x: (pts[pts.length - 1].x + x) / 2, y: null });
+    pts.push({ x, y: Math.round(b.s / b.c) });
+  });
+  const nowX = (nowSec - from) / step;
+  const col = (getTheme() === "light") ? "#0d2a4a" : "#ffffff";
+  datasets.push({ label: "AV_AQI", data: pts, borderColor: col, backgroundColor: col + "22",
+    fill: false, tension: 0.2, pointRadius: 0, spanGaps: false,
+    segment: { borderDash: c => (c.p1.parsed.x > nowX ? [6, 4] : undefined) } });
+}
+
+/* подключаем AV_AQI к построению графика (после «Ощущается как») */
+if (!window.__aqiWrapped) {
+  window.__aqiWrapped = true;
+  const _addFeelsLikeBase = addFeelsLike;
+  addFeelsLike = async function (p, datasets, from, to, step, g, unitId, nowSec) {
+    await _addFeelsLikeBase(p, datasets, from, to, step, g, unitId, nowSec);
+    await addAvAqi(p, datasets, from, to, step, nowSec);
+  };
+}
