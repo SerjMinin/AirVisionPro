@@ -1335,6 +1335,7 @@ async function addAvAqi(p, datasets, from, to, step, nowSec) {
 
   await Promise.all(AQI_KEYS.map(async k => {
     const st = { dev: "ok", web: "ok" };
+    const src = (cfg[k] === "dev" || cfg[k] === "open-meteo-air") ? cfg[k] : "auto";
     const dm = new Map(), wm = new Map();
     // 1) реальное устройство
     if (src === "open-meteo-air") st.dev = "not_chosen";
