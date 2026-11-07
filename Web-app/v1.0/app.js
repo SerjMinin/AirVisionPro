@@ -1411,3 +1411,42 @@ if (!window.__aqiWrapped) {
     await addAvAqi(p, datasets, from, to, step, nowSec);
   };
 }
+/* ===== AQI: цветные пунктирные пороги 50 / 100 / 150 / 200 / 300 ===== */
+Chart.register({
+  id: "aqiThrLines",
+  beforeDatasetsDraw(chart) {
+    if (currentKey !== "aqi") return;
+    if (SETTINGS.aqi && SETTINGS.aqi.on === false) return;
+    if (!chart.data.datasets.some(d => d.label === "AV_AQI")) return;
+    const sc = chart.scales.y || Object.values(chart.scales).find(s => s.axis === "y");
+    if (!sc) return;
+    const area = chart.chartArea;
+    const LEVELS = [
+      { v: 50,  c: "#ffcf4d" },
+      { v: 100, c: "#ff9d4d" },
+      { v: 150, c: "#ff4d4d" },
+      { v: 200, c: "#d62839" },
+      { v: 300, c: "#a4133c" }
+    ];
+    const ctx = chart.ctx;
+    LEVELS.forEach(L => {
+      if (L.v < sc.min || L.v > sc.max) return;   // вне шкалы — не рисуем, шкалу не растягиваем
+      const y = sc.getPixelForValue(L.v);
+      ctx.save();
+      ctx.strokeStyle = L.c;
+      ctx.fillStyle = L.c;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([10, 4, 2, 4]);
+      ctx.beginPath();
+      ctx.moveTo(area.left, y);
+      ctx.lineTo(area.right, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(String(L.v), area.right - 4, y - 2);
+      ctx.restore();
+    });
+  }
+});
