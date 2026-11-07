@@ -761,3 +761,83 @@ GAS_NORMS.hcho.home.w = 100;
 /* Газы: поправки по сверке с СанПиН (суточные нормы вместо среднегодовых) */
 GAS_NORMS.nh3.home.s = 100;
 GAS_NORMS.o3.home.s = 100;
+/* ===== Вкладка AQI: окно настроек линии AV_AQI ===== */
+const AQI_ROWS = [
+  { k: "pm25", n: "PM2.5" },
+  { k: "pm10", n: "PM10" },
+  { k: "o3",   n: prT("p_o3",  "O₃") },
+  { k: "co",   n: prT("p_co",  "CO") },
+  { k: "so2",  n: prT("p_so2", "SO₂") },
+  { k: "no2",  n: prT("p_no2", "NO₂") }
+];
+function aqiReasonText(who, st) {
+  if (st === "source_off") return who === "dev"
+    ? prT("aqi_r_dev_off", "устройство выключено или не введены серийный номер и ключ")
+    : prT("aqi_r_web_off", "источник Air Quality выключен");
+  if (st === "no_param") return who === "dev"
+    ? prT("aqi_r_dev_np", "устройство не присылает этот параметр или он стоит «Не показывать»")
+    : prT("aqi_r_web_np", "в окне Air Quality этот параметр стоит «Не показывать»");
+  if (st === "no_data") return who === "dev"
+    ? prT("aqi_r_dev_nd", "от устройства нет данных за этот период")
+    : prT("aqi_r_web_nd", "от Air Quality нет данных за этот период");
+  return "";
+}
+function aqiStatusHtml() {
+  const S = (typeof AQI_STATUS !== "undefined") ? AQI_STATUS : null;
+  if (!S || !S.items) return "";
+  let html = "";
+  if (!S.ok) {
+    html += `<div class="param-desc" style="color:var(--error);font-weight:600;">${prT("aqi_fail", "График не строится: нужны данные PM2.5 или PM10")}</div>`;
+    const a = S.items.pm25, b = S.items.pm10;
+    if (a && b && (a.dev === "ok" || a.web === "ok" || b.dev === "ok" || b.web === "ok"))
+      html += `<div class="param-desc" style="color:var(--warn);">${prT("aqi_fail_few", "Данных PM2.5 и PM10 слишком мало за этот период")}</div>`;
+  }
+  html += `<div class="set-hint" style="text-align:left;margin:8px 0 2px;">${prT("aqi_list", "Величины для расчёта:")}</div>`;
+  AQI_ROWS.forEach(r => {
+    const st = S.items[r.k];
+    if (!st) return;
+    const isPM = (r.k === "pm25" || r.k === "pm10");
+    let mark, text, color;
+    if (st.dev === "ok") {
+      mark = "✓"; color = "#37d67a"; text = prT("aqi_u_dev", "берётся с уличного устройства");
+    } else if (st.web === "ok") {
+      mark = "✓"; color = "#37d67a"; text = prT("aqi_u_web", "берётся из интернета (Air Quality)");
+    } else {
+      mark = "✕"; color = isPM ? "var(--error)" : "var(--warn)";
+      text = [aqiReasonText("dev", st.dev), aqiReasonText("web", st.web)].filter(Boolean).join("; ");
+      if (!text) text = prT("aqi_r_none", "нет данных");
+      if (!isPM) text += " — " + prT("aqi_opt", "линия строится и без неё");
+    }
+    html += `<div class="param-desc" style="color:${color};margin-top:4px;"><b>${r.n}</b>: ${mark} ${text}</div>`;
+  });
+  return html;
+}
+function addAqiBlock() {
+  if (currentKey !== "aqi") return;
+  const c = SETTINGS.aqi || {};
+  const on = c.on !== false;
+  const src = (c.src === "dev" || c.src === "open-meteo-air") ? c.src : "auto";
+  const opts = [
+    { id: "auto",           label: prT("aqi_s_auto", "Авто: сначала устройство, потом интернет") },
+    { id: "dev",            label: prT("aqi_s_dev",  "Только уличное устройство") },
+    { id: "open-meteo-air", label: prT("aqi_s_web",  "Только интернет (Air Quality)") }
+  ];
+  const html = `<div class="set-section"><h3>AV_AQI</h3>
+    <label class="set-check"><input type="checkbox" id="aqi_on" ${on ? "checked" : ""}> ${prT("aqi_on", "Показывать линию AV_AQI")}</label>
+    <div class="set-row"><label>${prT("aqi_src", "Источник параметров")}</label>${selHtml("aqi_src", opts, src)}</div>
+    ${aqiStatusHtml()}
+  </div>`;
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+}
+function readAqiBlock() {
+  const onEl = document.getElementById("aqi_on");
+  const srcEl = document.getElementById("aqi_src");
+  if (!onEl || !srcEl) return;
+  SETTINGS.aqi = { on: onEl.checked, src: srcEl.value };
+}
+const _buildParamSettingsPrevAqi = buildParamSettings;
+buildParamSettings = function () { _buildParamSettingsPrevAqi(); addAqiBlock(); };
+const _applyParamSettingsPrevAqi = applyParamSettings;
+applyParamSettings = async function () { readAqiBlock(); return _applyParamSettingsPrevAqi(); };
