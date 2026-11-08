@@ -836,3 +836,16 @@ const _bpsAqi2 = buildParamSettings;
 buildParamSettings = function () { _bpsAqi2(); aqiBlockBuild2(); };
 const _apsAqi2 = applyParamSettings;
 applyParamSettings = async function () { aqiBlockRead2(); return _apsAqi2(); };
+/* Умные советы: пункты с цветом (AQI) красятся в свой цвет */
+const _buildAdvicePrevColor = buildAdvice;
+buildAdvice = function () {
+  _buildAdvicePrevColor();
+  ADVICE_LIST.forEach(it => {
+    if (!it.color) return;
+    const box = document.getElementById("adv_" + it.id);
+    if (!box) return;
+    const row = box.closest("label");
+    const span = row ? row.querySelector("span") : null;
+    if (span) { span.style.color = it.color; span.style.fontWeight = "600"; }
+  });
+};
