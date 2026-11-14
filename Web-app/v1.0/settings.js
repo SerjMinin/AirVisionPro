@@ -873,7 +873,7 @@ function readPrecipBlock() {
 }
 const _applyParamSettingsPrevPrecip = applyParamSettings;
 applyParamSettings = async function () { readPrecipBlock(); return _applyParamSettingsPrevPrecip(); };
-/* ===== Умные советы: порядок как в файле, одна галка «Сортировка вывода по важности» ===== */
+/* ===== Умные советы: порядок как в файле, галка сортировки, режим вывода и скорость ===== */
 function adviceOrdered() {
   return ADVICE_LIST.slice().sort((a, b) => parseInt(a.id.slice(1), 10) - parseInt(b.id.slice(1), 10));
 }
@@ -885,10 +885,22 @@ buildAdvice = function () {
     const st = it.color ? ` style="color:${it.color};font-weight:600"` : "";
     return `<div class="${cls}"><label class="set-check"><input type="checkbox" id="adv_${it.id}" ${off ? "" : "checked"}> <span${st}>${it.text}</span></label></div>`;
   }).join("");
+  const modeOpts = [{ id: "sequence", label: t("adv_seq") }, { id: "marquee", label: t("adv_marquee") }];
+  const speedOpts = [
+    { id: "slow", label: prT("adv_sp_slow", "Скорость: медленно") },
+    { id: "mid",  label: prT("adv_sp_mid", "Скорость: средне") },
+    { id: "fast", label: prT("adv_sp_fast", "Скорость: быстро") }
+  ];
   document.getElementById("advice-body").innerHTML = `
     <div class="set-hint">${t("advice_soon")}</div>
-    <div class="set-section">
-      <label class="set-check"><input type="checkbox" id="adv_critfirst" ${s.advice.critical_first !== false ? "checked" : ""}> ${prT("adv_sort", "Сортировка вывода по важности")}</label>
+    <div class="set-section"><h3>${t("adv_output")}</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+        <label class="set-check" style="margin:0"><input type="checkbox" id="adv_critfirst" ${s.advice.critical_first !== false ? "checked" : ""}> ${prT("adv_sort", "Сортировка вывода по важности")}</label>
+        <div style="display:flex;gap:10px;align-items:center;">
+          ${selHtml("adv_mode", modeOpts, s.advice.mode || "sequence")}
+          ${selHtml("adv_speed", speedOpts, s.advice.speed || "mid")}
+        </div>
+      </div>
     </div>
     <div class="set-section"><h3>${t("adv_list")}</h3><div class="adv-scroll">${rows}</div></div>`;
 };
@@ -896,6 +908,10 @@ saveAdvice = async function () {
   const s = SETTINGS;
   const cf = document.getElementById("adv_critfirst");
   if (cf) s.advice.critical_first = cf.checked;
+  const m = document.getElementById("adv_mode");
+  if (m) s.advice.mode = m.value;
+  const sp = document.getElementById("adv_speed");
+  if (sp) s.advice.speed = sp.value;
   s.advice.disabled = {};
   ADVICE_LIST.forEach(it => {
     const el = document.getElementById("adv_" + it.id);
