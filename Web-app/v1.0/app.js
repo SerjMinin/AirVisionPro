@@ -1485,10 +1485,10 @@ if (!window.__tdBucketWrapped) {
     tdBucketCurves(step);
   };
 }
-/* ===== Осадки: линия осадков умножается (по умолчанию ×1000), чтобы быть видной рядом с облачностью ===== */
+/* ===== Осадки: линия осадков умножается (по умолчанию ×100), чтобы быть видной рядом с облачностью ===== */
 function precipK() {
   const v = Number(SETTINGS.precip_k);
-  return v > 0 ? v : 250;
+  return v > 0 ? v : 100;
 }
 const _visApplyBasePrecip = visApply;
 visApply = function (p, datasets) {
@@ -1516,3 +1516,4 @@ renderParam = async function (key) {
     }
   }
 };
+precipK = function () { const v = Number(SETTINGS.precip_k); return v > 0 ? v : 100; };

@@ -849,3 +849,27 @@ buildAdvice = function () {
     if (span) { span.style.color = it.color; span.style.fontWeight = "600"; }
   });
 };
+/* ===== Осадки: множитель ×N в окне шестерёнки (по образцу «Видимость») ===== */
+addPrecipBlock0 = function () {
+  if (currentKey !== "precip") return;
+  const k = Number(SETTINGS.precip_k);
+  const kv = k > 0 ? k : 100;
+  const html = `<div class="set-section"><h3>${prT("pr_title", "Осадки (% / мм)")}</h3>
+    <div class="param-desc">${prT("pr_cloud", "Облачность в 0-100%")}</div>
+    <div class="param-desc">${prT("pr_rain", "Осадки в мм")}</div>
+    <div class="set-row"><label>${prT("pr_k", "Осадки (мм)")} ×</label>
+      <input id="precip_k" class="set-input" type="number" min="0" step="any" value="${kv}"></div>
+    <div class="param-desc">${prT("pr_k_d", "Осадки в мм очень малы (0,2 мм за 15 минут), поэтому линия умножается на это число, чтобы быть видной рядом с облачностью. В подсказке на графике показываются настоящие мм.")}</div>
+  </div>`;
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+};
+function readPrecipBlock() {
+  const el = document.getElementById("precip_k");
+  if (!el) return;
+  const v = parseFloat(el.value);
+  SETTINGS.precip_k = v > 0 ? v : 100;
+}
+const _applyParamSettingsPrevPrecip = applyParamSettings;
+applyParamSettings = async function () { readPrecipBlock(); return _applyParamSettingsPrevPrecip(); };
