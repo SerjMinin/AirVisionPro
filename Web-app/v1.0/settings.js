@@ -1029,3 +1029,21 @@ saveAdvice = async function () {
   SETTINGS.advice.levels = clean;
   return _saveAdvicePrevLv();
 };
+/* ===== Умные советы: серый цвет у советов без алгоритма вывода ===== */
+/* Сюда вносим номера советов, для которых уже написано условие срабатывания, например "a43". */
+const ADVICE_READY = [];
+
+advPaint = function (it) {
+  const sp = document.getElementById("advt_" + it.id);
+  if (!sp) return;
+  if (ADVICE_READY.indexOf(it.id) < 0) {
+    sp.style.color = "#8a93a6";
+    sp.style.fontWeight = "400";
+    sp.title = prT("adv_noalgo", "Нет алгоритма вывода");
+    return;
+  }
+  sp.title = "";
+  const l = advLevel(it);
+  sp.style.color = ADV_LEVELS[l].color || "var(--text)";
+  sp.style.fontWeight = l ? "600" : "400";
+};
