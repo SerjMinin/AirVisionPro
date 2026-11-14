@@ -873,3 +873,34 @@ function readPrecipBlock() {
 }
 const _applyParamSettingsPrevPrecip = applyParamSettings;
 applyParamSettings = async function () { readPrecipBlock(); return _applyParamSettingsPrevPrecip(); };
+/* ===== Умные советы: порядок как в файле, одна галка «Сортировка вывода по важности» ===== */
+function adviceOrdered() {
+  return ADVICE_LIST.slice().sort((a, b) => parseInt(a.id.slice(1), 10) - parseInt(b.id.slice(1), 10));
+}
+buildAdvice = function () {
+  const s = SETTINGS;
+  const rows = adviceOrdered().map(it => {
+    const off = s.advice.disabled[it.id] === true;
+    const cls = "adv-row" + (it.crit ? " adv-crit" : "");
+    const st = it.color ? ` style="color:${it.color};font-weight:600"` : "";
+    return `<div class="${cls}"><label class="set-check"><input type="checkbox" id="adv_${it.id}" ${off ? "" : "checked"}> <span${st}>${it.text}</span></label></div>`;
+  }).join("");
+  document.getElementById("advice-body").innerHTML = `
+    <div class="set-hint">${t("advice_soon")}</div>
+    <div class="set-section">
+      <label class="set-check"><input type="checkbox" id="adv_critfirst" ${s.advice.critical_first !== false ? "checked" : ""}> ${prT("adv_sort", "Сортировка вывода по важности")}</label>
+    </div>
+    <div class="set-section"><h3>${t("adv_list")}</h3><div class="adv-scroll">${rows}</div></div>`;
+};
+saveAdvice = async function () {
+  const s = SETTINGS;
+  const cf = document.getElementById("adv_critfirst");
+  if (cf) s.advice.critical_first = cf.checked;
+  s.advice.disabled = {};
+  ADVICE_LIST.forEach(it => {
+    const el = document.getElementById("adv_" + it.id);
+    if (el && !el.checked) s.advice.disabled[it.id] = true;
+  });
+  await saveSettings();
+  alert(t("api_saved"));
+};
