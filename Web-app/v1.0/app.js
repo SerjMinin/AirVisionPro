@@ -1488,7 +1488,7 @@ if (!window.__tdBucketWrapped) {
 /* ===== Осадки: линия осадков умножается (по умолчанию ×1000), чтобы быть видной рядом с облачностью ===== */
 function precipK() {
   const v = Number(SETTINGS.precip_k);
-  return v > 0 ? v : 1000;
+  return v > 0 ? v : 250;
 }
 const _visApplyBasePrecip = visApply;
 visApply = function (p, datasets) {
