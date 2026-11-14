@@ -505,9 +505,13 @@ input[type="number"]::-webkit-inner-spin-button{
   min-height: 50vh;
 }
 /* Умные советы: окно на всю высоту, список крутится сам, кнопка «Сохранить» всегда внизу */
-#extra-view:has(#advice-panel[style*="block"]) { overflow: hidden; display: flex; flex-direction: column; }
-#advice-panel[style*="block"] { display: flex !important; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+#extra-view:not([style*="none"]):has(#advice-panel[style*="block"]) {
+  display: flex !important; flex-direction: column; overflow: hidden;
+}
+#advice-panel[style*="block"] {
+  display: flex !important; flex-direction: column; flex: 1 1 auto; min-height: 0;
+}
 #advice-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-#advice-body .set-section:last-child { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+#advice-body .set-section:last-child { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
 #advice-body .adv-scroll { flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; padding-right: 6px; }
 #advice-panel > div:last-child { flex: 0 0 auto; margin-top: 12px !important; }
