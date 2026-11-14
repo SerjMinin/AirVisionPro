@@ -1450,3 +1450,38 @@ Chart.register({
     });
   }
 });
+/* ===== Температура: пороги опасности на месяце и годе — усреднение по корзинам ===== */
+function tdBucketCurves(step) {
+  if (!tdDanger || !tdDanger.curves) return;
+  const days = currentRange === "year" ? 7 : (currentRange === "month" ? 1 : 0);
+  if (!days) return;
+  const bw = days * 86400 / step;
+  tdDanger.curves.forEach(function (cv) {
+    const avg = [];
+    let cur = null;
+    cv.pts.forEach(function (pt) {
+      if (pt.y == null) return;
+      const b = Math.floor(pt.x / bw);
+      if (!cur || cur.b !== b) {
+        if (cur) avg.push({ x: cur.sx / cur.n, y: cur.sy / cur.n });
+        cur = { b: b, sx: 0, sy: 0, n: 0 };
+      }
+      cur.sx += pt.x; cur.sy += pt.y; cur.n++;
+    });
+    if (cur) avg.push({ x: cur.sx / cur.n, y: cur.sy / cur.n });
+    const out = [];
+    avg.forEach(function (pt, i) {
+      if (i > 0 && pt.x - avg[i - 1].x > 2.5 * bw) out.push({ x: (pt.x + avg[i - 1].x) / 2, y: null });
+      out.push(pt);
+    });
+    cv.pts = out;
+  });
+}
+if (!window.__tdBucketWrapped) {
+  window.__tdBucketWrapped = true;
+  const _addFeelsLikeBase2 = addFeelsLike;
+  addFeelsLike = async function (p, datasets, from, to, step, g, unitId, nowSec) {
+    await _addFeelsLikeBase2(p, datasets, from, to, step, g, unitId, nowSec);
+    tdBucketCurves(step);
+  };
+}
