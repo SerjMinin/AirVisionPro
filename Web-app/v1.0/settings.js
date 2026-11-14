@@ -921,3 +921,111 @@ saveAdvice = async function () {
   await saveSettings();
   alert(t("api_saved"));
 };
+/* ===== Умные советы: кнопка «Настройка» и 6 цветов важности ===== */
+const ADV_LEVELS = [
+  { id: 0, color: "",        name: "Белый" },
+  { id: 1, color: "#ffcf4d", name: "Жёлтый" },
+  { id: 2, color: "#ff7eb6", name: "Розовый" },
+  { id: 3, color: "#ff4d4d", name: "Красный" },
+  { id: 4, color: "#d62839", name: "Тёмно-красный" },
+  { id: 5, color: "#a4133c", name: "Бордовый" }
+];
+function advLevelDefault(it) {
+  if (it.id === "a63" || it.id === "a64") return 2;
+  const m = { "#ffcf4d": 1, "#ff9d4d": 2, "#ff4d4d": 3, "#d62839": 4, "#a4133c": 5 };
+  if (it.color && m[it.color] != null) return m[it.color];
+  return it.crit ? 3 : 0;
+}
+function advLevel(it) {
+  const lv = (SETTINGS.advice && SETTINGS.advice.levels) || {};
+  const v = lv[it.id];
+  return (Number.isInteger(v) && v >= 0 && v <= 5) ? v : advLevelDefault(it);
+}
+function advPaint(it) {
+  const sp = document.getElementById("advt_" + it.id);
+  if (!sp) return;
+  const l = advLevel(it);
+  sp.style.color = ADV_LEVELS[l].color || "var(--text)";
+  sp.style.fontWeight = l ? "600" : "400";
+}
+function advOpenLevel(id) {
+  const it = ADVICE_LIST.find(x => x.id === id);
+  if (!it) return;
+  let m = document.getElementById("adv-level-modal");
+  if (!m) {
+    m = document.createElement("div");
+    m.className = "modal";
+    m.id = "adv-level-modal";
+    document.body.appendChild(m);
+  }
+  const cur = advLevel(it);
+  const rows = ADV_LEVELS.map(l =>
+    `<label class="set-check" style="margin-bottom:10px"><input type="radio" name="adv_lv" value="${l.id}" ${l.id === cur ? "checked" : ""}>
+     <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${l.color || "var(--text)"};margin:0 6px 0 2px"></span>${prT("adv_lv" + l.id, l.name)}</label>`
+  ).join("");
+  m.innerHTML = `<div class="modal-card">
+    <div class="modal-head"><h2>${prT("adv_cfg", "Настройка совета")}</h2>
+      <button class="icon-btn" id="adv-lv-x">✕</button></div>
+    <div class="modal-body">
+      <div class="param-desc" style="margin-bottom:12px">${it.text}</div>
+      <div class="set-hint">${prT("adv_cfg_hint", "Цвет означает важность: чем темнее, тем опаснее.")}</div>
+      ${rows}
+    </div>
+    <div class="modal-foot">
+      <button class="set-btn" id="adv-lv-cancel">${t("set_cancel")}</button>
+      <button class="set-btn" id="adv-lv-ok">${prT("adv_apply", "Применить")}</button>
+    </div></div>`;
+  const close = () => m.classList.remove("open");
+  document.getElementById("adv-lv-x").onclick = close;
+  document.getElementById("adv-lv-cancel").onclick = close;
+  document.getElementById("adv-lv-ok").onclick = () => {
+    const r = m.querySelector('input[name="adv_lv"]:checked');
+    if (r) {
+      SETTINGS.advice.levels = SETTINGS.advice.levels || {};
+      SETTINGS.advice.levels[id] = parseInt(r.value, 10);
+      advPaint(it);
+    }
+    close();
+  };
+  m.classList.add("open");
+}
+const _buildAdvicePrevLv = buildAdvice;
+buildAdvice = function () {
+  _buildAdvicePrevLv();
+  ADVICE_LIST.forEach(it => {
+    const box = document.getElementById("adv_" + it.id);
+    if (!box) return;
+    const lab = box.closest("label");
+    const row = lab.parentElement;
+    const span = lab.querySelector("span");
+    span.id = "advt_" + it.id;
+    advPaint(it);
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.justifyContent = "space-between";
+    row.style.gap = "10px";
+    lab.style.flex = "1";
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "set-btn sm";
+    b.dataset.adv = it.id;
+    b.style.flex = "0 0 auto";
+    b.textContent = prT("adv_cfg_btn", "Настройка");
+    row.appendChild(b);
+  });
+  document.getElementById("advice-body").onclick = e => {
+    const b = e.target.closest("[data-adv]");
+    if (b) advOpenLevel(b.dataset.adv);
+  };
+};
+const _saveAdvicePrevLv = saveAdvice;
+saveAdvice = async function () {
+  const lv = (SETTINGS.advice && SETTINGS.advice.levels) || {};
+  const clean = {};
+  ADVICE_LIST.forEach(it => {
+    const v = lv[it.id];
+    if (Number.isInteger(v) && v >= 0 && v <= 5 && v !== advLevelDefault(it)) clean[it.id] = v;
+  });
+  SETTINGS.advice.levels = clean;
+  return _saveAdvicePrevLv();
+};
