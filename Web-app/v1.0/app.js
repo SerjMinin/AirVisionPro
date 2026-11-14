@@ -1485,3 +1485,34 @@ if (!window.__tdBucketWrapped) {
     tdBucketCurves(step);
   };
 }
+/* ===== Осадки: линия осадков умножается (по умолчанию ×10), чтобы быть видной рядом с облачностью ===== */
+function precipK() {
+  const v = Number(SETTINGS.precip_k);
+  return v > 0 ? v : 10;
+}
+const _visApplyBasePrecip = visApply;
+visApply = function (p, datasets) {
+  _visApplyBasePrecip(p, datasets);
+  if (!p || p.key !== "precip") return;
+  const m = precipK();
+  if (m === 1) return;
+  datasets.forEach(ds => {
+    if (!/осадк|precip|rain/i.test(ds.label || "")) return;
+    ds.$k = m;
+    ds.data = ds.data.map(pt => pt.y == null ? pt : { x: pt.x, y: pt.y * m });
+  });
+};
+const _renderParamBasePrecip = renderParam;
+renderParam = async function (key) {
+  await _renderParamBasePrecip(key);
+  if (key === "precip" && currentView === "param" && currentKey === "precip") {
+    const el = document.getElementById("chart-title");
+    if (el) {
+      const k = precipK();
+      const s = el.textContent;
+      el.textContent = /(мм|mm)(?![\s\S]*(мм|mm))/.test(s)
+        ? s.replace(/(мм|mm)(?![\s\S]*(мм|mm))/, "$1 × " + k)
+        : s + " × " + k;
+    }
+  }
+};
