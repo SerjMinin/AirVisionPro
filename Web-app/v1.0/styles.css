@@ -504,11 +504,10 @@ input[type="number"]::-webkit-inner-spin-button{
 #param-modal .modal-card {
   min-height: 50vh;
 }
-/* Умные советы: список на всю высоту, кнопка «Сохранить» всегда у нижнего края окна */
-#advice-body .adv-scroll { max-height: none; overflow: visible; padding-right: 0; }
-#advice-panel > div:last-child {
-  position: sticky; bottom: 0; z-index: 2;
-  margin-top: 0 !important; padding: 12px 0 8px;
-  background: var(--card-bg); backdrop-filter: blur(8px);
-  border-top: 1px solid var(--card-border);
-}
+/* Умные советы: окно на всю высоту, список крутится сам, кнопка «Сохранить» всегда внизу */
+#extra-view:has(#advice-panel[style*="block"]) { overflow: hidden; display: flex; flex-direction: column; }
+#advice-panel[style*="block"] { display: flex !important; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+#advice-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+#advice-body .set-section:last-child { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+#advice-body .adv-scroll { flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; padding-right: 6px; }
+#advice-panel > div:last-child { flex: 0 0 auto; margin-top: 12px !important; }
