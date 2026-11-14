@@ -504,3 +504,11 @@ input[type="number"]::-webkit-inner-spin-button{
 #param-modal .modal-card {
   min-height: 50vh;
 }
+/* Умные советы: список на всю высоту, кнопка «Сохранить» всегда у нижнего края окна */
+#advice-body .adv-scroll { max-height: none; overflow: visible; padding-right: 0; }
+#advice-panel > div:last-child {
+  position: sticky; bottom: 0; z-index: 2;
+  margin-top: 0 !important; padding: 12px 0 8px;
+  background: var(--card-bg); backdrop-filter: blur(8px);
+  border-top: 1px solid var(--card-border);
+}

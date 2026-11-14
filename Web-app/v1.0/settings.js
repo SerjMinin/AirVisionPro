@@ -873,7 +873,7 @@ function readPrecipBlock() {
 }
 const _applyParamSettingsPrevPrecip = applyParamSettings;
 applyParamSettings = async function () { readPrecipBlock(); return _applyParamSettingsPrevPrecip(); };
-/* ===== Умные советы: порядок как в файле, галка сортировки, режим вывода и скорость ===== */
+/* ===== Умные советы: порядок как в файле, галка сортировки, режим вывода и скорость числом ===== */
 function adviceOrdered() {
   return ADVICE_LIST.slice().sort((a, b) => parseInt(a.id.slice(1), 10) - parseInt(b.id.slice(1), 10));
 }
@@ -886,11 +886,8 @@ buildAdvice = function () {
     return `<div class="${cls}"><label class="set-check"><input type="checkbox" id="adv_${it.id}" ${off ? "" : "checked"}> <span${st}>${it.text}</span></label></div>`;
   }).join("");
   const modeOpts = [{ id: "sequence", label: t("adv_seq") }, { id: "marquee", label: t("adv_marquee") }];
-  const speedOpts = [
-    { id: "slow", label: prT("adv_sp_slow", "Скорость: медленно") },
-    { id: "mid",  label: prT("adv_sp_mid", "Скорость: средне") },
-    { id: "fast", label: prT("adv_sp_fast", "Скорость: быстро") }
-  ];
+  const sp = Number(s.advice.speed);
+  const spv = (sp >= 1 && sp <= 10) ? sp : 5;
   document.getElementById("advice-body").innerHTML = `
     <div class="set-hint">${t("advice_soon")}</div>
     <div class="set-section"><h3>${t("adv_output")}</h3>
@@ -898,7 +895,8 @@ buildAdvice = function () {
         <label class="set-check" style="margin:0"><input type="checkbox" id="adv_critfirst" ${s.advice.critical_first !== false ? "checked" : ""}> ${prT("adv_sort", "Сортировка вывода по важности")}</label>
         <div style="display:flex;gap:10px;align-items:center;">
           ${selHtml("adv_mode", modeOpts, s.advice.mode || "sequence")}
-          ${selHtml("adv_speed", speedOpts, s.advice.speed || "mid")}
+          <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--text-dim);white-space:nowrap;">${prT("adv_speed", "Скорость (1–10)")}
+            <input id="adv_speed" class="set-input" type="number" min="1" max="10" step="1" value="${spv}" style="width:64px;"></label>
         </div>
       </div>
     </div>
@@ -911,7 +909,10 @@ saveAdvice = async function () {
   const m = document.getElementById("adv_mode");
   if (m) s.advice.mode = m.value;
   const sp = document.getElementById("adv_speed");
-  if (sp) s.advice.speed = sp.value;
+  if (sp) {
+    const v = Math.round(parseFloat(sp.value));
+    s.advice.speed = (v >= 1 && v <= 10) ? v : 5;
+  }
   s.advice.disabled = {};
   ADVICE_LIST.forEach(it => {
     const el = document.getElementById("adv_" + it.id);
