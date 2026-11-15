@@ -925,7 +925,7 @@ saveAdvice = async function () {
 const ADV_LEVELS = [
   { id: 0, color: "",        name: "Белый" },
   { id: 1, color: "#ffcf4d", name: "Жёлтый" },
-  { id: 2, color: "#ff7eb6", name: "Розовый" },
+  { id: 2, color: "#ff9d4d", name: "Оранжевый" },
   { id: 3, color: "#ff4d4d", name: "Красный" },
   { id: 4, color: "#d62839", name: "Тёмно-красный" },
   { id: 5, color: "#a4133c", name: "Бордовый" }
