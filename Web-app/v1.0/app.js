@@ -1517,3 +1517,123 @@ renderParam = async function (key) {
   }
 };
 precipK = function () { const v = Number(SETTINGS.precip_k); return v > 0 ? v : 100; };
+/* ===== Нижняя строка: советы по газам ===== */
+const ADV_GAS_IDS = { so2:"a75", o3:"a76", no2:"a77", no:"a78", nh3:"a79", co2:"a80", co:"a81", hcho:"a82" };
+const advTick = { active:{}, shown:{}, cur:null, timer:null, anim:null, busy:false };
+
+async function advLatestDevice(which, gasKey) {
+  const dev = SETTINGS.devices && SETTINGS.devices[which];
+  const sn = which === "out" ? SETTINGS.sn_out : SETTINGS.sn_in;
+  const on = SETTINGS.config_items[which === "out" ? "dev_out" : "dev_in"] === true;
+  if (!dev || !dev.map || !sn || !on) return null;
+  const keys = Object.keys(dev.map).filter(k => dev.map[k] === gasKey);
+  if (!keys.length) return null;
+  const since = Math.floor(Date.now() / 1000) - 30 * 60;
+  const { data } = await client.from("measurements").select("val, ts_device")
+    .eq("serial", sn).in("key", keys).gte("ts_device", since)
+    .order("ts_device", { ascending: false }).limit(1);
+  return (data && data.length) ? Number(data[0].val) : null;
+}
+async function advLatestWeb(gasKey) {
+  const src = "open-meteo-air";
+  if (SETTINGS.config_items.open_meteo_air === false) return null;
+  const ws = SETTINGS.weather_sources && SETTINGS.weather_sources[src];
+  if (!ws || !ws.map) return null;
+  const params = Object.keys(ws.map).filter(p => ws.map[p] === gasKey);
+  const now = Math.floor(Date.now() / 1000);
+  for (const p of params) {
+    const rows = await loadWeatherSeries(src, p, now - 3 * 3600, now);
+    if (rows.length) return Number(rows[rows.length - 1].val);
+  }
+  return null;
+}
+async function advRefresh() {
+  if (advTick.busy || document.hidden || !SETTINGS || !SETTINGS.gas && false) return;
+  advTick.busy = true;
+  try {
+    const c = gasCfg();
+    for (const key of Object.keys(ADV_GAS_IDS)) {
+      const id = ADV_GAS_IDS[key];
+      if (!c.on || (SETTINGS.advice.disabled && SETTINGS.advice.disabled[id] === true)) { advTick.active[id] = false; continue; }
+      let v = null;
+      if (c.mode === "home") v = await advLatestDevice("in", key);
+      else { v = await advLatestDevice("out", key); if (v === null) v = await advLatestWeb(key); }
+      const custom = Number(c.thr[key]);
+      const thr = custom > 0 ? custom : gasDefault(key, c.norm, c.mode);
+      if (v === null || !isFinite(v)) { advTick.active[id] = false; continue; }
+      if (v >= thr) advTick.active[id] = true;
+      else if (v < thr * 0.9) advTick.active[id] = false;
+    }
+  } catch (e) { console.warn("advice refresh:", e); }
+  advTick.busy = false;
+  if (!advTick.cur && Object.keys(advTick.active).some(i => advTick.active[i])) advNext();
+}
+function advPickNext() {
+  const ids = Object.keys(advTick.active).filter(i => advTick.active[i]);
+  if (!ids.length) return null;
+  const order = adviceOrdered().map(x => x.id).filter(i => ids.indexOf(i) >= 0);
+  let pool = order.filter(i => !advTick.shown[i]);
+  if (!pool.length) { advTick.shown = {}; pool = order.slice(); }
+  if (SETTINGS.advice.critical_first !== false) {
+    let best = pool[0], bl = -1;
+    pool.forEach(i => { const l = advLevel(ADVICE_LIST.find(x => x.id === i)); if (l > bl) { bl = l; best = i; } });
+    return best;
+  }
+  return pool[0];
+}
+function advStop() {
+  if (advTick.timer) { clearTimeout(advTick.timer); advTick.timer = null; }
+  if (advTick.anim) { advTick.anim.onfinish = null; advTick.anim.cancel(); advTick.anim = null; }
+}
+function advClear() {
+  advStop();
+  advTick.cur = null;
+  const el = document.getElementById("advice");
+  if (!el) return;
+  el.style.color = ""; el.style.overflow = ""; el.style.whiteSpace = "";
+  el.textContent = t("advice_default");
+}
+function advNext() {
+  advStop();
+  const id = advPickNext();
+  if (!id) { advClear(); return; }
+  advShow(id);
+}
+function advShow(id) {
+  advStop();
+  const el = document.getElementById("advice");
+  const it = ADVICE_LIST.find(x => x.id === id);
+  if (!el || !it) return;
+  advTick.shown[id] = true;
+  advTick.cur = id;
+  const sp0 = Number(SETTINGS.advice.speed);
+  const speed = (sp0 >= 1 && sp0 <= 10) ? sp0 : 5;
+  el.style.color = ADV_LEVELS[advLevel(it)].color || "";
+  el.textContent = "";
+  const sp = document.createElement("span");
+  sp.id = "advice-msg";
+  sp.textContent = it.text;
+  if (SETTINGS.advice.mode === "marquee") {
+    el.style.overflow = "hidden"; el.style.whiteSpace = "nowrap";
+    sp.style.display = "inline-block";
+    el.appendChild(sp);
+    const W = el.clientWidth, w = sp.offsetWidth;
+    const dur = (W + w) / (20 * speed) * 1000;
+    advTick.anim = sp.animate([{ transform: "translateX(" + W + "px)" }, { transform: "translateX(" + (-w) + "px)" }], { duration: dur, easing: "linear" });
+    advTick.anim.onfinish = advNext;
+  } else {
+    el.style.overflow = ""; el.style.whiteSpace = "";
+    el.appendChild(sp);
+    sp.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: "both" });
+    advTick.timer = setTimeout(advNext, Math.max(5000, it.text.length * 600 / speed));
+  }
+}
+function advStart() {
+  Object.keys(ADV_GAS_IDS).forEach(k => { if (ADVICE_READY.indexOf(ADV_GAS_IDS[k]) < 0) ADVICE_READY.push(ADV_GAS_IDS[k]); });
+  setTimeout(advRefresh, 5000);
+  setInterval(advRefresh, 120000);
+  setInterval(() => {
+    if (advTick.cur && !document.getElementById("advice-msg")) advShow(advTick.cur);
+  }, 1000);
+}
+window.addEventListener("load", advStart);
