@@ -1280,3 +1280,45 @@ applyParamSettings = async function () {
   }
   return _applyParamSettingsPrevUv();
 };
+/* ===== УФ-индекс: окно в новом виде (название, без старого текста, полные подписи градаций) ===== */
+const _buildParamSettingsPrevUv2 = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevUv2();
+  if (currentKey !== "uv") return;
+  const c = uvCfg();
+  const opts = [
+    { id: "auto",       label: prT("lux_src_auto", "Авто") },
+    { id: "dev",        label: prT("lux_src_out", "Уличное устройство") },
+    { id: "open-meteo", label: "Open-Meteo" },
+    { id: "owm",        label: "OpenWeatherMap" }
+  ];
+  const rows = [
+    [prT("uv_r1", "Низкий: защита не требуется."), "0 – 2"],
+    [prT("uv_r2", "Умеренный: необходима защита (рекомендуется крем с SPF)."), "3 – 5"],
+    [prT("uv_r3", "Высокий: обязательное использование солнцезащитных средств, сокращение времени на солнце."), "6 – 7"],
+    [prT("uv_r4", "Очень высокий: усиленная защита, лучше избегать солнца с полудня до 16:00."), "8 – 10"],
+    [prT("uv_r5", "Экстремальный: максимальные меры предосторожности, безопаснее оставаться в помещении."), "11+"]
+  ];
+  const tr = rows.map(r =>
+    '<tr><td style="padding:4px 12px 4px 0;">' + r[0] +
+    '</td><td style="padding:4px 0;text-align:right;white-space:nowrap;vertical-align:top;">' + r[1] + '</td></tr>'
+  ).join("");
+  const html = '<div class="set-section"><h3>' + prT("uv_title", "Автоиндикатор") + '</h3>' +
+    '<label class="set-check"><input type="checkbox" id="uv_on" ' + (c.on ? "checked" : "") + '> ' +
+    prT("lux_on", "Включить автоиндикатор") + '</label>' +
+    '<div id="uv_ctl">' +
+    '<div class="set-row"><label>' + prT("uv_src_l", "Источник") + '</label>' +
+    selHtml("uv_src", opts, c.src) + '</div>' +
+    '</div>' +
+    '<table style="width:100%;border-collapse:collapse;margin-top:8px;">' + tr + '</table>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("uv_desc", "«Авто»: сначала уличное устройство, если его нет — Open-Meteo, потом OpenWeatherMap. Если выбрать источник вручную, берутся данные только от него. Пунктиры на графике: 3, 6, 8 и 11.") +
+    '</div></div>';
+  document.getElementById("param-body").innerHTML = html;
+  document.getElementById("param-set-title").textContent =
+    t("set_page") + prT("uv_set_name", "Ультрафиолетовый индекс (УФ)");
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+  document.getElementById("uv_on").addEventListener("change", uvRefresh);
+  uvRefresh();
+};
