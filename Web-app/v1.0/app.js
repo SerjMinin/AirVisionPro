@@ -1816,3 +1816,29 @@ advRefresh = async function () {
 window.addEventListener("load", function () {
   ["a85", "a86"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
 });
+/* ===== Нижняя строка: советы по солнечной радиации (a87 превышение, a88 уменьшение) ===== */
+async function advSolarCheck() {
+  if (document.hidden || !SETTINGS) return;
+  try {
+    const c = solarCfg();
+    const off = (SETTINGS.advice && SETTINGS.advice.disabled) || {};
+    if (!c.on) { advTick.active.a87 = false; advTick.active.a88 = false; return; }
+    const v = await advLatestDevice("out", "solar");
+    if (v === null || !isFinite(v)) { advTick.active.a87 = false; advTick.active.a88 = false; return; }
+    if (off.a87 === true) advTick.active.a87 = false;
+    else if (v >= c.thr_high) advTick.active.a87 = true;
+    else if (v < c.thr_high * 0.9) advTick.active.a87 = false;
+    if (off.a88 === true) advTick.active.a88 = false;
+    else if (v < c.thr_low) advTick.active.a88 = true;
+    else if (v > c.thr_low * 1.1) advTick.active.a88 = false;
+    if (!advTick.cur && (advTick.active.a87 || advTick.active.a88)) advNext();
+  } catch (e) { console.warn("advice solar:", e); }
+}
+const _advRefreshPrevSolar = advRefresh;
+advRefresh = async function () {
+  await _advRefreshPrevSolar();
+  await advSolarCheck();
+};
+window.addEventListener("load", function () {
+  ["a87", "a88"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
+});
