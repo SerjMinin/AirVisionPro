@@ -1637,3 +1637,37 @@ function advStart() {
   }, 1000);
 }
 window.addEventListener("load", advStart);
+/* ===== Нижняя строка: не сбрасывается при перерисовке графика, режим и скорость действуют сразу ===== */
+function advSig() {
+  const a = (SETTINGS && SETTINGS.advice) || {};
+  const sp = Number(a.speed);
+  return (a.mode || "sequence") + "|" + ((sp >= 1 && sp <= 10) ? sp : 5);
+}
+const _advShowOrig = advShow;
+advShow = function (id) {
+  const el = document.getElementById("advice");
+  const running = !!(advTick.timer || advTick.anim);
+  if (el && running && id === advTick.cur && advTick.node && advTick.sig === advSig()) {
+    if (!el.contains(advTick.node)) { el.textContent = ""; el.appendChild(advTick.node); }
+    return;
+  }
+  _advShowOrig(id);
+  advTick.node = document.getElementById("advice-msg");
+  advTick.sig = advSig();
+};
+function advWatch() {
+  const el = document.getElementById("advice");
+  if (!el) return;
+  new MutationObserver(() => {
+    if (advTick.cur && advTick.node && !el.contains(advTick.node)) {
+      el.textContent = "";
+      el.appendChild(advTick.node);
+    }
+  }).observe(el, { childList: true });
+}
+if (document.readyState === "complete") advWatch();
+else window.addEventListener("load", advWatch);
+setInterval(() => {
+  if (advTick.cur && advTick.sig && advTick.sig !== advSig()) advShow(advTick.cur);
+  if (advTick.anim && advTick.anim.playState === "idle") advNext();
+}, 1000);
