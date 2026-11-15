@@ -1073,3 +1073,74 @@ buildParamSettings = function () {
     '</div></div>';
   document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
 };
+/* ===== Освещённость: автоиндикатор в окне настроек вкладки ===== */
+function luxCfg() {
+  const c = SETTINGS.lux || {};
+  const h = Number(c.thr_home), s = Number(c.thr_street);
+  return {
+    on: c.on === true,
+    src_in: c.src_in || "auto",
+    src_out: c.src_out || "auto",
+    thr_home: h > 0 ? h : 50,
+    thr_street: s > 0 ? s : 400
+  };
+}
+function luxRefresh() {
+  const on = document.getElementById("lux_on").checked;
+  const ctl = document.getElementById("lux_ctl");
+  ctl.style.opacity = on ? "1" : "0.4";
+  ctl.style.pointerEvents = on ? "" : "none";
+  document.getElementById("lux_thr_home").disabled = !on;
+  document.getElementById("lux_thr_street").disabled = !on;
+}
+const _buildParamSettingsPrevLux = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevLux();
+  if (currentKey !== "lux") return;
+  const c = luxCfg();
+  const optsIn = [
+    { id: "auto", label: prT("lux_src_auto", "Авто") },
+    { id: "dev",  label: prT("lux_src_in", "Домашнее устройство") }
+  ];
+  const optsOut = [
+    { id: "auto", label: prT("lux_src_auto", "Авто") },
+    { id: "dev",  label: prT("lux_src_out", "Уличное устройство") }
+  ];
+  const html = '<div class="set-section"><h3>' + prT("lux_title", "Автоиндикатор") + '</h3>' +
+    '<label class="set-check"><input type="checkbox" id="lux_on" ' + (c.on ? "checked" : "") + '> ' +
+    prT("lux_on", "Включить автоиндикатор") + '</label>' +
+    '<div id="lux_ctl">' +
+    '<div class="set-row"><label>' + prT("lux_src_home_l", "Источник по умолчанию для Офис / Дом") + '</label>' +
+    selHtml("lux_src_in", optsIn, c.src_in) + '</div>' +
+    '<div class="set-row"><label>' + prT("lux_src_street_l", "Источник по умолчанию для Улица") + '</label>' +
+    selHtml("lux_src_out", optsOut, c.src_out) + '</div>' +
+    '<div class="set-row"><label>' + prT("lux_thr_home_l", "Порог «Офис / Дом»") + ', ' + prT("lux_unit", "лк") + '</label>' +
+    '<input id="lux_thr_home" class="set-input" type="number" step="any" min="0" value="' + c.thr_home + '"></div>' +
+    '<div class="set-row"><label>' + prT("lux_thr_street_l", "Порог «Улица»") + ', ' + prT("lux_unit", "лк") + '</label>' +
+    '<input id="lux_thr_street" class="set-input" type="number" step="any" min="0" value="' + c.thr_street + '"></div>' +
+    '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("lux_desc", "Автоматизация штор и света. Когда освещённость падает ниже порога, выводится совет: включить свет или открыть шторы. Порог «Офис / Дом» — по умолчанию 50 лк, «Улица» — 400 лк. Позже советы смогут через «Умный дом» сами включать автоматику освещения или полива.") +
+    '</div></div>';
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+  document.getElementById("lux_on").addEventListener("change", luxRefresh);
+  luxRefresh();
+};
+const _applyParamSettingsPrevLux = applyParamSettings;
+applyParamSettings = async function () {
+  const on = document.getElementById("lux_on");
+  if (on && currentKey === "lux") {
+    const h = parseFloat(document.getElementById("lux_thr_home").value);
+    const s = parseFloat(document.getElementById("lux_thr_street").value);
+    SETTINGS.lux = {
+      on: on.checked,
+      src_in: document.getElementById("lux_src_in").value,
+      src_out: document.getElementById("lux_src_out").value,
+      thr_home: h > 0 ? h : 50,
+      thr_street: s > 0 ? s : 400
+    };
+  }
+  return _applyParamSettingsPrevLux();
+};
