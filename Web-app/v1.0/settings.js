@@ -1144,3 +1144,82 @@ applyParamSettings = async function () {
   }
   return _applyParamSettingsPrevLux();
 };
+/* ===== Солнечная радиация: автоиндикатор в окне настроек вкладки ===== */
+function solarCfg() {
+  const c = SETTINGS.solar_ai || {};
+  const h = Number(c.thr_high), l = Number(c.thr_low);
+  return {
+    on: c.on === true,
+    src: c.src || "auto",
+    thr_high: h > 0 ? h : 600,
+    thr_low: l > 0 ? l : 20
+  };
+}
+function solarRefresh() {
+  const on = document.getElementById("sol_on").checked;
+  const ctl = document.getElementById("sol_ctl");
+  ctl.style.opacity = on ? "1" : "0.4";
+  ctl.style.pointerEvents = on ? "" : "none";
+  document.getElementById("sol_thr_high").disabled = !on;
+  document.getElementById("sol_thr_low").disabled = !on;
+}
+const _buildParamSettingsPrevSolar = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevSolar();
+  if (currentKey !== "solar") return;
+  const c = solarCfg();
+  const opts = [
+    { id: "auto", label: prT("lux_src_auto", "Авто") },
+    { id: "dev",  label: prT("lux_src_out", "Уличное устройство") }
+  ];
+  const rows = [
+    [prT("sol_t1", "Ясный полдень"), "800 – 1050"],
+    [prT("sol_t2", "Облачность"),    "300 – 600"],
+    [prT("sol_t3", "Пасмурно"),      "50 – 200"],
+    [prT("sol_t4", "Сумерки"),       "10 – 50"],
+    [prT("sol_t5", "Ночь"),          "0"]
+  ];
+  const tr = rows.map(r =>
+    '<tr><td style="padding:3px 10px 3px 0;">' + r[0] +
+    '</td><td style="padding:3px 0;text-align:right;white-space:nowrap;">' + r[1] + '</td></tr>'
+  ).join("");
+  const html = '<div class="set-section"><h3>' + prT("sol_title", "Автоиндикатор") + '</h3>' +
+    '<label class="set-check"><input type="checkbox" id="sol_on" ' + (c.on ? "checked" : "") + '> ' +
+    prT("lux_on", "Включить автоиндикатор") + '</label>' +
+    '<div id="sol_ctl">' +
+    '<div class="set-row"><label>' + prT("sol_src_l", "Источник по умолчанию") + '</label>' +
+    selHtml("sol_src", opts, c.src) + '</div>' +
+    '<div class="set-row"><label>' + prT("sol_thr_high_l", "Порог «Превышение»") + ', ' + prT("sol_unit", "Вт/м²") + '</label>' +
+    '<input id="sol_thr_high" class="set-input" type="number" step="any" min="0" value="' + c.thr_high + '"></div>' +
+    '<div class="set-row"><label>' + prT("sol_thr_low_l", "Порог «Уменьшение»") + ', ' + prT("sol_unit", "Вт/м²") + '</label>' +
+    '<input id="sol_thr_low" class="set-input" type="number" step="any" min="0" value="' + c.thr_low + '"></div>' +
+    '</div></div>' +
+    '<div class="set-section"><h3>' + prT("sol_tbl_title", "Солнечная радиация, Вт/м²") + '</h3>' +
+    '<table style="width:100%;border-collapse:collapse;">' + tr + '</table>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("sol_desc", "Когда радиация выше порога «Превышение» или ниже порога «Уменьшение», выводится совет. Позже советы смогут через «Умный дом» управлять шторами, тентами и освещением.") +
+    '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("sol_note", "Установка датчика: ставьте его там, где на него не падает тень, строго горизонтально и открыто к небу.") +
+    '</div></div>';
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+  document.getElementById("sol_on").addEventListener("change", solarRefresh);
+  solarRefresh();
+};
+const _applyParamSettingsPrevSolar = applyParamSettings;
+applyParamSettings = async function () {
+  const on = document.getElementById("sol_on");
+  if (on && currentKey === "solar") {
+    const h = parseFloat(document.getElementById("sol_thr_high").value);
+    const l = parseFloat(document.getElementById("sol_thr_low").value);
+    SETTINGS.solar_ai = {
+      on: on.checked,
+      src: document.getElementById("sol_src").value,
+      thr_high: h > 0 ? h : 600,
+      thr_low: l > 0 ? l : 20
+    };
+  }
+  return _applyParamSettingsPrevSolar();
+};
