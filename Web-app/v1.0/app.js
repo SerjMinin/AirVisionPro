@@ -1671,3 +1671,41 @@ setInterval(() => {
   if (advTick.cur && advTick.sig && advTick.sig !== advSig()) advShow(advTick.cur);
   if (advTick.anim && advTick.anim.playState === "idle") advNext();
 }, 1000);
+/* ===== Ветер: пунктиры 10,8 и 17,2 м/с ===== */
+Chart.register({
+  id: "windThrLines",
+  beforeDatasetsDraw(chart) {
+    if (typeof currentKey === "undefined" || currentKey !== "wind_spd") return;
+    const sc = chart.scales.y || Object.values(chart.scales).find(s => s.axis === "y");
+    if (!sc) return;
+    const area = chart.chartArea;
+    const grp = PARAM_UNIT_GROUP["wind_spd"];
+    const ctx = chart.ctx;
+    [
+      { v: 10.8, c: "#ff9d4d" },
+      { v: 17.2, c: "#d62839" }
+    ].forEach(L => {
+      const v = grp ? convertUnit(L.v, grp, SETTINGS.units[grp]) : L.v;
+      if (v == null || !isFinite(v) || v < sc.min || v > sc.max) return;
+      const y = sc.getPixelForValue(v);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+      ctx.clip();
+      ctx.strokeStyle = L.c;
+      ctx.fillStyle = L.c;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([10, 4, 2, 4]);
+      ctx.beginPath();
+      ctx.moveTo(area.left, y);
+      ctx.lineTo(area.right, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(String(+v.toPrecision(3)), area.right - 4, y - 2);
+      ctx.restore();
+    });
+  }
+});
