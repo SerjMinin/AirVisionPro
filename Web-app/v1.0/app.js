@@ -1842,3 +1842,44 @@ advRefresh = async function () {
 window.addEventListener("load", function () {
   ["a87", "a88"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
 });
+/* ===== Нижняя строка: советы по УФ-индексу (a89 умеренный ... a92 экстремальный) ===== */
+async function advUvValue() {
+  let v = await advLatestDevice("out", "uv");
+  if (v !== null && isFinite(v)) return v;
+  const now = Math.floor(Date.now() / 1000);
+  for (const src of ["open-meteo", "owm"]) {
+    const ws = SETTINGS.weather_sources && SETTINGS.weather_sources[src];
+    if (!ws || !ws.map) continue;
+    const params = Object.keys(ws.map).filter(p => ws.map[p] === "uv");
+    for (const p of params) {
+      const rows = await loadWeatherSeries(src, p, now - 3 * 3600, now);
+      if (rows.length) return Number(rows[rows.length - 1].val);
+    }
+  }
+  return null;
+}
+async function advUvCheck() {
+  if (document.hidden || !SETTINGS) return;
+  const ids = ["a89", "a90", "a91", "a92"];
+  try {
+    const off = (SETTINGS.advice && SETTINGS.advice.disabled) || {};
+    const v = await advUvValue();
+    if (v === null || !isFinite(v)) { ids.forEach(i => { advTick.active[i] = false; }); return; }
+    const thr = [3, 6, 8, 11];
+    let lvl = 0;
+    for (let i = 0; i < thr.length; i++) if (v >= thr[i]) lvl = i + 1;
+    let was = 0;
+    ids.forEach((id, i) => { if (advTick.active[id]) was = i + 1; });
+    if (was > lvl && v >= thr[was - 1] - 0.3) lvl = was;
+    ids.forEach((id, i) => { advTick.active[id] = (lvl === i + 1) && off[id] !== true; });
+    if (!advTick.cur && ids.some(i => advTick.active[i])) advNext();
+  } catch (e) { console.warn("advice uv:", e); }
+}
+const _advRefreshPrevUv = advRefresh;
+advRefresh = async function () {
+  await _advRefreshPrevUv();
+  await advUvCheck();
+};
+window.addEventListener("load", function () {
+  ["a89", "a90", "a91", "a92"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
+});
