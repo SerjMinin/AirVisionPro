@@ -1709,3 +1709,43 @@ Chart.register({
     });
   }
 });
+/* ===== Нижняя строка: советы по ветру (a83 сильный, a84 штормовой) ===== */
+async function advWindValue() {
+  let v = await advLatestDevice("out", "wind_spd");
+  if (v !== null && isFinite(v)) return v;
+  const now = Math.floor(Date.now() / 1000);
+  for (const src of ["open-meteo", "owm"]) {
+    const ws = SETTINGS.weather_sources && SETTINGS.weather_sources[src];
+    if (!ws || !ws.map) continue;
+    const params = Object.keys(ws.map).filter(p => ws.map[p] === "wind_spd");
+    for (const p of params) {
+      const rows = await loadWeatherSeries(src, p, now - 3 * 3600, now);
+      if (rows.length) return Number(rows[rows.length - 1].val);
+    }
+  }
+  return null;
+}
+async function advWindCheck() {
+  if (document.hidden || !SETTINGS) return;
+  try {
+    const off = (SETTINGS.advice && SETTINGS.advice.disabled) || {};
+    const v = await advWindValue();
+    if (v === null || !isFinite(v)) { advTick.active.a83 = false; advTick.active.a84 = false; return; }
+    const was = advTick.active.a84 ? 2 : (advTick.active.a83 ? 1 : 0);
+    let lvl = 0;
+    if (v >= 17.2) lvl = 2; else if (v >= 10.8) lvl = 1;
+    if (was === 2 && lvl < 2 && v >= 15.48) lvl = 2;
+    if (lvl < 1 && was >= 1 && v >= 9.72) lvl = 1;
+    advTick.active.a83 = (lvl === 1) && off.a83 !== true;
+    advTick.active.a84 = (lvl === 2) && off.a84 !== true;
+    if (!advTick.cur && (advTick.active.a83 || advTick.active.a84)) advNext();
+  } catch (e) { console.warn("advice wind:", e); }
+}
+const _advRefreshPrevWind = advRefresh;
+advRefresh = async function () {
+  await _advRefreshPrevWind();
+  await advWindCheck();
+};
+window.addEventListener("load", function () {
+  ["a83", "a84"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
+});
