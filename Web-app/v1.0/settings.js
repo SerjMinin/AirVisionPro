@@ -1047,3 +1047,29 @@ advPaint = function (it) {
   sp.style.color = ADV_LEVELS[l].color || "var(--text)";
   sp.style.fontWeight = l ? "600" : "400";
 };
+/* ===== Ветер: описание 6 градаций в окне настроек вкладки ===== */
+const _buildParamSettingsPrevWind = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevWind();
+  if (currentKey !== "wind_spd") return;
+  const rows = [
+    { n: prT("wnd_g1", "Штиль"),      r: "0 – 1,5",    c: "" },
+    { n: prT("wnd_g2", "Лёгкий"),     r: "1,6 – 5,4",  c: "" },
+    { n: prT("wnd_g3", "Умеренный"),  r: "5,5 – 7,9",  c: "" },
+    { n: prT("wnd_g4", "Свежий"),     r: "8,0 – 10,7", c: "" },
+    { n: prT("wnd_g5", "Сильный"),    r: "10,8 – 17,1", c: "#ff9d4d" },
+    { n: prT("wnd_g6", "Штормовой"),  r: prT("wnd_from", "от") + " 17,2", c: "#d62839" }
+  ];
+  const tr = rows.map(it =>
+    '<tr><td style="padding:3px 10px 3px 0;">' +
+    (it.c ? '<span style="color:' + it.c + ';">■</span> ' : '') + it.n +
+    '</td><td style="padding:3px 0;text-align:right;white-space:nowrap;">' + it.r + '</td></tr>'
+  ).join("");
+  const html = '<div class="set-section"><h3>' + prT("wnd_title", "Градации скорости ветра") +
+    ', ' + prT("wnd_unit", "м/с") + '</h3>' +
+    '<table style="width:100%;border-collapse:collapse;">' + tr + '</table>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("wnd_note", "Пунктиры на графике: оранжевый — 10,8 м/с, тёмно-красный — 17,2 м/с.") +
+    '</div></div>';
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+};
