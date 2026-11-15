@@ -1223,3 +1223,60 @@ applyParamSettings = async function () {
   }
   return _applyParamSettingsPrevSolar();
 };
+/* ===== УФ-индекс: автоиндикатор в окне настроек вкладки ===== */
+function uvCfg() {
+  const c = SETTINGS.uv_ai || {};
+  return { on: c.on !== false, src: c.src || "auto" };
+}
+function uvRefresh() {
+  const on = document.getElementById("uv_on").checked;
+  const ctl = document.getElementById("uv_ctl");
+  ctl.style.opacity = on ? "1" : "0.4";
+  ctl.style.pointerEvents = on ? "" : "none";
+}
+const _buildParamSettingsPrevUv = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevUv();
+  if (currentKey !== "uv") return;
+  const c = uvCfg();
+  const opts = [
+    { id: "auto",       label: prT("lux_src_auto", "Авто") },
+    { id: "dev",        label: prT("lux_src_out", "Уличное устройство") },
+    { id: "open-meteo", label: "Open-Meteo" },
+    { id: "owm",        label: "OpenWeatherMap" }
+  ];
+  const rows = [
+    { n: prT("uv_g1", "Умеренный"),       r: "3 – 5",  c: "#ffcf4d" },
+    { n: prT("uv_g2", "Высокий"),         r: "6 – 7",  c: "#ff9d4d" },
+    { n: prT("uv_g3", "Очень высокий"),   r: "8 – 10", c: "#ff4d4d" },
+    { n: prT("uv_g4", "Экстремальный"),   r: "11+",    c: "#d62839" }
+  ];
+  const tr = rows.map(it =>
+    '<tr><td style="padding:3px 10px 3px 0;"><span style="color:' + it.c + ';">■</span> ' + it.n +
+    '</td><td style="padding:3px 0;text-align:right;white-space:nowrap;">' + it.r + '</td></tr>'
+  ).join("");
+  const html = '<div class="set-section"><h3>' + prT("uv_title", "Автоиндикатор") + '</h3>' +
+    '<label class="set-check"><input type="checkbox" id="uv_on" ' + (c.on ? "checked" : "") + '> ' +
+    prT("lux_on", "Включить автоиндикатор") + '</label>' +
+    '<div id="uv_ctl">' +
+    '<div class="set-row"><label>' + prT("uv_src_l", "Источник") + '</label>' +
+    selHtml("uv_src", opts, c.src) + '</div>' +
+    '</div>' +
+    '<table style="width:100%;border-collapse:collapse;margin-top:8px;">' + tr + '</table>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("uv_desc", "«Авто»: сначала уличное устройство, если его нет — Open-Meteo, потом OpenWeatherMap. Если выбрать источник вручную, берутся данные только от него. Пунктиры на графике: 3, 6, 8 и 11.") +
+    '</div></div>';
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+  document.getElementById("uv_on").addEventListener("change", uvRefresh);
+  uvRefresh();
+};
+const _applyParamSettingsPrevUv = applyParamSettings;
+applyParamSettings = async function () {
+  const on = document.getElementById("uv_on");
+  if (on && currentKey === "uv") {
+    SETTINGS.uv_ai = { on: on.checked, src: document.getElementById("uv_src").value };
+  }
+  return _applyParamSettingsPrevUv();
+};

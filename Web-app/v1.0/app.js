@@ -1883,3 +1883,65 @@ advRefresh = async function () {
 window.addEventListener("load", function () {
   ["a89", "a90", "a91", "a92"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
 });
+/* ===== УФ-индекс: источник по выбору и галка Вкл/Выкл для советов ===== */
+advUvValue = async function () {
+  const c = uvCfg();
+  if (!c.on) return null;
+  if (c.src === "auto" || c.src === "dev") {
+    const d = await advLatestDevice("out", "uv");
+    if (d !== null && isFinite(d)) return d;
+    if (c.src === "dev") return null;
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const list = (c.src === "open-meteo" || c.src === "owm") ? [c.src] : ["open-meteo", "owm"];
+  for (const src of list) {
+    const ws = SETTINGS.weather_sources && SETTINGS.weather_sources[src];
+    if (!ws || !ws.map) continue;
+    const params = Object.keys(ws.map).filter(p => ws.map[p] === "uv");
+    for (const p of params) {
+      const rows = await loadWeatherSeries(src, p, now - 3 * 3600, now);
+      if (rows.length) return Number(rows[rows.length - 1].val);
+    }
+  }
+  return null;
+};
+
+/* ===== УФ-индекс: четыре пунктира 3, 6, 8, 11 ===== */
+Chart.register({
+  id: "uvThrLines",
+  beforeDatasetsDraw(chart) {
+    if (typeof currentKey === "undefined" || currentKey !== "uv") return;
+    if (!uvCfg().on) return;
+    const sc = chart.scales.y || Object.values(chart.scales).find(s => s.axis === "y");
+    if (!sc) return;
+    const area = chart.chartArea;
+    const ctx = chart.ctx;
+    [
+      { v: 3,  c: "#ffcf4d" },
+      { v: 6,  c: "#ff9d4d" },
+      { v: 8,  c: "#ff4d4d" },
+      { v: 11, c: "#d62839" }
+    ].forEach(L => {
+      if (L.v < sc.min || L.v > sc.max) return;
+      const y = sc.getPixelForValue(L.v);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+      ctx.clip();
+      ctx.strokeStyle = L.c;
+      ctx.fillStyle = L.c;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([10, 4, 2, 4]);
+      ctx.beginPath();
+      ctx.moveTo(area.left, y);
+      ctx.lineTo(area.right, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(String(L.v), area.right - 4, y - 2);
+      ctx.restore();
+    });
+  }
+});
