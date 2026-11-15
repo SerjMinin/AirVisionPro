@@ -1322,3 +1322,23 @@ buildParamSettings = function () {
   document.getElementById("uv_on").addEventListener("change", uvRefresh);
   uvRefresh();
 };
+/* ===== УФ-индекс: таблица градаций с цветными квадратами и короткими подписями ===== */
+const _buildParamSettingsPrevUv3 = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevUv3();
+  if (currentKey !== "uv") return;
+  const ctl = document.getElementById("uv_ctl");
+  if (!ctl || !ctl.nextElementSibling) return;
+  const rows = [
+    { c: "#ffffff", n: prT("uv_s1", "Низкий: защита не требуется."),          r: "0 – 2" },
+    { c: "#ffcf4d", n: prT("uv_s2", "Умеренный: необходима защита."),         r: "3 – 5" },
+    { c: "#ff4d4d", n: prT("uv_s3", "Высокий: обязательная защита."),         r: "6 – 7" },
+    { c: "#d62839", n: prT("uv_s4", "Очень высокий: усиленная защита."),      r: "8 – 10" },
+    { c: "#a4133c", n: prT("uv_s5", "Экстремальный: максимальная защита."),   r: "11+" }
+  ];
+  ctl.nextElementSibling.innerHTML = rows.map(it =>
+    '<tr><td style="padding:4px 12px 4px 0;"><span style="color:' + it.c +
+    ';text-shadow:0 0 1px #8a93a6;">■</span> ' + it.n +
+    '</td><td style="padding:4px 0;text-align:right;white-space:nowrap;">' + it.r + '</td></tr>'
+  ).join("");
+};
