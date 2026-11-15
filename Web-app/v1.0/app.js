@@ -1749,3 +1749,70 @@ advRefresh = async function () {
 window.addEventListener("load", function () {
   ["a83", "a84"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
 });
+/* ===== Освещённость: пунктиры порогов «Офис / Дом» и «Улица» ===== */
+Chart.register({
+  id: "luxThrLines",
+  beforeDatasetsDraw(chart) {
+    if (typeof currentKey === "undefined" || currentKey !== "lux") return;
+    const c = luxCfg();
+    if (!c.on) return;
+    const sc = chart.scales.y || Object.values(chart.scales).find(s => s.axis === "y");
+    if (!sc) return;
+    const area = chart.chartArea;
+    const ctx = chart.ctx;
+    [
+      { v: c.thr_home,   c: "#ffcf4d", n: prT("lux_l_home", "Офис / Дом") },
+      { v: c.thr_street, c: "#ff9d4d", n: prT("lux_l_street", "Улица") }
+    ].forEach(L => {
+      if (!isFinite(L.v) || L.v < sc.min || L.v > sc.max) return;
+      const y = sc.getPixelForValue(L.v);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+      ctx.clip();
+      ctx.strokeStyle = L.c;
+      ctx.fillStyle = L.c;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([10, 4, 2, 4]);
+      ctx.beginPath();
+      ctx.moveTo(area.left, y);
+      ctx.lineTo(area.right, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(L.n + " " + String(+L.v.toPrecision(3)), area.right - 4, y - 2);
+      ctx.restore();
+    });
+  }
+});
+
+/* ===== Нижняя строка: советы по освещённости (a85 дом/офис, a86 улица) ===== */
+async function advLuxCheck() {
+  if (document.hidden || !SETTINGS) return;
+  try {
+    const c = luxCfg();
+    const off = (SETTINGS.advice && SETTINGS.advice.disabled) || {};
+    const items = [
+      { id: "a85", which: "in",  thr: c.thr_home },
+      { id: "a86", which: "out", thr: c.thr_street }
+    ];
+    for (const it of items) {
+      if (!c.on || off[it.id] === true) { advTick.active[it.id] = false; continue; }
+      const v = await advLatestDevice(it.which, "lux");
+      if (v === null || !isFinite(v)) { advTick.active[it.id] = false; continue; }
+      if (v < it.thr) advTick.active[it.id] = true;
+      else if (v > it.thr * 1.1) advTick.active[it.id] = false;
+    }
+    if (!advTick.cur && (advTick.active.a85 || advTick.active.a86)) advNext();
+  } catch (e) { console.warn("advice lux:", e); }
+}
+const _advRefreshPrevLux = advRefresh;
+advRefresh = async function () {
+  await _advRefreshPrevLux();
+  await advLuxCheck();
+};
+window.addEventListener("load", function () {
+  ["a85", "a86"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
+});
