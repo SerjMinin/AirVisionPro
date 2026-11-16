@@ -1461,7 +1461,7 @@ buildParamSettings = function () {
   const u = uSel ? uSel.value : (SETTINGS.units.ch4 || "ppm");
   const srcOpts = [ { id: "in", label: prT("ch4_src_in", "Домашнее устройство") } ];
   const tOpts = [
-    { id: "auto", label: prT("ch4_t_auto", "Авто: домашний датчик, иначе +25 °C") },
+    { id: "auto", label: prT("ch4_t_auto", "Авто: домашний датчик t, иначе +25 °C") },
     { id: "fix",  label: prT("ch4_t_fix", "Фиксированная") }
   ];
   const html = '<div class="set-section"><h3>' + prT("ch4_title", "Автоиндикатор") + '</h3>' +
@@ -1524,4 +1524,43 @@ applyParamSettings = async function () {
   const r = await _applyParamSettingsPrevCh4();
   if (typeof ch4TempRefresh === "function") ch4TempRefresh();
   return r;
+};
+/* ===== Метан: в режиме «Авто» в сером поле видна реальная температура ===== */
+let ch4FixKeep = 25;
+async function ch4AutoTemp() {
+  try {
+    const v = await advLatestDevice("in", "temp");
+    return (v !== null && isFinite(v)) ? Math.round(v * 10) / 10 : 25;
+  } catch (e) { return 25; }
+}
+const _buildParamSettingsPrevCh4b = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevCh4b();
+  if (currentKey !== "ch4") return;
+  const tm = document.getElementById("ch4_tm");
+  const tf = document.getElementById("ch4_tfix");
+  if (!tm || !tf) return;
+  ch4FixKeep = ch4Cfg().t_fix;
+  let autoVal = null;
+  const show = function () {
+    if (tm.value === "fix") tf.value = ch4FixKeep;
+    else tf.value = (autoVal === null) ? "" : autoVal;
+  };
+  tf.addEventListener("input", function () {
+    const v = parseFloat(tf.value);
+    if (tm.value === "fix" && isFinite(v)) ch4FixKeep = v;
+  });
+  tm.addEventListener("change", show);
+  show();
+  ch4AutoTemp().then(function (v) {
+    autoVal = v;
+    if (tm.value !== "fix") show();
+  });
+};
+const _applyParamSettingsPrevCh4b = applyParamSettings;
+applyParamSettings = async function () {
+  const tm = document.getElementById("ch4_tm");
+  const tf = document.getElementById("ch4_tfix");
+  if (currentKey === "ch4" && tm && tf && tm.value !== "fix") tf.value = ch4FixKeep;
+  return _applyParamSettingsPrevCh4b();
 };
