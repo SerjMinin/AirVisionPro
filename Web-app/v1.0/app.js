@@ -2019,3 +2019,70 @@ advRefresh = async function () {
 window.addEventListener("load", function () {
   ["a93", "a94", "a95", "a96", "a97", "a98"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
 });
+/* ===== Метан CH₄: температура для пересчёта, пунктир порога, совет a99 ===== */
+async function ch4TempRefresh() {
+  try {
+    const c = ch4Cfg();
+    if (c.t_mode === "fix") { CH4_T = c.t_fix; return; }
+    const v = await advLatestDevice("in", "temp");
+    CH4_T = (v !== null && isFinite(v)) ? v : 25;
+  } catch (e) { CH4_T = 25; }
+}
+Chart.register({
+  id: "ch4ThrLine",
+  beforeDatasetsDraw(chart) {
+    if (typeof currentKey === "undefined" || currentKey !== "ch4") return;
+    const c = ch4Cfg();
+    if (!c.on) return;
+    const sc = chart.scales.y || Object.values(chart.scales).find(s => s.axis === "y");
+    if (!sc) return;
+    const v = ch4PpmTo(c.thr_ppm, SETTINGS.units.ch4 || "ppm");
+    if (!isFinite(v) || v < sc.min || v > sc.max) return;
+    const area = chart.chartArea;
+    const ctx = chart.ctx;
+    const y = sc.getPixelForValue(v);
+    const col = "#d62839";
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+    ctx.clip();
+    ctx.strokeStyle = col;
+    ctx.fillStyle = col;
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([10, 4, 2, 4]);
+    ctx.beginPath();
+    ctx.moveTo(area.left, y);
+    ctx.lineTo(area.right, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(String(+v.toPrecision(4)), area.right - 4, y - 2);
+    ctx.restore();
+  }
+});
+async function advCh4Check() {
+  if (document.hidden || !SETTINGS) return;
+  try {
+    const c = ch4Cfg();
+    const off = (SETTINGS.advice && SETTINGS.advice.disabled) || {};
+    if (!c.on || off.a99 === true) { advTick.active.a99 = false; return; }
+    const v = await advLatestDevice("in", "ch4");
+    if (v === null || !isFinite(v)) { advTick.active.a99 = false; return; }
+    const ppm = v / ch4UgPerPpm(CH4_T);
+    if (ppm >= c.thr_ppm) advTick.active.a99 = true;
+    else if (ppm < c.thr_ppm * 0.9) advTick.active.a99 = false;
+    if (!advTick.cur && advTick.active.a99) advNext();
+  } catch (e) { console.warn("advice ch4:", e); }
+}
+const _advRefreshPrevCh4 = advRefresh;
+advRefresh = async function () {
+  await _advRefreshPrevCh4();
+  await ch4TempRefresh();
+  await advCh4Check();
+};
+window.addEventListener("load", function () {
+  if (ADVICE_READY.indexOf("a99") < 0) ADVICE_READY.push("a99");
+  setTimeout(ch4TempRefresh, 3000);
+});

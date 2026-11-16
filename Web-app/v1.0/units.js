@@ -85,3 +85,27 @@ convertUnit = function(value, group, toUnit) {
   }
   return _convertUnitBase(value, group, toUnit);
 };
+/* ===== Метан CH₄: база = мкг/м³; единицы на выбор, по умолчанию ppm ===== */
+let CH4_T = 25;
+function ch4UgPerPpm(T) {
+  const k = isFinite(T) ? T : 25;
+  return 16.043 * 1000 * 273.15 / (22.414 * (k + 273.15));
+}
+UNITS.ch4 = { def: "ppm", opts: [ {id:"ppm",label:"ppm"}, {id:"mg",label:"мг/м³"}, {id:"ug",label:"мкг/м³"}, {id:"nlv",label:"% НПВ"} ] };
+PARAM_UNIT_GROUP.ch4 = "ch4";
+const _convertUnitCh4 = convertUnit;
+convertUnit = function (value, group, toUnit) {
+  if (group === "ch4") {
+    if (value == null || isNaN(value)) return value;
+    if (toUnit === "ug") return value;
+    if (toUnit === "mg") return value / 1000;
+    if (toUnit === "nlv") return value / ch4UgPerPpm(CH4_T) / 440;
+    return value / ch4UgPerPpm(CH4_T);
+  }
+  return _convertUnitCh4(value, group, toUnit);
+};
+function ch4PpmTo(ppm, unit) { return convertUnit(ppm * ch4UgPerPpm(CH4_T), "ch4", unit); }
+function ch4ToPpm(val, unit) {
+  const f = convertUnit(1, "ch4", unit);
+  return (isFinite(f) && f > 0) ? val / f / ch4UgPerPpm(CH4_T) : val;
+}

@@ -1421,3 +1421,107 @@ applyParamSettings = async function () {
   const d = { alder: 51, birch: 50, grass: 31, olive: 49, mugwort: 30, ragweed: 20 };
   POLLEN_KINDS.forEach(k => { if (d[k.id] > 0) k.d = d[k.id]; });
 })();
+/* ===== Метан CH₄: окно автоиндикатора ===== */
+function ch4Cfg() {
+  const c = SETTINGS.ch4 || {};
+  const p = Number(c.thr_ppm);
+  return {
+    on: c.on !== false,
+    thr_ppm: p > 0 ? p : 4400,
+    t_mode: c.t_mode === "fix" ? "fix" : "auto",
+    t_fix: (c.t_fix != null && isFinite(Number(c.t_fix))) ? Number(c.t_fix) : 25
+  };
+}
+function ch4Round() {
+  const u = SETTINGS && SETTINGS.units && SETTINGS.units.ch4;
+  return u === "ug" ? 0 : (u === "mg" ? 1 : 2);
+}
+function ch4InstallRound() {
+  const p = (typeof PARAMS !== "undefined") && PARAMS.find(x => x.key === "ch4");
+  if (!p) return;
+  Object.defineProperty(p, "round", { get: ch4Round, set: function () {}, configurable: true });
+}
+ch4InstallRound();
+window.addEventListener("load", ch4InstallRound);
+function ch4RefreshWin() {
+  const on = document.getElementById("ch4_on").checked;
+  const ctl = document.getElementById("ch4_ctl");
+  ctl.style.opacity = on ? "1" : "0.4";
+  ctl.style.pointerEvents = on ? "" : "none";
+  document.getElementById("ch4_thr").disabled = !on;
+  const fix = document.getElementById("ch4_tm").value === "fix";
+  document.getElementById("ch4_tfix").disabled = !on || !fix;
+}
+const _buildParamSettingsPrevCh4 = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevCh4();
+  if (currentKey !== "ch4") return;
+  const c = ch4Cfg();
+  const uSel = document.getElementById("pu_unit");
+  const u = uSel ? uSel.value : (SETTINGS.units.ch4 || "ppm");
+  const srcOpts = [ { id: "in", label: prT("ch4_src_in", "Домашнее устройство") } ];
+  const tOpts = [
+    { id: "auto", label: prT("ch4_t_auto", "Авто: домашний датчик, иначе +25 °C") },
+    { id: "fix",  label: prT("ch4_t_fix", "Фиксированная") }
+  ];
+  const html = '<div class="set-section"><h3>' + prT("ch4_title", "Автоиндикатор") + '</h3>' +
+    '<label class="set-check"><input type="checkbox" id="ch4_on" ' + (c.on ? "checked" : "") + '> ' +
+    prT("lux_on", "Включить автоиндикатор") + '</label>' +
+    '<div id="ch4_ctl">' +
+    '<div class="set-row"><label>' + prT("ch4_mode_l", "Режим") + '</label><span>' + prT("ch4_mode_v", "Офис / Дом") + '</span></div>' +
+    '<div class="set-row"><label>' + prT("uv_src_l", "Источник") + '</label>' + selHtml("ch4_src", srcOpts, "in") + '</div>' +
+    '<div class="set-hint" style="margin:0 0 6px;">' + prT("ch4_src_hint", "Подходит только датчик от домашнего устройства.") + '</div>' +
+    '<div class="set-row"><label>' + prT("ch4_t_l", "Температура для пересчёта") + '</label>' + selHtml("ch4_tm", tOpts, c.t_mode) + '</div>' +
+    '<div class="set-row"><label>' + prT("ch4_t_val", "Фиксированная температура") + ', °C</label>' +
+    '<input id="ch4_tfix" class="set-input" type="number" step="any" value="' + c.t_fix + '"></div>' +
+    '<div class="set-row"><label>' + prT("thr_word", "Порог") + ', <span id="ch4_unit">' + unitLabel("ch4", u) + '</span></label>' +
+    '<input id="ch4_thr" class="set-input" type="number" step="any" min="0" value="' + gasFmt(ch4PpmTo(c.thr_ppm, u)) + '"></div>' +
+    '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("ch4_d_thr", "Порог по умолчанию — 10 % от нижнего предела взрываемости (НПВ). Взрывоопасная смесь начинается с 4,4 % метана в воздухе. Это запас безопасности: тревога срабатывает намного раньше, чем смесь станет опасной.") +
+    '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("ch4_d_desc", "Метан без запаха. В закрытой комнате он вытесняет воздух и может вызвать удушье. Взрывоопасен при 4,4–17 % в воздухе, самая опасная смесь около 9,5 %. Источник обычно бытовой газ.") +
+    '</div>' +
+    '<div class="param-desc" style="color:var(--error);font-weight:600;margin-top:8px;">' +
+    prT("ch4_d_bad", "Кратковременное превышение не допустимо.") + '</div>' +
+    '<div class="param-desc" style="margin-top:6px;">' + prT("ch4_d_up", "Улетучивается вверх.") + '</div>' +
+    '</div>';
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+  document.getElementById("ch4_on").addEventListener("change", ch4RefreshWin);
+  document.getElementById("ch4_tm").addEventListener("change", ch4RefreshWin);
+  let shownU = u;
+  if (uSel) uSel.addEventListener("change", () => {
+    const nu = uSel.value;
+    const el = document.getElementById("ch4_thr");
+    const v = parseFloat(el.value);
+    if (isFinite(v)) el.value = gasFmt(ch4PpmTo(ch4ToPpm(v, shownU), nu));
+    shownU = nu;
+    document.getElementById("ch4_unit").textContent = unitLabel("ch4", nu);
+  });
+  ch4RefreshWin();
+};
+const _applyParamSettingsPrevCh4 = applyParamSettings;
+applyParamSettings = async function () {
+  const on = document.getElementById("ch4_on");
+  if (on && currentKey === "ch4") {
+    const uSel = document.getElementById("pu_unit");
+    const u = uSel ? uSel.value : "ppm";
+    SETTINGS.units.ch4 = u;
+    const v = parseFloat(document.getElementById("ch4_thr").value);
+    const ppm = v > 0 ? ch4ToPpm(v, u) : 4400;
+    const tf = parseFloat(document.getElementById("ch4_tfix").value);
+    const o = {
+      on: on.checked,
+      t_mode: document.getElementById("ch4_tm").value,
+      t_fix: isFinite(tf) ? tf : 25
+    };
+    if (Math.abs(ppm - 4400) > 44) o.thr_ppm = ppm;
+    SETTINGS.ch4 = o;
+  }
+  const r = await _applyParamSettingsPrevCh4();
+  if (typeof ch4TempRefresh === "function") ch4TempRefresh();
+  return r;
+};
