@@ -131,3 +131,10 @@ ADVICE_LIST.push(
 ADVICE_LIST.push(
   { id:"a99", crit:false, color:"#d62839", text:"Метан CH₄ — превышен порог. Кратковременное превышение не допустимо. Улетучивается вверх." }
 );
+/* ===== Советы по влажности ===== */
+ADVICE_LIST.push(
+  { id:"a100", crit:false, color:"#ffcf4d", text:"Дом, влажность ниже 38 %." },
+  { id:"a101", crit:false, color:"#ffcf4d", text:"Дом, влажность выше 65 %." },
+  { id:"a102", crit:false, color:"#ff4d4d", text:"Улица, влажность выше 90 %." },
+  { id:"a103", crit:false, color:"#ffcf4d", text:"Улица, влажность ниже 35 %." }
+);

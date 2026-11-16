@@ -2086,3 +2086,102 @@ window.addEventListener("load", function () {
   if (ADVICE_READY.indexOf("a99") < 0) ADVICE_READY.push("a99");
   setTimeout(ch4TempRefresh, 3000);
 });
+/* ===== Влажность: четыре пунктира порогов ===== */
+Chart.register({
+  id: "humThrLines",
+  beforeDatasetsDraw(chart) {
+    if (typeof currentKey === "undefined" || currentKey !== "rh") return;
+    const c = humCfg();
+    if (!c.on) return;
+    const sc = chart.scales.y || Object.values(chart.scales).find(s => s.axis === "y");
+    if (!sc) return;
+    const area = chart.chartArea;
+    const ctx = chart.ctx;
+    const used = [];
+    [
+      { v: c.thr.home_low,  c: "#ffcf4d", n: prT("hum_l_home", "Дом") },
+      { v: c.thr.home_high, c: "#ffcf4d", n: prT("hum_l_home", "Дом") },
+      { v: c.thr.st_high,   c: "#ff4d4d", n: prT("hum_l_street", "Улица") },
+      { v: c.thr.st_low,    c: "#ffcf4d", n: prT("hum_l_street", "Улица") }
+    ].forEach(L => {
+      if (!isFinite(L.v) || L.v < sc.min || L.v > sc.max) return;
+      const y = sc.getPixelForValue(L.v);
+      let ty = y - 2;
+      while (used.some(u => Math.abs(u - ty) < 12)) ty -= 12;
+      used.push(ty);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+      ctx.clip();
+      ctx.strokeStyle = L.c;
+      ctx.fillStyle = L.c;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([10, 4, 2, 4]);
+      ctx.beginPath();
+      ctx.moveTo(area.left, y);
+      ctx.lineTo(area.right, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(L.n + " " + String(+L.v.toPrecision(3)), area.right - 4, ty);
+      ctx.restore();
+    });
+  }
+});
+
+/* ===== Нижняя строка: советы по влажности (a100–a103) ===== */
+async function advHumValue(which, src) {
+  if (src === "auto" || src === "dev") {
+    const d = await advLatestDevice(which, "rh");
+    if (d !== null && isFinite(d)) return d;
+    if (src === "dev" || which === "in") return null;
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const list = (src === "open-meteo" || src === "owm") ? [src] : ["open-meteo", "owm"];
+  for (const s of list) {
+    const ws = SETTINGS.weather_sources && SETTINGS.weather_sources[s];
+    if (!ws || !ws.map) continue;
+    const params = Object.keys(ws.map).filter(p => ws.map[p] === "rh");
+    for (const p of params) {
+      const rows = await loadWeatherSeries(s, p, now - 3 * 3600, now);
+      if (rows.length) return Number(rows[rows.length - 1].val);
+    }
+  }
+  return null;
+}
+async function advHumCheck() {
+  if (document.hidden || !SETTINGS) return;
+  try {
+    const c = humCfg();
+    const off = (SETTINGS.advice && SETTINGS.advice.disabled) || {};
+    const vHome = c.on ? await advHumValue("in", c.src_in) : null;
+    const vOut = c.on ? await advHumValue("out", c.src_out) : null;
+    const items = [
+      { id: "a100", v: vHome, thr: c.thr.home_low,  low: true },
+      { id: "a101", v: vHome, thr: c.thr.home_high, low: false },
+      { id: "a102", v: vOut,  thr: c.thr.st_high,   low: false },
+      { id: "a103", v: vOut,  thr: c.thr.st_low,    low: true }
+    ];
+    items.forEach(it => {
+      if (!c.on || off[it.id] === true || it.v === null || !isFinite(it.v)) { advTick.active[it.id] = false; return; }
+      if (it.low) {
+        if (it.v < it.thr) advTick.active[it.id] = true;
+        else if (it.v > it.thr * 1.1) advTick.active[it.id] = false;
+      } else {
+        if (it.v >= it.thr) advTick.active[it.id] = true;
+        else if (it.v < it.thr * 0.9) advTick.active[it.id] = false;
+      }
+    });
+    if (!advTick.cur && items.some(i => advTick.active[i.id])) advNext();
+  } catch (e) { console.warn("advice hum:", e); }
+}
+const _advRefreshPrevHum = advRefresh;
+advRefresh = async function () {
+  await _advRefreshPrevHum();
+  await advHumCheck();
+};
+window.addEventListener("load", function () {
+  ["a100", "a101", "a102", "a103"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
+});

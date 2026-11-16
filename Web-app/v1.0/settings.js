@@ -1564,3 +1564,82 @@ applyParamSettings = async function () {
   if (currentKey === "ch4" && tm && tf && tm.value !== "fix") tf.value = ch4FixKeep;
   return _applyParamSettingsPrevCh4b();
 };
+/* ===== Влажность: автоиндикатор в окне настроек вкладки ===== */
+const HUM_DEF = { home_low: 38, home_high: 65, st_high: 90, st_low: 35 };
+function humCfg() {
+  const c = SETTINGS.hum_ai || {};
+  const thr = {};
+  Object.keys(HUM_DEF).forEach(k => {
+    const v = Number(c.thr && c.thr[k]);
+    thr[k] = v > 0 ? v : HUM_DEF[k];
+  });
+  return { on: c.on !== false, src_in: c.src_in || "auto", src_out: c.src_out || "auto", thr: thr };
+}
+function humRefresh() {
+  const on = document.getElementById("hum_on").checked;
+  const ctl = document.getElementById("hum_ctl");
+  ctl.style.opacity = on ? "1" : "0.4";
+  ctl.style.pointerEvents = on ? "" : "none";
+  Object.keys(HUM_DEF).forEach(k => { document.getElementById("hum_thr_" + k).disabled = !on; });
+}
+const _buildParamSettingsPrevHum = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevHum();
+  if (currentKey !== "rh") return;
+  const c = humCfg();
+  const optsIn = [
+    { id: "auto", label: prT("lux_src_auto", "Авто") },
+    { id: "dev",  label: prT("lux_src_in", "Домашнее устройство") }
+  ];
+  const optsOut = [
+    { id: "auto",       label: prT("lux_src_auto", "Авто") },
+    { id: "dev",        label: prT("lux_src_out", "Уличное устройство") },
+    { id: "open-meteo", label: "Open-Meteo" },
+    { id: "owm",        label: "OpenWeatherMap" }
+  ];
+  const rowsDef = [
+    { k: "home_low",  n: prT("hum_n1", "Дом, влажность ниже") },
+    { k: "home_high", n: prT("hum_n2", "Дом, влажность выше") },
+    { k: "st_high",   n: prT("hum_n3", "Улица, влажность выше") },
+    { k: "st_low",    n: prT("hum_n4", "Улица, влажность ниже") }
+  ];
+  const rows = rowsDef.map(r =>
+    '<div class="set-row"><label>' + prT("thr_word", "Порог") + ': ' + r.n + ', %</label>' +
+    '<input id="hum_thr_' + r.k + '" class="set-input" type="number" step="any" min="0" value="' + c.thr[r.k] + '"></div>'
+  ).join("");
+  const html = '<div class="set-section"><h3>' + prT("hum_title", "Автоиндикатор") + '</h3>' +
+    '<label class="set-check"><input type="checkbox" id="hum_on" ' + (c.on ? "checked" : "") + '> ' +
+    prT("lux_on", "Включить автоиндикатор") + '</label>' +
+    '<div id="hum_ctl">' +
+    '<div class="set-row"><label>' + prT("hum_src_home_l", "Источник для Офис / Дом") + '</label>' +
+    selHtml("hum_src_in", optsIn, c.src_in) + '</div>' +
+    '<div class="set-row"><label>' + prT("hum_src_street_l", "Источник для Улица") + '</label>' +
+    selHtml("hum_src_out", optsOut, c.src_out) + '</div>' +
+    rows + '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("hum_desc", "Норма влажности: дома 30–60 %, на улице 30–100 %. Пунктиры на графике — пороги советов. Если поле порога очистить и нажать «Сохранить», вернётся значение по умолчанию.") +
+    '</div></div>';
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+  document.getElementById("hum_on").addEventListener("change", humRefresh);
+  humRefresh();
+};
+const _applyParamSettingsPrevHum = applyParamSettings;
+applyParamSettings = async function () {
+  const on = document.getElementById("hum_on");
+  if (on && currentKey === "rh") {
+    const thr = {};
+    Object.keys(HUM_DEF).forEach(k => {
+      const v = parseFloat(document.getElementById("hum_thr_" + k).value);
+      if (v > 0 && v !== HUM_DEF[k]) thr[k] = v;
+    });
+    SETTINGS.hum_ai = {
+      on: on.checked,
+      src_in: document.getElementById("hum_src_in").value,
+      src_out: document.getElementById("hum_src_out").value,
+      thr: thr
+    };
+  }
+  return _applyParamSettingsPrevHum();
+};
