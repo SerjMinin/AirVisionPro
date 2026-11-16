@@ -1945,3 +1945,77 @@ Chart.register({
     });
   }
 });
+/* ===== Пыльца: пунктиры порогов (цвет — как у линии этого вида) ===== */
+Chart.register({
+  id: "pollenThrLines",
+  beforeDatasetsDraw(chart) {
+    if (typeof currentKey === "undefined" || currentKey !== "pollen") return;
+    const c = pollenCfg();
+    if (!c.on) return;
+    const sc = chart.scales.y || Object.values(chart.scales).find(s => s.axis === "y");
+    if (!sc) return;
+    const area = chart.chartArea;
+    const ctx = chart.ctx;
+    const used = [];
+    POLLEN_KINDS.forEach(k => {
+      const ds = chart.data.datasets.find(d => typeof d.label === "string" &&
+        k.names.some(n => d.label.endsWith(n)));
+      if (!ds) return;
+      const v = c.thr[k.id];
+      if (!isFinite(v) || v < sc.min || v > sc.max) return;
+      const col = ds.borderColor || "#9be564";
+      const y = sc.getPixelForValue(v);
+      let ty = y - 2;
+      while (used.some(u => Math.abs(u - ty) < 12)) ty -= 12;
+      used.push(ty);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+      ctx.clip();
+      ctx.strokeStyle = col;
+      ctx.fillStyle = col;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([10, 4, 2, 4]);
+      ctx.beginPath();
+      ctx.moveTo(area.left, y);
+      ctx.lineTo(area.right, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(prT("pol_n_" + k.id, k.ru) + " " + String(+v.toPrecision(3)), area.right - 4, ty);
+      ctx.restore();
+    });
+  }
+});
+
+/* ===== Нижняя строка: советы по пыльце (a93–a98) ===== */
+async function advPollenCheck() {
+  if (document.hidden || !SETTINGS) return;
+  try {
+    const c = pollenCfg();
+    const off = (SETTINGS.advice && SETTINGS.advice.disabled) || {};
+    const now = Math.floor(Date.now() / 1000);
+    const srcOn = !(SETTINGS.config_items && SETTINGS.config_items.open_meteo_air === false);
+    for (const k of POLLEN_KINDS) {
+      if (!c.on || !srcOn || off[k.a] === true) { advTick.active[k.a] = false; continue; }
+      const rows = await loadWeatherSeries("open-meteo-air", k.f, now - 3 * 3600, now);
+      if (!rows.length) { advTick.active[k.a] = false; continue; }
+      const v = Number(rows[rows.length - 1].val);
+      if (!isFinite(v)) { advTick.active[k.a] = false; continue; }
+      const thr = c.thr[k.id];
+      if (v >= thr) advTick.active[k.a] = true;
+      else if (v < thr * 0.9) advTick.active[k.a] = false;
+    }
+    if (!advTick.cur && POLLEN_KINDS.some(k => advTick.active[k.a])) advNext();
+  } catch (e) { console.warn("advice pollen:", e); }
+}
+const _advRefreshPrevPollen = advRefresh;
+advRefresh = async function () {
+  await _advRefreshPrevPollen();
+  await advPollenCheck();
+};
+window.addEventListener("load", function () {
+  ["a93", "a94", "a95", "a96", "a97", "a98"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
+});

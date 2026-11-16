@@ -1342,3 +1342,77 @@ buildParamSettings = function () {
     '</td><td style="padding:4px 0;text-align:right;white-space:nowrap;">' + it.r + '</td></tr>'
   ).join("");
 };
+/* ===== Пыльца: автоиндикатор в окне настроек вкладки ===== */
+const POLLEN_KINDS = [
+  { id: "alder",   f: "alder_pollen",   names: ["Ольха"],            ru: "Ольха",    d: 50, a: "a93" },
+  { id: "birch",   f: "birch_pollen",   names: ["Берёза"],           ru: "Берёза",   d: 50, a: "a94" },
+  { id: "grass",   f: "grass_pollen",   names: ["Травы", "Трава"],   ru: "Трава",    d: 30, a: "a95" },
+  { id: "olive",   f: "olive_pollen",   names: ["Олива"],            ru: "Олива",    d: 50, a: "a96" },
+  { id: "mugwort", f: "mugwort_pollen", names: ["Полынь"],           ru: "Полынь",   d: 30, a: "a97" },
+  { id: "ragweed", f: "ragweed_pollen", names: ["Амброзия"],         ru: "Амброзия", d: 20, a: "a98" }
+];
+function pollenCfg() {
+  const c = SETTINGS.pollen_ai || {};
+  const thr = {};
+  POLLEN_KINDS.forEach(k => {
+    const v = Number(c.thr && c.thr[k.id]);
+    thr[k.id] = v > 0 ? v : k.d;
+  });
+  return { on: c.on !== false, src: c.src || "auto", thr: thr };
+}
+function pollenRefresh() {
+  const on = document.getElementById("pol_on").checked;
+  const ctl = document.getElementById("pol_ctl");
+  ctl.style.opacity = on ? "1" : "0.4";
+  ctl.style.pointerEvents = on ? "" : "none";
+  POLLEN_KINDS.forEach(k => { document.getElementById("pol_thr_" + k.id).disabled = !on; });
+}
+const _buildParamSettingsPrevPollen = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevPollen();
+  if (currentKey !== "pollen") return;
+  const c = pollenCfg();
+  const opts = [
+    { id: "auto",       label: prT("lux_src_auto", "Авто") },
+    { id: "open-meteo", label: "Open-Meteo Air" }
+  ];
+  const unit = prT("pol_unit", "зёрен/м³");
+  const rows = POLLEN_KINDS.map(k =>
+    '<div class="set-row"><label>' + prT("pol_thr_l", "Порог") + ' «' + prT("pol_n_" + k.id, k.ru) + '», ' + unit + '</label>' +
+    '<input id="pol_thr_' + k.id + '" class="set-input" type="number" step="any" min="0" value="' + c.thr[k.id] + '"></div>'
+  ).join("");
+  const html = '<div class="set-section"><h3>' + prT("pol_title", "Автоиндикатор") + '</h3>' +
+    '<label class="set-check"><input type="checkbox" id="pol_on" ' + (c.on ? "checked" : "") + '> ' +
+    prT("lux_on", "Включить автоиндикатор") + '</label>' +
+    '<div id="pol_ctl">' +
+    '<div class="set-row"><label>' + prT("uv_src_l", "Источник") + '</label>' +
+    selHtml("pol_src", opts, c.src) + '</div>' +
+    rows + '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("pol_desc1", "Данные о пыльце даёт Open-Meteo Air Quality. Пороги по умолчанию ориентировочные: чувствительность у аллергиков разная. Пунктиры на графике — по одному на каждый вид пыльцы, цветом своей линии.") +
+    '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("pol_desc2", "Как настроить: если реакция начинается раньше — уменьшите порог своего аллергена; если реагируете только на высокие уровни — увеличьте. Пустое поле после сохранения вернёт значение по умолчанию.") +
+    '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("pol_desc3", "Совет аллергикам: когда порог превышен, держите окна закрытыми (особенно утром и в сухую ветреную погоду), после улицы мойте лицо и волосы и меняйте одежду, сушите бельё дома, чаще делайте влажную уборку. Лекарства — только по назначению врача.") +
+    '</div></div>';
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+  document.getElementById("pol_on").addEventListener("change", pollenRefresh);
+  pollenRefresh();
+};
+const _applyParamSettingsPrevPollen = applyParamSettings;
+applyParamSettings = async function () {
+  const on = document.getElementById("pol_on");
+  if (on && currentKey === "pollen") {
+    const thr = {};
+    POLLEN_KINDS.forEach(k => {
+      const v = parseFloat(document.getElementById("pol_thr_" + k.id).value);
+      if (v > 0 && v !== k.d) thr[k.id] = v;
+    });
+    SETTINGS.pollen_ai = { on: on.checked, src: document.getElementById("pol_src").value, thr: thr };
+  }
+  return _applyParamSettingsPrevPollen();
+};
