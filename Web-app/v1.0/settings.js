@@ -1416,3 +1416,8 @@ applyParamSettings = async function () {
   }
   return _applyParamSettingsPrevPollen();
 };
+/* ===== Пыльца: пороги по умолчанию разведены, чтобы линии не лежали друг на друге ===== */
+(function () {
+  const d = { alder: 51, birch: 50, grass: 31, olive: 49, mugwort: 30, ragweed: 20 };
+  POLLEN_KINDS.forEach(k => { if (d[k.id] > 0) k.d = d[k.id]; });
+})();
