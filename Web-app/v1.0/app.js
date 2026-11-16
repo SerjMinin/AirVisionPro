@@ -2185,3 +2185,107 @@ advRefresh = async function () {
 window.addEventListener("load", function () {
   ["a100", "a101", "a102", "a103"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
 });
+/* ===== Частицы PM: 8 пунктиров на графике и 8 советов (a104–a111) =====
+   Пунктиры: для каждого из четырёх видов рисуются два уровня —
+   «Вреден для чувствительных» (оранжевый) и «Опасный» (тёмно-красный).
+   Линия видна, только если значение попадает в шкалу графика: шкалу она не растягивает. */
+Chart.register({
+  id: "pmThrLines",
+  beforeDatasetsDraw(chart) {
+    if (typeof currentKey === "undefined" || currentKey !== "pm") return;
+    const c = pmCfg();
+    if (!c.on) return;
+    const sc = chart.scales.y || Object.values(chart.scales).find(s => s.axis === "y");
+    if (!sc) return;
+    const area = chart.chartArea;
+    const ctx = chart.ctx;
+    const used = [];
+    PM_KINDS.forEach(k => {
+      [{ v: c.thr[k.id][3], c: "#ff9d4d" }, { v: c.thr[k.id][4], c: "#d62839" }].forEach(L => {
+        if (!isFinite(L.v) || L.v < sc.min || L.v > sc.max) return;
+        const y = sc.getPixelForValue(L.v);
+        let ty = y - 2;
+        while (used.some(u => Math.abs(u - ty) < 12)) ty -= 12;
+        used.push(ty);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+        ctx.clip();
+        ctx.strokeStyle = L.c;
+        ctx.fillStyle = L.c;
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([10, 4, 2, 4]);
+        ctx.beginPath();
+        ctx.moveTo(area.left, y);
+        ctx.lineTo(area.right, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = "11px sans-serif";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(k.label + " " + String(+L.v.toPrecision(3)), area.right - 4, ty);
+        ctx.restore();
+      });
+    });
+  }
+});
+
+/* Последнее значение с устройства по его собственному имени (pm1, pm25, pm4, pm10).
+   Берутся данные не старше 30 минут. Если устройство выключено или данных нет — возвращает null. */
+async function advLatestDeviceKey(which, devKey) {
+  const sn = which === "out" ? SETTINGS.sn_out : SETTINGS.sn_in;
+  const on = SETTINGS.config_items[which === "out" ? "dev_out" : "dev_in"] === true;
+  if (!sn || !on) return null;
+  const since = Math.floor(Date.now() / 1000) - 30 * 60;
+  const { data } = await client.from("measurements").select("val, ts_device")
+    .eq("serial", sn).eq("key", devKey).gte("ts_device", since)
+    .order("ts_device", { ascending: false }).limit(1);
+  return (data && data.length) ? Number(data[0].val) : null;
+}
+/* Значение частицы с учётом выбранного источника:
+   «Авто» — сначала устройство, потом Open-Meteo Air; «Уличное устройство» — только оно;
+   «Open-Meteo Air» — только интернет. У PM1.0 и PM4.0 интернета нет. */
+async function advPmValue(k, src) {
+  if (src === "auto" || src === "dev") {
+    const d = await advLatestDeviceKey("out", k.dev);
+    if (d !== null && isFinite(d)) return d;
+    if (src === "dev") return null;
+  }
+  if (!k.web) return null;
+  if (SETTINGS.config_items.open_meteo_air === false) return null;
+  const now = Math.floor(Date.now() / 1000);
+  const rows = await loadWeatherSeries("open-meteo-air", k.web, now - 3 * 3600, now);
+  return rows.length ? Number(rows[rows.length - 1].val) : null;
+}
+/* Проверка советов: уровень 0 — тихо, 1 — «вреден», 2 — «опасный».
+   Чтобы совет не мигал на границе, он снимается, когда значение упало примерно на 10 % ниже порога. */
+async function advPmCheck() {
+  if (document.hidden || !SETTINGS) return;
+  try {
+    const c = pmCfg();
+    const off = (SETTINGS.advice && SETTINGS.advice.disabled) || {};
+    for (const k of PM_KINDS) {
+      const idH = k.a[0], idD = k.a[1];
+      const v = c.on ? await advPmValue(k, c.src) : null;
+      if (v === null || !isFinite(v)) { advTick.active[idH] = false; advTick.active[idD] = false; continue; }
+      const h = c.thr[k.id][3], d = c.thr[k.id][4];
+      const was = advTick.active[idD] ? 2 : (advTick.active[idH] ? 1 : 0);
+      let lvl = v >= d ? 2 : (v >= h ? 1 : 0);
+      if (was === 2 && lvl < 2 && v >= d * 0.9) lvl = 2;
+      if (was >= 1 && lvl < 1 && v >= h * 0.9) lvl = 1;
+      advTick.active[idH] = (lvl === 1) && off[idH] !== true;
+      advTick.active[idD] = (lvl === 2) && off[idD] !== true;
+    }
+    if (!advTick.cur && PM_KINDS.some(k => advTick.active[k.a[0]] || advTick.active[k.a[1]])) advNext();
+  } catch (e) { console.warn("advice pm:", e); }
+}
+const _advRefreshPrevPm = advRefresh;
+advRefresh = async function () {
+  await _advRefreshPrevPm();
+  await advPmCheck();
+};
+window.addEventListener("load", function () {
+  ["a104", "a105", "a106", "a107", "a108", "a109", "a110", "a111"].forEach(id => {
+    if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id);
+  });
+});

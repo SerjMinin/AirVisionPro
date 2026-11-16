@@ -1643,3 +1643,111 @@ applyParamSettings = async function () {
   }
   return _applyParamSettingsPrevHum();
 };
+/* ===== Частицы PM: автоиндикатор в окне настроек вкладки «PM» =====
+   Что здесь есть:
+   1) PM_KINDS — список из четырёх видов частиц. Для каждого записано:
+      id — внутреннее имя; dev — под каким именем частицу присылает устройство;
+      web — под каким именем её присылает Open-Meteo Air (у PM1.0 и PM4.0 интернета нет);
+      def — пять чисел «с какого значения начинается уровень»:
+      Чистый (всегда 0), Приемлемый, Умеренно загрязнён, Вреден для чувствительных, Опасный;
+      a — номера двух советов: «вреден» и «опасный».
+   2) pmCfg() — читает сохранённые настройки и подставляет числа по умолчанию там, где поле пустое.
+   3) Окно: галка, выбор источника, таблица 4 × 5 и пояснения.
+   4) Сохранение: хранятся только те числа, которые ты изменил. */
+const PM_KINDS = [
+  { id: "pm1",  dev: "pm1",  web: null,    label: "PM1.0", def: [0, 5, 20, 30, 70],     a: ["a104", "a105"] },
+  { id: "pm25", dev: "pm25", web: "pm2_5", label: "PM2.5", def: [0, 9, 35, 55, 125],    a: ["a106", "a107"] },
+  { id: "pm4",  dev: "pm4",  web: null,    label: "PM4.0", def: [0, 25, 70, 110, 200],  a: ["a108", "a109"] },
+  { id: "pm10", dev: "pm10", web: "pm10",  label: "PM10",  def: [0, 54, 154, 254, 354], a: ["a110", "a111"] }
+];
+function pmCfg() {
+  const c = SETTINGS.pm_ai || {};
+  const thr = {};
+  PM_KINDS.forEach(k => {
+    const saved = (c.thr && c.thr[k.id]) || [];
+    thr[k.id] = k.def.map((d, i) => {
+      const v = Number(saved[i]);
+      return (i > 0 && v > 0) ? v : d;
+    });
+  });
+  return { on: c.on !== false, src: c.src || "auto", thr: thr };
+}
+function pmRefresh() {
+  const on = document.getElementById("pm_on").checked;
+  const ctl = document.getElementById("pm_ctl");
+  ctl.style.opacity = on ? "1" : "0.4";
+  ctl.style.pointerEvents = on ? "" : "none";
+  PM_KINDS.forEach(k => {
+    for (let i = 1; i <= 4; i++) document.getElementById("pm_thr_" + k.id + "_" + i).disabled = !on;
+  });
+}
+const _buildParamSettingsPrevPm = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevPm();
+  if (currentKey !== "pm") return;
+  const c = pmCfg();
+  const opts = [
+    { id: "auto",       label: prT("lux_src_auto", "Авто") },
+    { id: "dev",        label: prT("lux_src_out", "Уличное устройство") },
+    { id: "open-meteo", label: "Open-Meteo Air" }
+  ];
+  const levels = [
+    prT("pm_lv0", "Чистый"),
+    prT("pm_lv1", "Приемлемый"),
+    prT("pm_lv2", "Умеренно загрязнён"),
+    prT("pm_lv3", "Вреден для чувствительных"),
+    prT("pm_lv4", "Опасный")
+  ];
+  const head = '<tr><th style="text-align:left;padding:3px 6px 3px 0;"></th>' +
+    PM_KINDS.map(k => '<th style="padding:3px 4px;">' + k.label + '</th>').join("") + '</tr>';
+  const body = levels.map((name, i) =>
+    '<tr><td style="padding:3px 6px 3px 0;">' + name + '</td>' +
+    PM_KINDS.map(k => i === 0
+      ? '<td style="padding:3px 4px;text-align:center;">0</td>'
+      : '<td style="padding:3px 4px;"><input id="pm_thr_' + k.id + '_' + i +
+        '" class="set-input" type="number" step="any" min="0" style="width:100%;min-width:54px;" value="' +
+        c.thr[k.id][i] + '"></td>').join("") + '</tr>'
+  ).join("");
+  const html = '<div class="set-section"><h3>' + prT("pm_title", "Автоиндикатор") + '</h3>' +
+    '<label class="set-check"><input type="checkbox" id="pm_on" ' + (c.on ? "checked" : "") + '> ' +
+    prT("lux_on", "Включить автоиндикатор") + '</label>' +
+    '<div id="pm_ctl">' +
+    '<div class="set-row"><label>' + prT("uv_src_l", "Источник") + '</label>' + selHtml("pm_src", opts, c.src) + '</div>' +
+    '<div class="param-desc" style="margin:6px 0;">' + prT("pm_tbl_title", "Таблица порогов, мкг/м³: с какого значения начинается уровень") + '</div>' +
+    '<table style="width:100%;border-collapse:collapse;">' + head + body + '</table>' +
+    '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("pm_desc1", "Пунктирами на графике показаны два уровня каждого вида частиц: «Вреден для чувствительных» и «Опасный». Советы тоже выводятся по этим двум уровням.") +
+    '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("pm_desc2", "Данные: PM2.5 и PM10 — от устройства или от Open-Meteo Air. PM1.0 и PM4.0 — только от уличного устройства (датчик SPS30).") +
+    '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("pm_desc3", "Числа для PM2.5 и PM10 взяты из американской шкалы EPA. Для PM1.0 и PM4.0 официальных норм нет, числа ориентировочные. Пустое поле после «Сохранить» вернёт значение по умолчанию.") +
+    '</div></div>';
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+  document.getElementById("pm_on").addEventListener("change", pmRefresh);
+  pmRefresh();
+};
+const _applyParamSettingsPrevPm = applyParamSettings;
+applyParamSettings = async function () {
+  const on = document.getElementById("pm_on");
+  if (on && currentKey === "pm") {
+    const thr = {};
+    PM_KINDS.forEach(k => {
+      const vals = [0];
+      let changed = false;
+      for (let i = 1; i <= 4; i++) {
+        const v = parseFloat(document.getElementById("pm_thr_" + k.id + "_" + i).value);
+        const val = v > 0 ? v : k.def[i];
+        if (val !== k.def[i]) changed = true;
+        vals.push(val);
+      }
+      if (changed) thr[k.id] = vals;
+    });
+    SETTINGS.pm_ai = { on: on.checked, src: document.getElementById("pm_src").value, thr: thr };
+  }
+  return _applyParamSettingsPrevPm();
+};
