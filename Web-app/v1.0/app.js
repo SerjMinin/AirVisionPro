@@ -2411,3 +2411,30 @@ advRefresh = async function () {
 window.addEventListener("load", function () {
   ["a112", "a113", "a114", "a115", "a116"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
 });
+/* ===== Радиация: «обычный фон» = медиана за 24 часа (вместо среднего за 6 часов) =====
+   Медиана — это «типичное значение за сутки»: короткие пики и рост последних часов её не сдвигают.
+   Поэтому и быстрый скачок, и медленный рост за несколько часов сравниваются с обычным суточным фоном.
+   Первые сутки после подключения устройства совет о резком росте молчит: сравнивать пока не с чем
+   (три порога 0,25 / 0,40 / 0,80 при этом работают сразу). */
+radAnalyze = function (rows, winSec, now) {
+  const inWin = rows.filter(r => r.ts >= now - winSec);
+  if (!inWin.length) return null;
+  const before = rows.filter(r => r.ts < now - winSec).map(r => r.val).sort((a, b) => a - b);
+  /* истории достаточно, если самая старая запись не моложе 20 часов и точек не меньше 30 */
+  const enough = rows.length && rows[0].ts <= now - 20 * 3600 && before.length >= 30;
+  let base = null;
+  if (enough) {
+    const m = Math.floor(before.length / 2);
+    base = before.length % 2 ? before[m] : (before[m - 1] + before[m]) / 2;
+  }
+  return { peak: Math.max.apply(null, inWin.map(r => r.val)), base: base };
+};
+/* Список источников перебираем так же, как раньше, но данные берём за 24 часа */
+radPick = async function (list, winSec) {
+  const now = Math.floor(Date.now() / 1000);
+  for (const which of list) {
+    const a = radAnalyze(await radDevSeries(which, now - 24 * 3600), winSec, now);
+    if (a) { a.which = which; return a; }
+  }
+  return null;
+};
