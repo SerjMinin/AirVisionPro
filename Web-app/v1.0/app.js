@@ -2289,3 +2289,125 @@ window.addEventListener("load", function () {
     if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id);
   });
 });
+/* ===== Радиация: три пунктира порогов и советы a112–a116 =====
+   Пунктиры: Внимание (жёлтый), Повышенный фон (оранжевый), Тревога (тёмно-красный).
+   Шкалу графика они не растягивают: если фон до уровня не дошёл, линии не видно. */
+Chart.register({
+  id: "radThrLines",
+  beforeDatasetsDraw(chart) {
+    if (typeof currentKey === "undefined" || currentKey !== "rad") return;
+    const c = radCfg();
+    if (!c.on) return;
+    const sc = chart.scales.y || Object.values(chart.scales).find(s => s.axis === "y");
+    if (!sc) return;
+    const area = chart.chartArea;
+    const ctx = chart.ctx;
+    const unit = SETTINGS.units.rad || "uSv";
+    const cols = ["#ffcf4d", "#ff9d4d", "#d62839"];
+    const used = [];
+    c.thr.forEach((thr, i) => {
+      const v = convertUnit(thr, "rad", unit);
+      if (!isFinite(v) || v < sc.min || v > sc.max) return;
+      const y = sc.getPixelForValue(v);
+      let ty = y - 2;
+      while (used.some(u => Math.abs(u - ty) < 12)) ty -= 12;
+      used.push(ty);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+      ctx.clip();
+      ctx.strokeStyle = cols[i];
+      ctx.fillStyle = cols[i];
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([10, 4, 2, 4]);
+      ctx.beginPath();
+      ctx.moveTo(area.left, y);
+      ctx.lineTo(area.right, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(String(+v.toPrecision(3)), area.right - 4, ty);
+      ctx.restore();
+    });
+  }
+});
+
+/* Значения радиации устройства (in — домашнее, out — уличное) за последние 6 часов.
+   Возвращает список {ts, val}; если устройства или счётчика нет — пустой список. */
+async function radDevSeries(which, fromTs) {
+  if (!radDevHas(which)) return [];
+  const dev = SETTINGS.devices[which];
+  const sn = which === "out" ? SETTINGS.sn_out : SETTINGS.sn_in;
+  const keys = Object.keys(dev.map).filter(k => dev.map[k] === "rad");
+  const { data } = await client.from("measurements").select("val, ts_device")
+    .eq("serial", sn).in("key", keys).gte("ts_device", fromTs)
+    .order("ts_device", { ascending: true }).limit(2000);
+  return (data || []).map(r => ({ ts: Number(r.ts_device), val: Number(r.val) })).filter(r => isFinite(r.val));
+}
+/* Из списка берём: peak — максимум за «окно пиков»; base — обычный фон
+   (среднее за время ДО этого окна, нужно не меньше 3 точек, иначе base = null). */
+function radAnalyze(rows, winSec, now) {
+  const inWin = rows.filter(r => r.ts >= now - winSec);
+  if (!inWin.length) return null;
+  const before = rows.filter(r => r.ts < now - winSec);
+  return {
+    peak: Math.max.apply(null, inWin.map(r => r.val)),
+    base: before.length >= 3 ? before.reduce((s, r) => s + r.val, 0) / before.length : null
+  };
+}
+/* Идём по списку источников и берём первый, у которого есть свежие данные. */
+async function radPick(list, winSec) {
+  const now = Math.floor(Date.now() / 1000);
+  for (const which of list) {
+    const a = radAnalyze(await radDevSeries(which, now - 6 * 3600), winSec, now);
+    if (a) { a.which = which; return a; }
+  }
+  return null;
+}
+/* Резкий рост: пик выше обычного фона на «Разницу, %» и больше чем на 0,10 мкЗв/ч.
+   Если совет уже горит, он держится, пока рост не упал меньше половины разницы (и меньше 0,05). */
+function radSpike(a, diff, wasOn) {
+  if (!a || a.base === null) return false;
+  const k = wasOn ? diff / 200 : diff / 100;
+  const dmin = wasOn ? 0.05 : 0.10;
+  return a.peak > a.base * (1 + k) && (a.peak - a.base) > dmin;
+}
+async function advRadCheck() {
+  if (document.hidden || !SETTINGS) return;
+  const ids = ["a112", "a113", "a114", "a115", "a116"];
+  try {
+    const c = radCfg();
+    const off = (SETTINGS.advice && SETTINGS.advice.disabled) || {};
+    if (!c.on) { ids.forEach(i => { advTick.active[i] = false; }); return; }
+    const winSec = c.win * 60;
+    const homeList = c.src_in === "in" ? ["in"] : (c.src_in === "out" ? ["out"] : ["in", "out"]);
+    const streetList = c.src_out === "web" ? [] : ["out"];
+    const home = await radPick(homeList, winSec);
+    /* уровни по порогам: 0 — тихо, 1 — Внимание, 2 — Повышенный фон, 3 — Тревога */
+    let lvl = 0;
+    if (home) c.thr.forEach((t, i) => { if (home.peak >= t) lvl = i + 1; });
+    let was = 0;
+    ["a112", "a113", "a114"].forEach((id, i) => { if (advTick.active[id]) was = i + 1; });
+    if (home && was > lvl && home.peak >= c.thr[was - 1] * 0.9) lvl = was;
+    ["a112", "a113", "a114"].forEach((id, i) => { advTick.active[id] = (lvl === i + 1) && off[id] !== true; });
+    /* резкий рост: сравнение улицы с домом */
+    let street = null;
+    if (c.cmp && radStreetExists()) street = await radPick(streetList, winSec);
+    if (street && home && street.which === home.which) street = null;
+    const streetSpike = radSpike(street, c.diff, !!advTick.active.a115);
+    const homeSpike = radSpike(home, c.diff, !!advTick.active.a116);
+    advTick.active.a115 = streetSpike && off.a115 !== true;
+    advTick.active.a116 = homeSpike && !streetSpike && off.a116 !== true;
+    if (!advTick.cur && ids.some(i => advTick.active[i])) advNext();
+  } catch (e) { console.warn("advice rad:", e); }
+}
+const _advRefreshPrevRad = advRefresh;
+advRefresh = async function () {
+  await _advRefreshPrevRad();
+  await advRadCheck();
+};
+window.addEventListener("load", function () {
+  ["a112", "a113", "a114", "a115", "a116"].forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
+});

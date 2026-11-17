@@ -1720,10 +1720,10 @@ buildParamSettings = function () {
     prT("pm_desc1", "Пунктирами на графике показаны два уровня каждого вида частиц: «Вреден для чувствительных» и «Опасный». Советы тоже выводятся по этим двум уровням.") +
     '</div>' +
     '<div class="param-desc" style="margin-top:8px;">' +
-    prT("pm_desc2", "Данные: PM2.5 и PM10 — от устройства или от Open-Meteo Air. PM1.0 и PM4.0 — только от уличного устройства (датчик SPS30).") +
+    prT("pm_desc2", "Данные: PM2.5 и PM10 — от устройства или от Open-Meteo Air. PM1.0 и PM4.0 — только от уличного устройства.") +
     '</div>' +
     '<div class="param-desc" style="margin-top:8px;">' +
-    prT("pm_desc3", "Числа для PM2.5 и PM10 взяты из американской шкалы EPA. Для PM1.0 и PM4.0 официальных норм нет, числа ориентировочные. Пустое поле после «Сохранить» вернёт значение по умолчанию.") +
+    prT("pm_desc3", "Числа для PM2.5 и PM10 взяты из американской шкалы EPA. Для PM1.0 и PM4.0 официальных норм нет, числа ориентировочные. Если очистить поле и нажать «Сохранить», значение вернется по умолчанию.") +
     '</div></div>';
   document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
   document.getElementById("param-save").style.display = "";
@@ -1750,4 +1750,170 @@ applyParamSettings = async function () {
     SETTINGS.pm_ai = { on: on.checked, src: document.getElementById("pm_src").value, thr: thr };
   }
   return _applyParamSettingsPrevPm();
+};
+/* ===== Радиация: автоиндикатор в окне настроек вкладки «Радиация» =====
+   Устройство само присылает мкЗв/ч, сайт ничего не пересчитывает из импульсов.
+   В настройках хранится (SETTINGS.rad_ai):
+     on — включён ли автоиндикатор; cmp — сравнивать ли улицу с домом;
+     diff — «Разница, %»; win — «Окно пиков, минут»;
+     src_in / src_out — откуда брать данные для дома и для улицы;
+     thr — три порога (мкЗв/ч), хранятся только если их изменили.
+   Уровни по умолчанию: Внимание 0,25 / Повышенный фон 0,40 / Тревога 0,80. */
+const RAD_DEF = [0.25, 0.40, 0.80];
+function radCfg() {
+  const c = SETTINGS.rad_ai || {};
+  let thr = RAD_DEF.slice();
+  if (Array.isArray(c.thr) && c.thr.length === 3) {
+    const a = c.thr.map(Number);
+    if (a.every(x => x > 0) && a[0] < a[1] && a[1] < a[2]) thr = a;
+  }
+  const w = Number(c.win), d = Number(c.diff);
+  return {
+    on: c.on !== false,
+    src_in: c.src_in || "auto",
+    src_out: c.src_out || "auto",
+    cmp: c.cmp !== false,
+    diff: d > 0 ? d : 50,
+    win: (w >= 1 && w <= 120) ? Math.round(w) : 10,
+    thr: thr
+  };
+}
+/* Есть ли у устройства (in — домашнее, out — уличное) включённый счётчик радиации:
+   устройство включено, введены серийный номер и ключ, и в карте параметров есть «rad». */
+function radDevHas(which) {
+  const dev = SETTINGS.devices && SETTINGS.devices[which];
+  const sn = which === "out" ? SETTINGS.sn_out : SETTINGS.sn_in;
+  const on = SETTINGS.config_items[which === "out" ? "dev_out" : "dev_in"] === true;
+  if (!dev || !dev.map || !sn || !on) return false;
+  return Object.keys(dev.map).some(k => dev.map[k] === "rad");
+}
+/* Уличный источник радиации есть, только если есть уличное устройство со счётчиком.
+   Интернет-источника радиации пока нет. */
+function radStreetExists() { return radDevHas("out"); }
+function radRefresh() {
+  const on = document.getElementById("rad_on").checked;
+  const ctl = document.getElementById("rad_ctl");
+  ctl.style.opacity = on ? "1" : "0.4";
+  ctl.style.pointerEvents = on ? "" : "none";
+  ["rad_thr_1", "rad_thr_2", "rad_thr_3", "rad_win", "rad_diff", "rad_cmp"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !on;
+  });
+}
+const _buildParamSettingsPrevRad = buildParamSettings;
+buildParamSettings = function () {
+  _buildParamSettingsPrevRad();
+  if (currentKey !== "rad") return;
+  const c = radCfg();
+  const uSel = document.getElementById("pu_unit");
+  const u = uSel ? uSel.value : (SETTINGS.units.rad || "uSv");
+  const optsIn = [
+    { id: "auto", label: prT("lux_src_auto", "Авто") },
+    { id: "in",   label: prT("lux_src_in", "Домашнее устройство") },
+    { id: "out",  label: prT("lux_src_out", "Уличное устройство") }
+  ];
+  const optsOut = [
+    { id: "auto", label: prT("lux_src_auto", "Авто") },
+    { id: "out",  label: prT("lux_src_out", "Уличное устройство") },
+    { id: "web",  label: prT("rad_src_web", "Интернет (пока нет источника)") }
+  ];
+  const names = [
+    prT("rad_n1", "Порог «Внимание»"),
+    prT("rad_n2", "Порог «Повышенный фон»"),
+    prT("rad_n3", "Порог «Тревога»")
+  ];
+  const thrRows = names.map((n, i) =>
+    '<div class="set-row"><label>' + n + ', <span class="rad_u">' + unitLabel("rad", u) + '</span></label>' +
+    '<input id="rad_thr_' + (i + 1) + '" class="set-input" type="number" step="any" min="0" value="' +
+    gasFmt(convertUnit(c.thr[i], "rad", u)) + '"></div>'
+  ).join("");
+  const cmpRow = radStreetExists()
+    ? '<label class="set-check"><input type="checkbox" id="rad_cmp" ' + (c.cmp ? "checked" : "") + '> ' +
+      prT("rad_cmp_l", "Сравнивать улицу с домом") + '</label>'
+    : '';
+  const levels = [
+    { c: "#ffffff", n: prT("rad_t0", "Норма"),           r: prT("rad_to", "до") + " 0,25" },
+    { c: "#ffcf4d", n: prT("rad_t1", "Внимание"),        r: "0,25 – 0,40" },
+    { c: "#ff9d4d", n: prT("rad_t2", "Повышенный фон"),  r: "0,40 – 0,80" },
+    { c: "#d62839", n: prT("rad_t3", "Тревога"),         r: prT("rad_from", "от") + " 0,80" }
+  ];
+  const tr = levels.map(it =>
+    '<tr><td style="padding:3px 10px 3px 0;"><span style="color:' + it.c + ';text-shadow:0 0 1px #8a93a6;">■</span> ' + it.n +
+    '</td><td style="padding:3px 0;text-align:right;white-space:nowrap;">' + it.r + '</td></tr>'
+  ).join("");
+  const html = '<div class="set-section"><h3>' + prT("rad_title", "Автоиндикатор") + '</h3>' +
+    '<label class="set-check"><input type="checkbox" id="rad_on" ' + (c.on ? "checked" : "") + '> ' +
+    prT("lux_on", "Включить автоиндикатор") + '</label>' +
+    '<div id="rad_ctl">' + cmpRow +
+    '<div class="set-row"><label>' + prT("rad_diff_l", "Разница, %") + '</label>' +
+    '<input id="rad_diff" class="set-input" type="number" step="any" min="1" value="' + c.diff + '"></div>' +
+    '<div class="set-row"><label>' + prT("rad_src_home_l", "Источник «Офис / Дом»") + '</label>' + selHtml("rad_src_in", optsIn, c.src_in) + '</div>' +
+    '<div class="set-row"><label>' + prT("rad_src_street_l", "Источник «Улица»") + '</label>' + selHtml("rad_src_out", optsOut, c.src_out) + '</div>' +
+    thrRows +
+    '<div class="set-row"><label>' + prT("rad_win_l", "Окно пиков, минут") + '</label>' +
+    '<input id="rad_win" class="set-input" type="number" step="1" min="1" max="120" value="' + c.win + '"></div>' +
+    '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("rad_d1", "Устройство само сглаживает данные и сохраняет настоящие пики. Сайт берёт максимум за «окно пиков», чтобы короткий пик не потерялся. «Разница, %» — на сколько процентов фон должен вырасти над обычным (среднее за 6 часов), чтобы появился совет о резком росте. Пустое поле после «Сохранить» вернёт значение по умолчанию. Пунктиры на графике видны, только если фон дошёл до порога.") +
+    '</div></div>' +
+    '<div class="set-section"><h3>' + prT("rad_tbl_title", "Уровни фона, мкЗв/ч") + '</h3>' +
+    '<table style="width:100%;border-collapse:collapse;">' + tr + '</table>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("rad_d2", "Естественный фон в жилых помещениях 0,08–0,20 мкЗв/ч (8–20 мкР/ч). По НРБ-99/2009 мощность дозы внутри здания не должна превышать уличный фон более чем на 0,20 мкЗв/ч. В бетонных домах и при гранитной отделке фон часто выше уличного: стройматериалы содержат природные радионуклиды.") +
+    '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("rad_d3", "Счётчик Гейгера–Мюллера не видит альфа-излучение (радон) и слабо (5–15 %) видит мягкое бета-излучение. Он создан для гамма-излучения (гранит, бетон) и жёстких бета-частиц (цезий-137, стронций-90, калий-40).") +
+    '</div>' +
+    '<div class="param-desc" style="margin-top:8px;">' +
+    prT("rad_d4", "В поездке: если в новом месте фон повышен, устройство сообщит об этом советом. Без паники: пройдите с прибором по комнатам, сравните с улицей. Перемещая устройство по жилью, можно примерно понять, где фон выше.") +
+    '</div></div>';
+  document.getElementById("param-body").insertAdjacentHTML("beforeend", html);
+  document.getElementById("param-save").style.display = "";
+  document.getElementById("param-cancel").textContent = t("set_cancel");
+  /* пункт «Интернет» — серый: источника пока нет */
+  const webOpt = document.getElementById("rad_src_out").parentNode.querySelector('.avp-opt[data-val="web"]');
+  if (webOpt) webOpt.style.color = "#8a93a6";
+  document.getElementById("rad_on").addEventListener("change", radRefresh);
+  let shownU = u;
+  if (uSel) uSel.addEventListener("change", () => {
+    const nu = uSel.value;
+    const fo = convertUnit(1, "rad", shownU), fn = convertUnit(1, "rad", nu);
+    [1, 2, 3].forEach(i => {
+      const el = document.getElementById("rad_thr_" + i);
+      const v = parseFloat(el.value);
+      if (isFinite(v) && fo > 0) el.value = gasFmt(v / fo * fn);
+    });
+    shownU = nu;
+    document.querySelectorAll(".rad_u").forEach(s => { s.textContent = unitLabel("rad", nu); });
+  });
+  radRefresh();
+};
+const _applyParamSettingsPrevRad = applyParamSettings;
+applyParamSettings = async function () {
+  const on = document.getElementById("rad_on");
+  if (on && currentKey === "rad") {
+    const uSel = document.getElementById("pu_unit");
+    const u = uSel ? uSel.value : "uSv";
+    const f = convertUnit(1, "rad", u);
+    const vals = [1, 2, 3].map(i => {
+      const v = parseFloat(document.getElementById("rad_thr_" + i).value);
+      return (v > 0 && f > 0) ? v / f : RAD_DEF[i - 1];
+    });
+    const ok = vals[0] < vals[1] && vals[1] < vals[2];
+    const fin = ok ? vals : RAD_DEF;
+    const w = parseFloat(document.getElementById("rad_win").value);
+    const d = parseFloat(document.getElementById("rad_diff").value);
+    const cmpEl = document.getElementById("rad_cmp");
+    const o = {
+      on: on.checked,
+      src_in: document.getElementById("rad_src_in").value,
+      src_out: document.getElementById("rad_src_out").value,
+      win: (w >= 1 && w <= 120) ? Math.round(w) : 10,
+      diff: d > 0 ? d : 50,
+      cmp: cmpEl ? cmpEl.checked : radCfg().cmp
+    };
+    if (fin.some((x, i) => Math.abs(x - RAD_DEF[i]) > 0.0005)) o.thr = fin;
+    SETTINGS.rad_ai = o;
+  }
+  return _applyParamSettingsPrevRad();
 };
