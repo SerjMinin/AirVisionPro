@@ -2438,3 +2438,262 @@ radPick = async function (list, winSec) {
   }
   return null;
 };
+/* ===== Вкладка «Облачный мониторинг» (бывшая «API OUT») =====
+   Что здесь есть:
+   1) CLOUD_PLATFORMS — три платформы: название, подпись поля ключа и шаги регистрации.
+   2) cloudCfg() — читает сохранённое (SETTINGS.cloud) и подставляет значения по умолчанию.
+   3) cloudSensors() — список датчиков устройства: берётся из карты параметров устройства.
+   4) cloudLive() — «живое» ли устройство: есть ли в базе данные не старше N дней.
+   5) cloudRender() — рисует страницу и карточки; cloudSave() — сохраняет выбор.
+   Сохраняется в SETTINGS.cloud: fresh_days, interval_min, hide_place и по каждой платформе:
+   on (включена), id (ключ или номер), out/in (отправлять ли, какие датчики выключены/включены).
+   Сама отправка во внешние сервисы читает эти настройки на сервере (часть 2 шага). */
+const CLOUD_PLATFORMS = [
+  { id: "narodmon", name: "Narodmon.ru", site: "https://narodmon.ru",
+    idLabel: ["cl_nm_id", "Идентификатор устройства (MAC-адрес или серийный номер)"],
+    steps: [
+      ["cl_nm_1", "Откройте narodmon.ru, нажмите «ВХОД» и выберите «Стать участником проекта» (или «Регистрация»)."],
+      ["cl_nm_2", "Укажите адрес электронной почты, подтвердите, что вы не робот, и согласитесь с условиями."],
+      ["cl_nm_3", "Логин и пароль придут на почту. Войдите в личный кабинет."],
+      ["cl_nm_4", "Вставьте в поле выше идентификатор устройства (MAC-адрес или серийный номер), поставьте галку «Включить» и сохраните."],
+      ["cl_nm_5", "После первой отправки данных добавьте устройство на сайте в разделе «Мои датчики», указав этот же идентификатор."]
+    ] },
+  { id: "thingspeak", name: "ThingSpeak", site: "https://thingspeak.mathworks.com",
+    idLabel: ["cl_ts_id", "Write API Key (ключ записи канала)"],
+    steps: [
+      ["cl_ts_1", "Откройте thingspeak.mathworks.com и создайте бесплатную учётную запись."],
+      ["cl_ts_2", "Создайте канал (New Channel) и включите в нём нужные поля. В одном канале не больше 8 полей."],
+      ["cl_ts_3", "Откройте вкладку «API Keys» канала и скопируйте «Write API Key»."],
+      ["cl_ts_4", "Вставьте ключ в поле выше, поставьте галку «Включить» и сохраните."]
+    ] },
+  { id: "sensor_community", name: "Sensor.community", site: "https://devices.sensor.community",
+    idLabel: ["cl_sc_id", "Номер датчика (Sensor ID)"],
+    steps: [
+      ["cl_sc_1", "Откройте devices.sensor.community и зарегистрируйтесь."],
+      ["cl_sc_2", "В личном кабинете нажмите «Add new sensor» и выберите типы датчиков, например SPS30 (частицы) и SHT3x (температура и влажность)."],
+      ["cl_sc_3", "После регистрации вы получите номер датчика (Sensor ID)."],
+      ["cl_sc_4", "Вставьте номер в поле выше, поставьте галку «Включить» и сохраните."]
+    ] }
+];
+/* что пока не отправляем никуда: радиация и газы */
+const CLOUD_BLOCKED = ["rad", "hcho", "ch4", "co", "co2", "nh3", "no", "no2", "o3", "so2"];
+function clEsc(s) { return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
+function clSid(dk) { return String(dk).replace(/[^\w-]/g, "_"); }
+function cloudCfg() {
+  const c = (SETTINGS && SETTINGS.cloud) || {};
+  const fd = Number(c.fresh_days), iv = Number(c.interval_min);
+  const pl = c.platforms || {};
+  const out = {
+    fresh_days: fd >= 1 ? Math.round(fd) : 10,
+    interval_min: iv >= 1 ? iv : 4,
+    hide_place: c.hide_place === true,
+    platforms: {}
+  };
+  CLOUD_PLATFORMS.forEach(p => {
+    const s = pl[p.id] || {};
+    out.platforms[p.id] = {
+      on: s.on === true,
+      id: s.id || "",
+      out: { send: (s.out && s.out.send !== undefined) ? s.out.send === true : true, off: (s.out && s.out.off) || {} },
+      in:  { send: (s.in && s.in.send !== undefined) ? s.in.send === true : false, on: (s.in && s.in.on) || {} }
+    };
+  });
+  return out;
+}
+/* Датчики устройства: out — уличное, in — домашнее. Берём из карты параметров устройства. */
+function cloudSensors(which) {
+  const dev = SETTINGS.devices && SETTINGS.devices[which];
+  const map = (dev && dev.map) || {};
+  const res = [];
+  Object.keys(map).forEach(dk => {
+    const pk = map[dk];
+    if (!pk || pk === "no") return;
+    const p = PARAMS.find(x => x.key === pk);
+    let label = p ? t(p.i18n) : dk;
+    if (p && p.lines) { const ln = p.lines.find(l => l.dbkey === dk); if (ln) label = ln.label; }
+    res.push({ dk: dk, pk: pk, label: label });
+  });
+  const pr = ["temp", "rh", "pressure", "wind_spd", "wind_dir", "pm", "uv", "solar", "lux"];
+  res.sort((a, b) => {
+    const ia = pr.indexOf(a.pk), ib = pr.indexOf(b.pk);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  return res;
+}
+/* Почему датчик нельзя отправлять на эту платформу (пустая строка — можно) */
+function cloudBlockReason(pid, s) {
+  if (CLOUD_BLOCKED.indexOf(s.pk) >= 0) return prT("cl_no_gas", "пока не отправляется");
+  if (pid === "sensor_community") {
+    const ok = ["temp", "rh", "pressure"].indexOf(s.pk) >= 0 || s.dk === "pm25" || s.dk === "pm10";
+    if (!ok) return prT("cl_no_plat", "платформа не принимает");
+  }
+  return "";
+}
+/* Устройство «живое»: включено, введён серийный номер и есть данные не старше N дней */
+async function cloudLive(which) {
+  const sn = which === "out" ? SETTINGS.sn_out : SETTINGS.sn_in;
+  const on = SETTINGS.config_items[which === "out" ? "dev_out" : "dev_in"] === true;
+  if (!sn || !on) return false;
+  const since = Math.floor(Date.now() / 1000) - cloudCfg().fresh_days * 86400;
+  try {
+    const { data } = await client.from("measurements").select("ts_device")
+      .eq("serial", sn).gte("ts_device", since).order("ts_device", { ascending: false }).limit(1);
+    return !!(data && data.length);
+  } catch (e) { return false; }
+}
+function cloudCoordsText(hide) {
+  const la = Number(SETTINGS.lat), lo = Number(SETTINGS.lon);
+  if (!isFinite(la) || !isFinite(lo)) return "—";
+  return hide ? la.toFixed(2) + ", " + lo.toFixed(2) : la.toFixed(4) + ", " + lo.toFixed(4);
+}
+function cloudCardHtml(p, c, live, sens) {
+  const st = c.platforms[p.id];
+  const any = live.out || live.in;
+  let n = 0;
+  const blocks = ["out", "in"].map(which => {
+    const isLive = live[which];
+    const send = which === "out" ? st.out.send : st.in.send;
+    const items = sens[which].map(s => {
+      const why = cloudBlockReason(p.id, s);
+      let on = false;
+      if (!why) {
+        on = which === "out" ? !st.out.off[s.dk] : st.in.on[s.dk] === true;
+        if (on && p.id === "thingspeak") { if (n >= 8) on = false; else n++; }
+      }
+      const dis = (why || !isLive) ? "disabled" : "";
+      return '<label class="set-check" style="display:inline-flex;margin:2px 14px 2px 0;' + (dis ? 'opacity:.5;' : '') + '">' +
+        '<input type="checkbox" class="cl_s_' + p.id + '" id="cl_s_' + p.id + '_' + which + '_' + clSid(s.dk) + '" ' +
+        (on ? "checked " : "") + dis + '> ' + s.label + (why ? ' (' + why + ')' : '') + '</label>';
+    }).join("");
+    const head = (which === "out" ? prT("cl_out", "Уличное устройство") : prT("cl_in", "Домашнее устройство")) + ': ' +
+      (isLive ? prT("cl_found", "найдено, датчиков") + ' ' + sens[which].length : prT("cl_nofound", "нет свежих данных"));
+    return '<div style="margin:10px 0;padding:8px 10px;border:1px solid var(--card-border);border-radius:10px;' + (isLive ? '' : 'opacity:.5;') + '">' +
+      '<div style="font-weight:600;margin-bottom:4px;">' + head + '</div>' +
+      '<label class="set-check"><input type="checkbox" id="cl_send_' + p.id + '_' + which + '" ' + (send ? "checked " : "") +
+      (isLive ? "" : "disabled") + '> ' + prT("cl_send", "Отправлять") + '</label>' + items + '</div>';
+  }).join("");
+  const steps = p.steps.map(s => '<li>' + prT(s[0], s[1]) + '</li>').join("");
+  const tsNote = p.id === "thingspeak"
+    ? '<div class="set-hint" id="cl_lim_thingspeak">' + prT("cl_ts_lim", "В одном канале ThingSpeak не больше 8 величин. Лишнюю отметить не получится.") + '</div>' : '';
+  return '<div class="set-section" style="' + (any ? '' : 'opacity:.45;pointer-events:none;') + '">' +
+    '<h3>' + p.name + '</h3>' +
+    '<label class="set-check"><input type="checkbox" id="cl_on_' + p.id + '" ' + (st.on ? "checked" : "") + '> ' + t("api_enable") + '</label>' +
+    '<div class="set-row"><label>' + prT(p.idLabel[0], p.idLabel[1]) + '</label>' +
+    '<input id="cl_id_' + p.id + '" class="set-input" type="text" value="' + clEsc(st.id) + '"></div>' +
+    tsNote + blocks +
+    '<div class="param-desc" style="margin-top:8px;">' + prT("cl_how", "Как подключить:") +
+    '<ol style="margin:6px 0 0 18px;padding:0;">' + steps + '</ol>' +
+    '<a href="' + p.site + '" target="_blank" rel="noopener">' + p.site.replace("https://", "") + '</a></div></div>';
+}
+function cloudRender(live) {
+  const c = cloudCfg();
+  const sens = { out: cloudSensors("out"), in: cloudSensors("in") };
+  const h = [];
+  h.push('<div style="border-top:1px solid var(--card-border);margin:0 -16px 12px;"></div>');
+  h.push('<h3 style="margin:0 0 8px;">' + prT("cl_sub", "Облачные платформы мониторинга") + '</h3>');
+  h.push('<div class="set-hint">' + t("api_hint") + '</div>');
+  if (!live.out && !live.in) {
+    h.push('<div class="set-hint" style="color:var(--warn);">' +
+      prT("cl_nodev", "Нет реальных датчиков. Домашнее или уличное устройства не найдены.") + '</div>');
+  }
+  h.push('<div class="set-section">' +
+    '<div class="set-row"><label>' + prT("cl_fresh_l", "Свежие данные, дней") + '</label>' +
+    '<input id="cl_fresh" class="set-input" type="number" step="1" min="1" value="' + c.fresh_days + '"></div>' +
+    '<div class="set-hint">' + prT("cl_fresh_h", "Устройство считается «живым», если от него были данные не старше этого срока.") + '</div>' +
+    '<div class="set-row"><label>' + prT("cl_int_l", "Интервал отправки, минут") + '</label>' +
+    '<input id="cl_int" class="set-input" type="number" step="any" min="1" value="' + c.interval_min + '"></div>' +
+    '<div class="set-hint">' + prT("cl_int_h", "Платформы просят не чаще раза в минуту, поэтому меньше 1 поставить нельзя. Для карты Sensor.community нужно не реже раза в 5 минут, по умолчанию 4.") + '</div>' +
+    '<label class="set-check"><input type="checkbox" id="cl_hide" ' + (c.hide_place ? "checked" : "") + '> ' +
+    prT("cl_hide_l", "Скрыть точное место (округлить координаты примерно до 1 км)") + '</label>' +
+    '<div class="set-hint">' + prT("cl_coords_l", "Будут отправлены координаты (из настроек сайта):") + ' <span id="cl_coords"></span></div>' +
+    '</div>');
+  CLOUD_PLATFORMS.forEach(p => h.push(cloudCardHtml(p, c, live, sens)));
+  document.getElementById("api-body").innerHTML = h.join("");
+  const hide = document.getElementById("cl_hide");
+  const upd = () => { document.getElementById("cl_coords").textContent = cloudCoordsText(hide.checked); };
+  hide.addEventListener("change", upd);
+  upd();
+  document.querySelectorAll(".cl_s_thingspeak").forEach(e => e.addEventListener("change", () => {
+    const cnt = document.querySelectorAll(".cl_s_thingspeak:checked").length;
+    const m = document.getElementById("cl_lim_thingspeak");
+    if (cnt > 8) { e.checked = false; if (m) m.style.color = "var(--warn)"; }
+    else if (m) m.style.color = "";
+  }));
+}
+function cloudBanner() {
+  const title = document.getElementById("chart-title");
+  if (!title) return;
+  let b = document.getElementById("cloud-banner");
+  if (!b) {
+    b = document.createElement("div");
+    b.id = "cloud-banner";
+    b.className = title.className;
+    b.style.fontSize = "13px";
+    title.parentNode.insertBefore(b, title);
+  }
+  b.textContent = prT("cl_dev", "Раздел в разработке.");
+  b.style.display = (currentView === "api") ? "" : "none";
+}
+function cloudBuild() {
+  const title = document.getElementById("chart-title");
+  if (title) title.textContent = prT("tab_cloud", "Облачный мониторинг");
+  cloudBanner();
+  document.getElementById("api-body").innerHTML = '<div class="set-hint">' + prT("cl_check", "Проверяю устройства…") + '</div>';
+  Promise.all([cloudLive("out"), cloudLive("in")]).then(r => {
+    if (currentView !== "api") return;
+    cloudRender({ out: r[0], in: r[1] });
+  });
+}
+async function cloudSave() {
+  const g = id => document.getElementById(id);
+  if (!g("cl_fresh")) return;
+  const fd = parseFloat(g("cl_fresh").value), iv = parseFloat(g("cl_int").value);
+  const o = {
+    fresh_days: fd > 0 ? Math.max(1, Math.round(fd)) : 10,
+    interval_min: iv > 0 ? Math.max(1, iv) : 4,
+    hide_place: g("cl_hide").checked,
+    platforms: {}
+  };
+  if (!SETTINGS.api_out) SETTINGS.api_out = {};
+  CLOUD_PLATFORMS.forEach(p => {
+    const st = {
+      on: g("cl_on_" + p.id).checked,
+      id: g("cl_id_" + p.id).value.trim(),
+      out: { send: g("cl_send_" + p.id + "_out").checked, off: {} },
+      in:  { send: g("cl_send_" + p.id + "_in").checked, on: {} }
+    };
+    cloudSensors("out").forEach(s => {
+      const e = g("cl_s_" + p.id + "_out_" + clSid(s.dk));
+      if (e && !cloudBlockReason(p.id, s) && !e.checked) st.out.off[s.dk] = true;
+    });
+    cloudSensors("in").forEach(s => {
+      const e = g("cl_s_" + p.id + "_in_" + clSid(s.dk));
+      if (e && !cloudBlockReason(p.id, s) && e.checked) st.in.on[s.dk] = true;
+    });
+    o.platforms[p.id] = st;
+    SETTINGS.api_out[p.id] = Object.assign({}, SETTINGS.api_out[p.id], { enabled: st.on });
+  });
+  SETTINGS.cloud = o;
+  await saveSettings();
+  alert(t("api_saved"));
+  cloudBuild();
+}
+/* Подключение: подменяем старые построение и сохранение вкладки, меняем название вкладки.
+   Делается после полной загрузки страницы, чтобы порядок файлов не имел значения. */
+const _refreshViewCloud = refreshView;
+refreshView = function () {
+  const r = _refreshViewCloud.apply(this, arguments);
+  try { cloudBanner(); } catch (e) {}
+  return r;
+};
+function cloudInstall() {
+  buildApiOut = cloudBuild;
+  saveApiOut = cloudSave;
+  if (typeof EXTRA_TABS !== "undefined") {
+    const e = EXTRA_TABS.find(x => x.id === "api");
+    if (e) e.label = prT("tab_cloud", "Облачный мониторинг");
+  }
+  try { if (typeof buildTabs === "function" && SETTINGS) buildTabs(); } catch (e) {}
+}
+if (document.readyState === "complete") cloudInstall();
+else window.addEventListener("load", cloudInstall);
