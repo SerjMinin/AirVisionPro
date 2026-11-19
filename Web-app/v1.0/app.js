@@ -2697,3 +2697,264 @@ function cloudInstall() {
 }
 if (document.readyState === "complete") cloudInstall();
 else window.addEventListener("load", cloudInstall);
+/* ===== Облачный мониторинг, часть 2 =====
+   Что делает этот кусок:
+   1) убирает ThingSpeak навсегда;
+   2) создаёт для Narodmon два придуманных идентификатора (MAC): «Улица» и «Дом» — один раз, и запоминает их;
+   3) таблицы CLOUD_MAP: как называется величина у платформы и на что умножить значение
+      (давление: Narodmon — мм рт. ст., Sensor.community — паскали);
+   4) блок «Неопознанные датчики»: ручной выбор типа для датчиков, которых сайт не узнал;
+   5) при «Сохранить» записывает в настройки готовый план отправки (SETTINGS.cloud.plan) —
+      его потом читает серверная часть. Радиация и газы в план не попадают. */
+
+/* 1. ThingSpeak убираем из списка платформ */
+(function () {
+  const i = CLOUD_PLATFORMS.findIndex(p => p.id === "thingspeak");
+  if (i >= 0) CLOUD_PLATFORMS.splice(i, 1);
+})();
+
+/* Новые шаги инструкций (вместо прежних) */
+CLOUD_PLATFORMS.forEach(p => {
+  if (p.id === "narodmon") {
+    p.steps = [
+      ["cl_nm2_1", "Откройте narodmon.ru, нажмите «ВХОД» и выберите «Стать участником проекта» (или «Регистрация»). Пароль нужен только вам, сайту AirVisionPro он не нужен."],
+      ["cl_nm2_2", "Идентификаторы устройств уже созданы сайтом (поля выше). Нажмите «Копировать» рядом с нужным."],
+      ["cl_nm2_3", "Поставьте галку «Включить» и сохраните. Данные пойдут сами, когда появится реальный датчик."],
+      ["cl_nm2_4", "После первой отправки на narodmon.ru откройте «Датчики» → «Добавить моё устройство» и вставьте идентификатор."],
+      ["cl_nm2_5", "Если хотите, сделайте датчики публичными, чтобы они были видны на карте. Место устройства вводится в личном кабинете."]
+    ];
+  }
+  if (p.id === "sensor_community") {
+    p.steps = [
+      ["cl_sc2_1", "Для регистрации нужна плата датчика: у неё есть номер ChipID. Пока платы нет, оставьте галку «Включить» выключенной."],
+      ["cl_sc2_2", "На devices.sensor.community создайте учётную запись и выберите «Register new sensor». Укажите ChipID и тип датчика: частицы, температура и влажность, давление."],
+      ["cl_sc2_3", "На каждый тип датчика вы получите номер. Вставьте номера в поля выше."],
+      ["cl_sc2_4", "Поставьте галку «Включить» и сохраните. Место датчика вводится в личном кабинете платформы."]
+    ];
+  }
+});
+
+/* 2. Придуманные MAC для Narodmon. Начинаются с 02 — так обозначают придуманные адреса. */
+function cloudMacMake() {
+  const a = new Uint8Array(5);
+  crypto.getRandomValues(a);
+  return ["02"].concat(Array.from(a).map(x => ("0" + x.toString(16)).slice(-2).toUpperCase())).join("-");
+}
+function cloudMacEnsure() {
+  if (!SETTINGS.cloud_mac) SETTINGS.cloud_mac = {};
+  let changed = false;
+  ["narodmon_out", "narodmon_in"].forEach(k => {
+    if (!SETTINGS.cloud_mac[k]) { SETTINGS.cloud_mac[k] = cloudMacMake(); changed = true; }
+  });
+  if (changed) saveSettings();
+  return SETTINGS.cloud_mac;
+}
+
+/* 3. Как называются величины у платформ.
+   n — название у платформы; mul — на что умножить значение из базы;
+   pin и grp — для Sensor.community: номер «входа» и группа (pm / env / press).
+   Здесь подтверждены только эти величины. Новые добавляются одной строкой. */
+const CLOUD_MAP = {
+  narodmon: {
+    temp:     { n: "T", mul: 1 },
+    rh:       { n: "H", mul: 1 },
+    pressure: { n: "P", mul: 0.750062 }
+  },
+  sensor_community: {
+    temp:     { n: "temperature", mul: 1,   pin: 7, grp: "env" },
+    rh:       { n: "humidity",    mul: 1,   pin: 7, grp: "env" },
+    pressure: { n: "pressure",    mul: 100, pin: 3, grp: "press" },
+    pm25:     { n: "P2",          mul: 1,   pin: 1, grp: "pm" },
+    pm10:     { n: "P1",          mul: 1,   pin: 1, grp: "pm" }
+  }
+};
+const CLOUD_KIND_RU = { temp: "Температура", rh: "Влажность", pressure: "Давление", pm25: "PM2.5", pm10: "PM10" };
+/* Сайт сам узнаёт датчик по его ключу */
+function cloudAuto(pid, s) {
+  const tbl = CLOUD_MAP[pid];
+  if (!tbl) return null;
+  let k = null;
+  if (s.dk === "pm25" || s.dk === "pm10") k = s.dk;
+  else if (s.pk !== "pm") k = s.pk;
+  return (k && tbl[k]) ? Object.assign({ kind: k }, tbl[k]) : null;
+}
+/* Сначала ручной выбор пользователя, потом автоопределение */
+function cloudResolve(pid, s) {
+  const tbl = CLOUD_MAP[pid];
+  if (!tbl) return null;
+  const m = (SETTINGS.cloud_manual && SETTINGS.cloud_manual[pid] && SETTINGS.cloud_manual[pid][s.dk]) || "";
+  if (m.indexOf("k:") === 0 && tbl[m.slice(2)]) return Object.assign({ kind: m.slice(2) }, tbl[m.slice(2)]);
+  if (m.indexOf("c:") === 0 && m.length > 2 && pid === "narodmon") return { kind: "custom", n: m.slice(2), mul: 1, custom: true };
+  return cloudAuto(pid, s);
+}
+/* Почему датчик нельзя отправить (пустая строка — можно) */
+cloudBlockReason = function (pid, s) {
+  if (CLOUD_BLOCKED.indexOf(s.pk) >= 0) return prT("cl_no_gas", "пока не отправляется");
+  return cloudResolve(pid, s) ? "" : prT("cl_unk", "не опознан");
+};
+
+/* 4. Дополнения на странице: после основной отрисовки */
+const _cloudRenderP2 = cloudRender;
+cloudRender = function (live) {
+  _cloudRenderP2(live);
+  try { cloudDecorate(); } catch (e) { console.warn("cloud decorate:", e); }
+};
+function cloudDecorate() {
+  const g = id => document.getElementById(id);
+  const mac = cloudMacEnsure();
+  /* карточки активны и без устройства: подключать можно заранее */
+  CLOUD_PLATFORMS.forEach(p => {
+    const on = g("cl_on_" + p.id);
+    const card = on && on.closest(".set-section");
+    if (card) { card.style.opacity = ""; card.style.pointerEvents = ""; }
+  });
+  /* подпись про координаты */
+  const cs = g("cl_coords");
+  if (cs && cs.parentNode.firstChild) {
+    cs.parentNode.firstChild.textContent =
+      prT("cl_coords2", "Координаты для ввода в личном кабинете платформы (из настроек сайта):") + " ";
+  }
+  const copyBtn = inp => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "set-btn sm";
+    b.textContent = prT("cl_copy", "Копировать");
+    b.addEventListener("click", () => {
+      inp.select();
+      try { navigator.clipboard.writeText(inp.value); } catch (e) { document.execCommand("copy"); }
+    });
+    return b;
+  };
+  const makeRow = (after, id, label, value, ro) => {
+    const row = document.createElement("div");
+    row.className = after.className;
+    const lb = document.createElement("label"); lb.textContent = label;
+    const inp = document.createElement("input");
+    inp.id = id; inp.className = "set-input"; inp.type = "text"; inp.value = value || "";
+    if (ro) inp.readOnly = true;
+    row.appendChild(lb); row.appendChild(inp);
+    if (ro) row.appendChild(copyBtn(inp));
+    after.parentNode.insertBefore(row, after.nextSibling);
+    return row;
+  };
+  /* Narodmon: два идентификатора */
+  const nm = g("cl_id_narodmon");
+  if (nm) {
+    nm.readOnly = true; nm.value = mac.narodmon_out;
+    const row = nm.parentNode;
+    const lb = row.querySelector("label");
+    if (lb) lb.textContent = prT("cl_nm_mac_out", "Идентификатор устройства «Улица» (создан сайтом)");
+    row.appendChild(copyBtn(nm));
+    makeRow(row, "cl_mac_in_narodmon", prT("cl_nm_mac_in", "Идентификатор устройства «Дом» (создан сайтом)"), mac.narodmon_in, true);
+  }
+  /* Sensor.community: три номера */
+  const sc = g("cl_id_sensor_community");
+  if (sc) {
+    const saved = (SETTINGS.cloud && SETTINGS.cloud.platforms && SETTINGS.cloud.platforms.sensor_community) || {};
+    const row = sc.parentNode;
+    const lb = row.querySelector("label");
+    if (lb) lb.textContent = prT("cl_sc_id_pm", "Номер датчика для частиц (PM2.5, PM10)");
+    const r2 = makeRow(row, "cl_scid_env", prT("cl_sc_id_env", "Номер датчика для температуры и влажности"), saved.id_env, false);
+    makeRow(r2, "cl_scid_press", prT("cl_sc_id_press", "Номер датчика для давления"), saved.id_press, false);
+  }
+  /* Неопознанные датчики: ручной выбор типа */
+  CLOUD_PLATFORMS.forEach(p => {
+    const on = g("cl_on_" + p.id);
+    const card = on && on.closest(".set-section");
+    if (!card) return;
+    const items = [], seen = {};
+    ["out", "in"].forEach(which => cloudSensors(which).forEach(s => {
+      if (CLOUD_BLOCKED.indexOf(s.pk) >= 0 || cloudAuto(p.id, s) || seen[s.dk]) return;
+      seen[s.dk] = 1; items.push(s);
+    }));
+    if (!items.length) return;
+    const man = (SETTINGS.cloud_manual && SETTINGS.cloud_manual[p.id]) || {};
+    const kinds = Object.keys(CLOUD_MAP[p.id]);
+    const rows = items.map(s => {
+      const cur = man[s.dk] || "";
+      const curSel = cur.indexOf("c:") === 0 ? "c" : cur;
+      const opts = ['<option value="">' + prT("cl_not_send", "Не отправлять") + '</option>']
+        .concat(kinds.map(k => '<option value="k:' + k + '"' + (curSel === "k:" + k ? " selected" : "") + '>' +
+          prT("cl_it", "Это") + ': ' + prT("cl_k_" + k, CLOUD_KIND_RU[k] || k) + '</option>'));
+      if (p.id === "narodmon") opts.push('<option value="c"' + (curSel === "c" ? " selected" : "") + '>' + prT("cl_own", "Своё имя…") + '</option>');
+      return '<div class="set-row"><label>' + clEsc(s.label) + ' (' + clEsc(s.dk) + ')</label>' +
+        '<select class="set-input" data-clpid="' + p.id + '" data-cldk="' + clEsc(s.dk) + '">' + opts.join("") + '</select>' +
+        (p.id === "narodmon" ? '<input class="set-input" id="cl_mname_' + p.id + '_' + clSid(s.dk) + '" placeholder="NAME" style="max-width:120px;" value="' +
+          clEsc(cur.indexOf("c:") === 0 ? cur.slice(2) : "") + '">' : '') + '</div>';
+    }).join("");
+    const box = document.createElement("div");
+    box.innerHTML = '<div class="set-hint" style="margin-top:8px;">' +
+      prT("cl_unk_t", "Неопознанные датчики: сайт не знает, как назвать их на этой платформе. Они не отправляются, пока вы не выберете тип.") +
+      '</div>' + rows;
+    card.insertBefore(box, card.lastElementChild);
+  });
+}
+
+/* 5. Сохранение: номера Sensor.community, ручной выбор и готовый план отправки */
+function cloudBuildPlan() {
+  const c = SETTINGS.cloud, mac = cloudMacEnsure(), plan = {};
+  const pick = (pid, st, which) => {
+    if (!(which === "out" ? st.out.send : st.in.send)) return [];
+    const seen = {}, list = [];
+    cloudSensors(which).forEach(s => {
+      if (CLOUD_BLOCKED.indexOf(s.pk) >= 0) return;
+      const r = cloudResolve(pid, s);
+      if (!r) return;
+      if (!(which === "out" ? !st.out.off[s.dk] : st.in.on[s.dk] === true)) return;
+      seen[r.kind] = (seen[r.kind] || 0) + 1;
+      if (pid === "sensor_community" && seen[r.kind] > 1) return;
+      list.push({
+        dev: which, dk: s.dk, kind: r.kind,
+        name: pid === "narodmon" ? (r.custom ? r.n : r.n + seen[r.kind]) : r.n,
+        mul: r.mul, pin: r.pin || null, grp: r.grp || null
+      });
+    });
+    return list;
+  };
+  CLOUD_PLATFORMS.forEach(p => {
+    const st = c.platforms[p.id];
+    if (!st || !st.on) return;
+    if (p.id === "narodmon") {
+      plan.narodmon = {
+        out: { mac: mac.narodmon_out, sensors: pick(p.id, st, "out") },
+        in:  { mac: mac.narodmon_in,  sensors: pick(p.id, st, "in") }
+      };
+    }
+    if (p.id === "sensor_community") {
+      plan.sensor_community = {
+        ids: { pm: st.id || "", env: st.id_env || "", press: st.id_press || "" },
+        sensors: pick(p.id, st, "out").concat(pick(p.id, st, "in"))
+      };
+    }
+  });
+  plan.interval_min = c.interval_min;
+  plan.fresh_days = c.fresh_days;
+  plan.saved_at = Math.floor(Date.now() / 1000);
+  return plan;
+}
+const _cloudSaveP2 = cloudSave;
+cloudSave = async function () {
+  const g = id => document.getElementById(id);
+  if (!g("cl_fresh")) return;
+  /* читаем страницу до того, как основное сохранение её перерисует */
+  const man = {};
+  CLOUD_PLATFORMS.forEach(p => { man[p.id] = {}; });
+  document.querySelectorAll("select[data-clpid]").forEach(sel => {
+    const pid = sel.getAttribute("data-clpid"), dk = sel.getAttribute("data-cldk");
+    if (!man[pid]) return;
+    if (sel.value === "c") {
+      const inp = g("cl_mname_" + pid + "_" + clSid(dk));
+      const nm = inp ? inp.value.replace(/[^A-Za-z0-9_]/g, "").slice(0, 20) : "";
+      if (nm) man[pid][dk] = "c:" + nm;
+    } else if (sel.value) {
+      man[pid][dk] = sel.value;
+    }
+  });
+  const idEnv = g("cl_scid_env") ? g("cl_scid_env").value.trim() : "";
+  const idPress = g("cl_scid_press") ? g("cl_scid_press").value.trim() : "";
+  await _cloudSaveP2();
+  SETTINGS.cloud_manual = man;
+  const sc = SETTINGS.cloud && SETTINGS.cloud.platforms && SETTINGS.cloud.platforms.sensor_community;
+  if (sc) { sc.id_env = idEnv; sc.id_press = idPress; }
+  SETTINGS.cloud.plan = cloudBuildPlan();
+  await saveSettings();
+};
