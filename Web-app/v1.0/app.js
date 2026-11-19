@@ -2958,3 +2958,333 @@ cloudSave = async function () {
   SETTINGS.cloud.plan = cloudBuildPlan();
   await saveSettings();
 };
+// cloud-send: отправка реальных данных устройств на Narodmon.ru и Sensor.community.
+// Запускается каждую минуту. Сама решает, пора ли отправлять (по интервалу из настроек сайта).
+// Читает «план отправки» (settings.data.cloud.plan), который сайт записывает при сохранении карточек.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Приставка к номеру датчика для Sensor.community. Если при регистрации окажется, что нужна другая — меняется ТОЛЬКО здесь.
+const SC_PREFIX = "esp8266-";
+const MAX_AGE_SEC = 30 * 60;   // данные старше 30 минут не отправляем (выгрузка после поездки или пропажи света)
+const BLOCK_SEC = 3600;        // после ошибки платформы отправку останавливаем на час
+const NIL = "00000000-0000-0000-0000-000000000000";
+// Служебный идентификатор для запроса справочника Narodmon (32 символа, как требует их документация)
+const NM_UUID = "5f3a9c1e7b2d4a608e1c9d3f2b7a4c56";
+
+const sb: any = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+async function getState(owner: string, platform: string): Promise<any> {
+  const { data } = await sb.from("cloud_state").select("*").eq("owner", owner).eq("platform", platform).maybeSingle();
+  return data || { owner, platform, last_run: 0, blocked_until: 0, last_ts: {}, last_result: "" };
+}
+async function putState(st: any) { await sb.from("cloud_state").upsert(st); }
+
+// Последние свежие значения устройства по списку ключей (плюс метка поездки trip)
+async function latestValues(serial: string, keys: string[], now: number): Promise<any> {
+  const { data } = await sb.from("measurements").select("key, val, ts_device")
+    .eq("serial", serial).in("key", keys).gte("ts_device", now - MAX_AGE_SEC)
+    .order("ts_device", { ascending: false }).limit(300);
+  const out: any = {};
+  for (const r of data || []) if (!out[r.key]) out[r.key] = { val: Number(r.val), ts: Number(r.ts_device) };
+  return out;
+}
+
+// ---------- Narodmon.ru: HTTP POST на narodmon.ru/json, два виртуальных устройства (улица и дом) ----------
+async function sendNarodmon(data: any, plan: any, st: any, now: number): Promise<any> {
+  const devices: any[] = [];
+  const newTs: any = {};
+  let count = 0;
+  for (const which of ["out", "in"]) {
+    const d = plan.narodmon[which];
+    if (!d || !d.mac || !d.sensors || !d.sensors.length) continue;
+    const serial = which === "out" ? data.sn_out : data.sn_in;
+    if (!serial) continue;
+    const keys = d.sensors.map((s: any) => s.dk);
+    keys.push("trip");
+    const last = await latestValues(serial, keys, now);
+    if (last.trip && last.trip.val > 0) continue;            // устройство в поездке — не отправляем
+    const sensors: any[] = [];
+    for (const s of d.sensors) {
+      const v = last[s.dk];
+      if (!v) continue;
+      const tsKey = "nm:" + which + ":" + s.dk;
+      if ((st.last_ts || {})[tsKey] === v.ts) continue;      // это значение уже отправляли
+      const val = v.val * (Number(s.mul) || 1);
+      if (!isFinite(val)) continue;
+      sensors.push({ id: s.name, value: Math.round(val * 100) / 100 });
+      newTs[tsKey] = v.ts;
+    }
+    if (sensors.length) { devices.push({ mac: d.mac, sensors }); count += sensors.length; }
+  }
+  if (!devices.length) return { state: "skip", text: "Нечего отправлять: нет свежих реальных данных" };
+  const body = JSON.stringify({ devices });
+  if (body.length > 4000) return { state: "error", text: "Пакет больше 4 КБ, отправка остановлена" };
+  const r = await fetch("https://narodmon.ru/json", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  const txt = (await r.text()).trim();
+  if (r.ok && txt.toUpperCase().startsWith("OK")) return { state: "ok", text: "OK, датчиков: " + count, newTs };
+  return { state: "error", text: "Ответ Narodmon: " + r.status + " " + txt.slice(0, 200) };
+}
+
+// ---------- Sensor.community: отдельный запрос на каждый тип датчика (частицы, температура/влажность, давление) ----------
+async function sendSensorCommunity(data: any, plan: any, st: any, now: number): Promise<any> {
+  const p = plan.sensor_community;
+  const sensors: any[] = p.sensors || [];
+  const keysBy: any = {};
+  for (const s of sensors) {
+    const serial = s.dev === "out" ? data.sn_out : data.sn_in;
+    if (!serial) continue;
+    if (!keysBy[serial]) keysBy[serial] = ["trip"];
+    keysBy[serial].push(s.dk);
+  }
+  const last: any = {};
+  for (const serial of Object.keys(keysBy)) last[serial] = await latestValues(serial, keysBy[serial], now);
+  const groups: any = {};
+  for (const s of sensors) { if (s.grp && s.pin) (groups[s.grp] = groups[s.grp] || []).push(s); }
+  const newTs: any = {};
+  let sent = 0;
+  for (const grp of Object.keys(groups)) {
+    const id = (p.ids && p.ids[grp]) || "";
+    if (!id) continue;                                        // номер датчика не введён — группу пропускаем
+    const vals: any[] = [];
+    const ts: any = {};
+    let pin = 0;
+    for (const s of groups[grp]) {
+      const serial = s.dev === "out" ? data.sn_out : data.sn_in;
+      const L = serial ? last[serial] : null;
+      if (!L || (L.trip && L.trip.val > 0)) continue;         // нет данных или поездка
+      const v = L[s.dk];
+      if (!v) continue;
+      const tsKey = "sc:" + grp + ":" + s.dk;
+      if ((st.last_ts || {})[tsKey] === v.ts) continue;
+      const val = v.val * (Number(s.mul) || 1);
+      if (!isFinite(val)) continue;
+      vals.push({ value_type: s.name, value: String(Math.round(val * 100) / 100) });
+      ts[tsKey] = v.ts;
+      pin = Number(s.pin);
+    }
+    if (!vals.length) continue;
+    const r = await fetch("https://api.sensor.community/v1/push-sensor-data/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Pin": String(pin), "X-Sensor": SC_PREFIX + id },
+      body: JSON.stringify({ software_version: "AirVisionPro", sensordatavalues: vals }),
+    });
+    if (!r.ok) {
+      const txt = (await r.text()).slice(0, 200);
+      return { state: "error", text: "Ответ Sensor.community (" + grp + "): " + r.status + " " + txt, newTs };
+    }
+    Object.assign(newTs, ts);
+    sent += vals.length;
+  }
+  if (!sent) return { state: "skip", text: "Нечего отправлять: нет свежих реальных данных или не введены номера датчиков" };
+  return { state: "ok", text: "OK, значений: " + sent, newTs };
+}
+
+// ---------- Один пользователь ----------
+async function handleOwner(owner: string, data: any, now: number, log: string[]) {
+  const plan = data.cloud && data.cloud.plan;
+  if (!plan) return;
+  const interval = Math.max(1, Number(plan.interval_min) || 4);   // меньше минуты не принимаем
+  for (const platform of ["narodmon", "sensor_community"]) {
+    if (!plan[platform]) continue;                                 // платформа не включена
+    const st = await getState(owner, platform);
+    if (st.blocked_until > now) continue;                          // остановлено после ошибки
+    if (now - st.last_run < interval * 60 - 20) continue;          // ещё не пора
+    let res: any;
+    try {
+      res = platform === "narodmon"
+        ? await sendNarodmon(data, plan, st, now)
+        : await sendSensorCommunity(data, plan, st, now);
+    } catch (e) { res = { state: "error", text: "Сбой: " + String(e).slice(0, 200) }; }
+    st.last_run = now;
+    st.last_result = res.text;
+    if (res.state === "error") st.blocked_until = now + BLOCK_SEC;
+    if (res.newTs) st.last_ts = Object.assign({}, st.last_ts || {}, res.newTs);
+    await putState(st);
+    log.push(owner.slice(0, 8) + " " + platform + ": " + res.state + " — " + res.text);
+  }
+}
+// ---------- Справочник типов датчиков Narodmon (раз в сутки) ----------
+async function syncTypes(now: number, log: string[]) {
+  const st = await getState(NIL, "narodmon_types");
+  if (now - st.last_run < 86400) return;
+  st.last_run = now;
+  try {
+    const req: any = { cmd: "appInit", version: "1.0", platform: "edge", uuid: NM_UUID, lang: "ru", utc: 0 };
+    const key = Deno.env.get("NARODMON_API_KEY");                  // нужен, только если Narodmon потребует ключ
+    if (key) req.api_key = key;
+    const r = await fetch("http://api.narodmon.ru/", { method: "POST", body: JSON.stringify(req) });
+    const j: any = await r.json();
+    if (Array.isArray(j.types) && j.types.length) {
+      const rows = j.types.map((t: any) => ({
+        type: Number(t.type), name: String(t.name), unit: String(t.unit ?? ""), updated_at: new Date().toISOString(),
+      }));
+      await sb.from("narodmon_types").upsert(rows);
+      st.last_result = "Справочник типов Narodmon: " + rows.length;
+    } else {
+      st.last_result = "Narodmon не вернул список типов: " + JSON.stringify(j).slice(0, 200);
+    }
+  } catch (e) { st.last_result = "Сбой: " + String(e).slice(0, 200); }
+  await putState(st);
+  log.push("types: " + st.last_result);
+}
+
+Deno.serve(async () => {
+  const now = Math.floor(Date.now() / 1000);
+  const log: string[] = [];
+  const { data: rows } = await sb.from("settings").select("owner, data");
+  for (const row of rows || []) {
+    try { await handleOwner(row.owner, row.data || {}, now, log); }
+    catch (e) { log.push("owner error: " + String(e).slice(0, 200)); }
+  }
+  await syncTypes(now, log);
+  return new Response(log.join("\n") || "ok");
+});
+/* ===== Облачный мониторинг, часть 3 =====
+   1) выбор источника давления для Sensor.community: «Авто» = уличное, «Домашнее» = вручную;
+   2) строка статуса на каждой карточке (когда была проверка и чем закончилась) — читает таблицу cloud_state;
+   3) затемнение периода «Поездка» на графиках: берётся из ключа trip, который присылает устройство.
+      Устройство само ставит trip больше 0, когда его забрали из дома. */
+
+/* 1. Давление: источник выбирается в карточке и учитывается в плане отправки */
+const _cloudBuildPlanP3 = cloudBuildPlan;
+cloudBuildPlan = function () {
+  const plan = _cloudBuildPlanP3();
+  const sc = plan.sensor_community;
+  if (!sc) return plan;
+  const st = SETTINGS.cloud.platforms.sensor_community;
+  const src = st.press_src === "in" ? "in" : "out";
+  sc.sensors = sc.sensors.filter(x => x.kind !== "pressure");
+  for (const s of cloudSensors(src)) {
+    if (CLOUD_BLOCKED.indexOf(s.pk) >= 0) continue;
+    const r = cloudResolve("sensor_community", s);
+    if (!r || r.kind !== "pressure") continue;
+    if (src === "out" && (!st.out.send || st.out.off[s.dk])) continue;
+    sc.sensors.push({ dev: src, dk: s.dk, kind: "pressure", name: r.n, mul: r.mul, pin: r.pin, grp: r.grp });
+    break;
+  }
+  return plan;
+};
+const _cloudSaveP3 = cloudSave;
+cloudSave = async function () {
+  const sel = document.getElementById("cl_press_src");
+  const ps = sel ? sel.value : null;
+  await _cloudSaveP3();
+  const sc = SETTINGS.cloud && SETTINGS.cloud.platforms && SETTINGS.cloud.platforms.sensor_community;
+  if (ps !== null && sc) {
+    sc.press_src = ps;
+    SETTINGS.cloud.plan = cloudBuildPlan();
+    await saveSettings();
+  }
+};
+
+/* 2. Страница: выбор источника давления и строки статуса */
+async function cloudStatusLoad() {
+  let rows = [];
+  try {
+    const r = await client.from("cloud_state").select("platform,last_run,blocked_until,last_result");
+    rows = r.data || [];
+  } catch (e) {}
+  const now = Math.floor(Date.now() / 1000);
+  CLOUD_PLATFORMS.forEach(p => {
+    const on = document.getElementById("cl_on_" + p.id);
+    if (!on) return;
+    let el = document.getElementById("cl_status_" + p.id);
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "cl_status_" + p.id;
+      el.className = "set-hint";
+      on.parentNode.insertAdjacentElement("afterend", el);
+    }
+    const row = rows.find(x => x.platform === p.id);
+    if (!row || !Number(row.last_run)) { el.textContent = prT("cl_st_none", "Отправок ещё не было."); return; }
+    const when = new Date(Number(row.last_run) * 1000).toLocaleString();
+    if (Number(row.blocked_until) > now) {
+      el.textContent = prT("cl_st_block", "Отправка остановлена до") + " " +
+        new Date(Number(row.blocked_until) * 1000).toLocaleTimeString() + ". " + (row.last_result || "");
+    } else {
+      el.textContent = prT("cl_st_last", "Последняя проверка:") + " " + when + " — " + (row.last_result || "");
+    }
+  });
+}
+const _cloudRenderP3 = cloudRender;
+cloudRender = function (live) {
+  _cloudRenderP3(live);
+  try {
+    const inp = document.getElementById("cl_scid_press");
+    if (inp && inp.parentNode) {
+      const saved = (SETTINGS.cloud && SETTINGS.cloud.platforms && SETTINGS.cloud.platforms.sensor_community) || {};
+      const cur = saved.press_src === "in" ? "in" : "out";
+      const r = document.createElement("div");
+      r.className = inp.parentNode.className;
+      r.innerHTML = '<label>' + prT("cl_press_src_l", "Давление берётся с") + '</label>' +
+        '<select class="set-input" id="cl_press_src">' +
+        '<option value="out"' + (cur === "out" ? " selected" : "") + '>' + prT("cl_press_auto", "Авто (уличное устройство)") + '</option>' +
+        '<option value="in"' + (cur === "in" ? " selected" : "") + '>' + prT("cl_press_in", "Домашнее устройство") + '</option>' +
+        '</select>';
+      inp.parentNode.parentNode.insertBefore(r, inp.parentNode.nextSibling);
+    }
+    cloudStatusLoad();
+  } catch (e) { console.warn("cloud decorate3:", e); }
+};
+
+/* 3. Поездка на графиках: серое затемнение периода и подпись.
+   Окно графика (from, to, step) запоминается при построении, периоды берутся из записей trip больше 0.
+   Если что-то не получилось, график рисуется как обычно. */
+let TRIP_WIN = null, TRIP_SPANS = [];
+async function tripLoad(from, to) {
+  const serials = [];
+  if (SETTINGS.config_items.dev_out === true && SETTINGS.sn_out) serials.push(SETTINGS.sn_out);
+  if (SETTINGS.config_items.dev_in === true && SETTINGS.sn_in) serials.push(SETTINGS.sn_in);
+  if (!serials.length) return [];
+  const { data } = await client.from("measurements").select("ts_device")
+    .in("serial", serials).eq("key", "trip").gt("val", 0)
+    .gte("ts_device", from).lte("ts_device", to)
+    .order("ts_device", { ascending: true }).limit(1000);
+  const spans = [];
+  let cur = null;
+  (data || []).forEach(r => {
+    const ts = Number(r.ts_device);
+    if (cur && ts - cur.end <= 3600) cur.end = ts;
+    else { cur = { start: ts, end: ts }; spans.push(cur); }
+  });
+  spans.forEach(s => { s.end += 300; });
+  return spans;
+}
+const _addFeelsLikeTrip = addFeelsLike;
+addFeelsLike = async function (p, datasets, from, to, step) {
+  TRIP_WIN = { from: from, to: to, step: step };
+  try { TRIP_SPANS = await tripLoad(from, to); } catch (e) { TRIP_SPANS = []; }
+  return _addFeelsLikeTrip.apply(this, arguments);
+};
+Chart.register({
+  id: "tripShade",
+  beforeDatasetsDraw(chart) {
+    if (typeof currentView === "undefined" || currentView !== "param") return;
+    if (!TRIP_WIN || !TRIP_SPANS.length) return;
+    const xs = chart.scales.x || Object.values(chart.scales).find(s => s.axis === "x");
+    if (!xs) return;
+    const a = chart.chartArea, ctx = chart.ctx;
+    TRIP_SPANS.forEach(sp => {
+      let x0 = xs.getPixelForValue((sp.start - TRIP_WIN.from) / TRIP_WIN.step);
+      let x1 = xs.getPixelForValue((sp.end - TRIP_WIN.from) / TRIP_WIN.step);
+      x0 = Math.max(a.left, x0);
+      x1 = Math.min(a.right, x1);
+      if (!(x1 > x0)) return;
+      ctx.save();
+      ctx.fillStyle = "rgba(138,147,166,0.18)";
+      ctx.fillRect(x0, a.top, x1 - x0, a.bottom - a.top);
+      if (x1 - x0 > 60) {
+        ctx.fillStyle = "rgba(138,147,166,0.9)";
+        ctx.font = "11px sans-serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(prT("trip_lbl", "Поездка"), x0 + 4, a.top + 3);
+      }
+      ctx.restore();
+    });
+  }
+});
