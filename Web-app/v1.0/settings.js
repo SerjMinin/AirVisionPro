@@ -9,7 +9,6 @@ let SETTINGS = null;
 
 const API_SERVICES = [
   { id:"narodmon",        name:"Narodmon.ru" },
-  { id:"thingspeak",      name:"ThingSpeak" },
   { id:"sensor_community",name:"Sensor.community" }
 ];
 
@@ -24,8 +23,8 @@ const CONFIG_ITEMS = [
 
 const EXTRA_TABS = [
   { id:"geomag", i18n:"tab_geomag" },
-  { id:"api",    label:"API OUT" },
   { id:"advice", i18n:"tab_advice" },
+  { id:"api",    label:"Облачный мониторинг" },
   { id:"smarthome", i18n:"tab_smart" }
 ];
 
