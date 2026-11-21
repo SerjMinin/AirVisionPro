@@ -1702,7 +1702,7 @@ buildParamSettings = function () {
   const body = levels.map((name, i) =>
     '<tr><td style="padding:3px 6px 3px 0;">' + name + '</td>' +
     PM_KINDS.map(k => i === 0
-      ? '<td style="padding:3px 4px;text-align:center;">0</td>'
+      ? '<td style="padding:3px 4px;"><input class="set-input" type="text" value="0" disabled style="width:100%;min-width:54px;text-align:center;border:1px solid #8a93a6;color:#8a93a6;opacity:1;"></td>'
       : '<td style="padding:3px 4px;"><input id="pm_thr_' + k.id + '_' + i +
         '" class="set-input" type="number" step="any" min="0" style="width:100%;min-width:54px;" value="' +
         c.thr[k.id][i] + '"></td>').join("") + '</tr>'

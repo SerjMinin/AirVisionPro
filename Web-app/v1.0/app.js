@@ -2447,8 +2447,8 @@ refreshView = function () {
   if (!note) {
     note = document.createElement("div");
     note.id = "dev-note";
-    note.style.cssText = "color:#8a93a6;font-size:14px;margin-bottom:4px;";
-    title.parentNode.insertBefore(note, title);
+    note.style.cssText = "color:#8a93a6;font-size:14px;margin:4px 0;";
+    title.parentNode.insertBefore(note, title.nextSibling);
   }
   note.textContent = prT("api_dev_note", "Раздел в разработке.");
   note.style.display = (currentView === "api") ? "block" : "none";
