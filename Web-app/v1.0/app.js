@@ -2438,3 +2438,18 @@ radPick = async function (list, winSec) {
   }
   return null;
 };
+const _prevRefreshViewNote = refreshView;
+refreshView = function () {
+  _prevRefreshViewNote();
+  const title = document.getElementById("chart-title");
+  if (!title || !title.parentNode) return;
+  let note = document.getElementById("dev-note");
+  if (!note) {
+    note = document.createElement("div");
+    note.id = "dev-note";
+    note.style.cssText = "color:#8a93a6;font-size:14px;margin-bottom:4px;";
+    title.parentNode.insertBefore(note, title);
+  }
+  note.textContent = prT("api_dev_note", "Раздел в разработке.");
+  note.style.display = (currentView === "api") ? "block" : "none";
+};

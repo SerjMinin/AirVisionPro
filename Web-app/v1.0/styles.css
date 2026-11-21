@@ -515,3 +515,4 @@ input[type="number"]::-webkit-inner-spin-button{
 #advice-body .set-section:last-child { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
 #advice-body .adv-scroll { flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; padding-right: 6px; }
 #advice-panel > div:last-child { flex: 0 0 auto; margin-top: 12px !important; }
+input[id^="pm_thr_"] { text-align: center !important; }
