@@ -2453,3 +2453,91 @@ refreshView = function () {
   note.textContent = prT("api_dev_note", "Раздел в разработке.");
   note.style.display = (currentView === "api") ? "block" : "none";
 };
+/* ===== Советы про полярное сияние: a117–a121 ===== */
+const ADV_AUR_COLORS = { a117:"#37d67a", a118:"#37d67a", a119:"#37d67a", a120:"#37d67a", a121:"rgb(8,232,222)" };
+const ADV_AUR_FRESH_MIN = 10;   /* запись о силе сияния старше стольких минут считается устаревшей */
+const advAur = { pct:null, kpFail:0, busyKp:false, busyPct:false };
+const advAurOff = id => !!(SETTINGS && SETTINGS.advice && SETTINGS.advice.disabled && SETTINGS.advice.disabled[id] === true);
+
+/* группа 1: только прогноз, ближайший срок */
+async function advAurKpUpdate() {
+  if (advAur.busyKp || !SETTINGS) return;
+  const now = Math.floor(Date.now() / 1000);
+  if (now - advAur.kpFail < 600) return;
+  advAur.busyKp = true;
+  let ok = false, want = null;
+  try {
+    const ci = SETTINGS.config_items || {};
+    if (ci.geomag !== false) {
+      const day = 86400;
+      const today = Math.floor((now + TZ_OFFSET) / day);
+      const mlat = geomagLat(SETTINGS.lat, SETTINGS.lon);
+      const pts = normalizeKp(await getForecastJson());
+      let best = -1;
+      pts.forEach(p => {
+        if (isNaN(p.kp) || isNaN(p.ts)) return;
+        const s = String(p.obs || "").toLowerCase();
+        if (s.includes("observ") || s.includes("estim")) return;   /* это факт, не показываем */
+        if (p.ts + 3 * 3600 <= now) return;                        /* отрезок уже прошёл */
+        if (!auroraVisible(p.kp, mlat)) return;
+        const d = Math.max(0, Math.floor((p.ts + TZ_OFFSET) / day) - today);
+        if (d <= 3 && (best < 0 || d < best)) best = d;
+      });
+      if (best >= 0) want = ["a120", "a119", "a118", "a117"][best];
+    }
+    ok = true;
+  } catch (e) { console.warn("advice aurora kp:", e); advAur.kpFail = now; }
+  if (ok) ["a117", "a118", "a119", "a120"].forEach(id => { advTick.active[id] = (id === want) && !advAurOff(id); });
+  advAur.busyKp = false;
+}
+
+/* группа 2: свежий процент силы сияния */
+async function advAurPctUpdate() {
+  if (advAur.busyPct || !SETTINGS) return;
+  advAur.busyPct = true;
+  let ok = false, pct = null;
+  try {
+    const ci = SETTINGS.config_items || {};
+    if (ci.aurora !== false && !advAurOff("a121")) {
+      const since = new Date(Date.now() - ADV_AUR_FRESH_MIN * 60 * 1000).toISOString();
+      const { data, error } = await client.from("geomag").select("ts_utc, kp")
+        .eq("source", "aurora").gte("ts_utc", since)
+        .order("ts_utc", { ascending: false }).limit(1);
+      if (error) throw error;
+      if (data && data.length) { const v = Number(data[0].kp); if (v > 20) pct = v; }
+    }
+    ok = true;
+  } catch (e) { console.warn("advice aurora pct:", e); }
+  if (ok) { advAur.pct = pct; advTick.active.a121 = (pct !== null); }
+  advAur.busyPct = false;
+}
+
+/* перед каждым показом уточняем процент */
+const _advNextPrevAur = advNext;
+advNext = async function () {
+  if (advTick.active.a121) await advAurPctUpdate();
+  _advNextPrevAur();
+};
+
+/* подставляем число в текст и красим строку */
+const _advShowPrevAur = advShow;
+advShow = function (id) {
+  const it = ADVICE_LIST.find(x => x.id === id);
+  const old = it ? it.text : null;
+  if (id === "a121" && it && advAur.pct !== null) it.text = old.replace("xx", String(Math.round(advAur.pct)));
+  _advShowPrevAur(id);
+  if (it && old !== null) it.text = old;
+  const c = ADV_AUR_COLORS[id];
+  const el = document.getElementById("advice");
+  if (c && el) el.style.color = c;
+};
+
+async function advAurTick() {
+  if (document.hidden || !SETTINGS) return;
+  Object.keys(ADV_AUR_COLORS).forEach(id => { if (ADVICE_READY.indexOf(id) < 0) ADVICE_READY.push(id); });
+  await advAurKpUpdate();
+  await advAurPctUpdate();
+  if (!advTick.cur && Object.keys(advTick.active).some(i => advTick.active[i])) _advNextPrevAur();
+}
+setTimeout(advAurTick, 6000);
+setInterval(advAurTick, 60000);
